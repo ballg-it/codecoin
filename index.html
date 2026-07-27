@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CodeCoin — QR System</title>
+<!-- PWA: path ทุกอันเป็น relative เพราะ deploy บน GitHub Pages แบบ subpath (/codecoin/) -->
+<meta name="theme-color" content="#0B2B22">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;700&family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -199,6 +204,14 @@
   }
   .mute-btn.off { border-color:var(--line); color:var(--muted); }
 
+  /* ---------- ป้ายบอกสถานะออฟไลน์ (มุมซ้ายล่าง — ไม่ชนปุ่ม mute) ---------- */
+  .net-badge {
+    position:fixed; left:14px; bottom:14px; z-index:70; display:none;
+    background:#3A2A0A; border:1px solid var(--gold); border-radius:20px;
+    color:#FDE68A; font-size:12px; padding:6px 12px; pointer-events:none;
+  }
+  .net-badge.show { display:block; }
+
   /* ---------- เอฟเฟกต์กะพริบเต็มจอ (โปร่งใส ไม่รับคลิก ไม่แตะ layout) ---------- */
   .fx-flash { position:fixed; inset:0; pointer-events:none; z-index:50; opacity:0; }
   .fx-flash.green { background:#4ADE80; animation:fxFade .35s ease-out; }
@@ -224,13 +237,14 @@
 <div class="app">
   <header>
     <h1>CodeCoin</h1>
-    <p>QR SYSTEM — PCB EDITION REV 2.1</p>
+    <p>QR SYSTEM — PCB EDITION REV 2.2</p>
   </header>
   <div id="dataStatus"></div>
   <div id="screen"><div class="card"><p class="content">⏳ กำลังโหลดข้อมูล...</p></div></div>
   <div class="footer-note">ต้นแบบระบบ QR — เปิดผ่าน ?space=รหัสช่อง</div>
 </div>
 <button class="mute-btn" id="muteBtn" title="เปิด/ปิดเสียง">🔊</button>
+<div class="net-badge" id="netBadge">⚡ โหมดออฟไลน์</div>
 
 <script>
 /* =====================================================================
@@ -426,6 +440,144 @@ function logAnswer(kind, id, level, correct, extra) {
 }
 
 /* =====================================================================
+   ส่วนที่ 3.5: ความทนต่อเหตุไม่คาดฝัน (refresh / เน็ตล่ม / จอดับ / สแกนซ้ำ)
+   ---------------------------------------------------------------------
+   ทุกอย่างในบล็อกนี้ degrade ได้เอง — เบราว์เซอร์ไหนไม่รองรับก็เล่นได้ปกติ
+   ===================================================================== */
+
+// รหัสประจำหน้าปัจจุบัน — ใช้แยกว่า cc_active/cc_done เป็นของช่องไหน
+// (หน้าอัปเกรดนับเป็นคนละหน้ากับหน้าซื้อ แม้ ?space= จะเดียวกัน)
+const routeKey = () => (param || "menu") + (upgradeParam ? "|u" + upgradeParam : "");
+
+// กุญแจอ้างอิงคำถาม/โจทย์แบบทนข้อมูลเปลี่ยน (ข้อมูลสำรองในไฟล์นี้ไม่มี question_id)
+const qKey = q => q.question_id || `${q.space_id}#${q.level}#${String(q.question_th).slice(0, 60)}`;
+const bugKey = b => b.bug_id || String(b.question_th).slice(0, 60);
+const findQuestion = key => QUESTIONS.find(q => qKey(q) === key);
+
+/* ---------- สถานะข้ามการ refresh (sessionStorage — ปิดแท็บแล้วหายเอง) ----------
+   cc_active = คำถามที่กำลังจับเวลาอยู่ (มี deadline สัมบูรณ์ → refresh แล้วเวลาเดินต่อ)
+   cc_done   = ช่องที่เพิ่งเล่นจบ (กันเผลอสแกนซ้ำในเทิร์นเดียว)                     */
+const Session = (() => {
+  const AK = "cc_active", DK = "cc_done";
+  const RESCAN_MS = 90000;   // สแกนช่องเดิมซ้ำภายในกี่มิลลิวินาที = ขึ้นหน้าเตือน
+  const read = k => { try { return JSON.parse(sessionStorage.getItem(k) || "null"); } catch (e) { return null; } };
+  const write = (k, v) => { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+
+  return {
+    // เริ่มจับเวลา: เก็บ deadline เป็น timestamp จริง ไม่ใช่จำนวนวินาทีที่เหลือ
+    begin(rec, seconds) {
+      const now = Date.now();
+      const full = { ...rec, startedAt: now, deadlineTs: seconds > 0 ? now + seconds * 1000 : 0 };
+      write(AK, full);
+      return full;
+    },
+    active(key) {
+      const a = read(AK);
+      return a && a.key === key ? a : null;
+    },
+    patch(o) { const a = read(AK); if (a) write(AK, { ...a, ...o }); },
+    clear() { try { sessionStorage.removeItem(AK); } catch (e) {} },
+    // จบ flow ของหน้านี้: เลิกจับเวลา + จดเวลาไว้กันสแกนซ้ำ
+    done(key) { this.clear(); this.markDone(key); },
+    markDone(key) { const d = read(DK) || {}; d[key] = Date.now(); write(DK, d); },
+    // คืนจำนวนวินาทีที่ยังเหลือของช่วงกันสแกนซ้ำ (0 = เข้าได้เลย)
+    doneRecently(key) {
+      const t = (read(DK) || {})[key];
+      if (!t) return 0;
+      const left = RESCAN_MS - (Date.now() - t);
+      return left > 0 ? Math.ceil(left / 1000) : 0;
+    },
+    allowAgain(key) { const d = read(DK) || {}; delete d[key]; write(DK, d); },
+    reset() { try { sessionStorage.clear(); } catch (e) {} },
+  };
+})();
+
+/* ---------- Wake Lock — กันจอดับระหว่างจับเวลา (ไม่รองรับก็ไม่พัง) ---------- */
+const Wake = (() => {
+  let lock = null, want = false;
+  const acquire = () => {
+    if (!want || lock || !navigator.wakeLock) return;
+    navigator.wakeLock.request("screen")
+      .then(l => {
+        // จบเวลาไปแล้วระหว่างรอ promise — ปล่อยทิ้งทันที ไม่งั้นจอค้างสว่างทั้งที่เลิกใช้แล้ว
+        if (!want) { try { l.release(); } catch (e) {} return; }
+        lock = l;
+        l.addEventListener("release", () => { lock = null; });
+      })
+      .catch(() => {});   // ไม่รองรับ / ไม่ใช่ https / แท็บไม่ active — ปล่อยผ่าน
+  };
+  // สลับแอปแล้วกลับมา ระบบจะปล่อย lock ให้เอง ต้องขอใหม่
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") acquire();
+  });
+  return {
+    on() { want = true; acquire(); },
+    off() { want = false; if (lock) { try { lock.release(); } catch (e) {} lock = null; } },
+  };
+})();
+
+/* ---------- ป้ายออฟไลน์ + ลงทะเบียน Service Worker ---------- */
+const netBadge = document.getElementById("netBadge");
+const paintNet = () => netBadge.classList.toggle("show", !navigator.onLine);
+window.addEventListener("online", paintNet);
+window.addEventListener("offline", paintNet);
+paintNet();
+
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  window.addEventListener("load", () => {
+    try {
+      navigator.serviceWorker.register("./sw.js", { scope: "./" })
+        .catch(e => console.warn("Service Worker ไม่ทำงาน (เล่นออนไลน์ได้ตามปกติ):", e));
+    } catch (e) { console.warn("เบราว์เซอร์นี้ลงทะเบียน SW ไม่ได้:", e); }
+  });
+}
+
+/* ---------- หน้า error แทนจอขาว ---------- */
+function showNotFound() {
+  screen.innerHTML = `
+    <div class="card">
+      <span class="zone-tag" style="background:var(--bad)">สแกนไม่สำเร็จ</span>
+      <h2>❌ ไม่พบช่องนี้</h2>
+      <p class="content">QR อาจเบลอหรือสแกนผิดใบ — รหัสที่อ่านได้คือ "<b id="badId"></b>"</p>
+      <button class="btn" id="errRescan">📷 สแกนใหม่</button>
+      <button class="btn ghost" id="errHome">🏠 หน้าแรก</button>
+    </div>`;
+  document.getElementById("badId").textContent = param || "(ไม่มีรหัส)";
+  document.getElementById("errRescan").onclick = () => {
+    if (history.length > 1) history.back(); else window.close();
+  };
+  document.getElementById("errHome").onclick = () => { location.search = ""; };
+}
+
+let fatalShown = false;
+function showFatal(detail) {
+  if (fatalShown) return;   // กันเด้งซ้ำจาก error ที่เกิดทุกวินาทีใน timer
+  fatalShown = true;
+  screen.innerHTML = `
+    <div class="card">
+      <span class="zone-tag" style="background:var(--bad)">ระบบสะดุด</span>
+      <h2>⚠️ เกิดข้อผิดพลาด</h2>
+      <p class="content">ระบบทำงานผิดพลาดกลางคัน — กด "เริ่มใหม่" แล้วสแกนช่องเดิมอีกครั้งได้เลย</p>
+      <p class="content" style="font-size:11.5px;color:var(--muted);margin-top:6px;" id="fatalDetail"></p>
+      <button class="btn" id="fatalReset">🔄 เริ่มใหม่</button>
+      <button class="btn ghost" id="fatalHome">🏠 หน้าแรก</button>
+    </div>`;
+  document.getElementById("fatalDetail").textContent = String(detail || "").slice(0, 200);
+  document.getElementById("fatalReset").onclick = () => { Session.reset(); location.reload(); };
+  document.getElementById("fatalHome").onclick = () => { Session.reset(); location.search = ""; };
+}
+
+window.addEventListener("error", e => {
+  if (!e || (!e.error && !e.message)) return;   // ข้าม error ของ resource (ฟอนต์โหลดไม่ได้ตอนออฟไลน์)
+  showFatal(e.message || e.error);
+});
+window.addEventListener("unhandledrejection", e => {
+  console.warn("promise ล้มเหลว:", e.reason);
+  // เด้งหน้า error เฉพาะตอนจอว่างจริง ๆ — ไม่ไปขัดจังหวะเกมที่กำลังเล่นอยู่
+  if (!screen.children.length) showFatal((e.reason && e.reason.message) || e.reason);
+});
+
+/* =====================================================================
    ระบบเสียง (Web Audio ล้วน — ไม่มีไฟล์เสียง/CDN, รันบน GitHub Pages ได้)
    - AudioContext ถูกสร้าง/ปลดล็อกจาก user gesture แรกเท่านั้น (กัน autoplay block)
    - เสียงติ๊กจาก timer จะเงียบไปเองจนกว่าผู้เล่นแตะจอครั้งแรก
@@ -441,7 +593,7 @@ const SFX = (() => {
     try {
       if (!ctx && AC) ctx = new AC();
       if (!ctx) return;
-      if (ctx.state !== "running") ctx.resume();
+      if (ctx.state !== "running") ctx.resume().catch(() => {});
       if (!warmed) {  // silent buffer — เคล็ดปลุกเสียง iOS ให้พร้อมก่อนโน้ตจริง
         const b = ctx.createBuffer(1, 1, 22050);
         const s = ctx.createBufferSource();
@@ -457,7 +609,7 @@ const SFX = (() => {
   // เล่นโน้ตเดียว: envelope ขึ้นเร็ว-จางลง กันเสียงคลิกป๊อก
   function tone(freq, dur, { type = "sine", vol = 0.15, when = 0 } = {}) {
     if (muted || !ctx) return;                       // ก่อนแตะจอครั้งแรก — เงียบ (กัน autoplay)
-    if (ctx.state !== "running") { try { ctx.resume(); } catch (e) {} }  // เร่งปลุก แล้ว schedule ต่อ
+    if (ctx.state !== "running") { try { ctx.resume().catch(() => {}); } catch (e) {} }  // เร่งปลุก แล้ว schedule ต่อ
     try {                                            // โน้ตที่ schedule ตอน suspend จะดังเองเมื่อ resume
       const t0 = ctx.currentTime + when;
       const o = ctx.createOscillator(), g = ctx.createGain();
@@ -543,7 +695,8 @@ function weightedPick(list) {
 // ---------- หน้าช่องทรัพย์สิน ----------
 // flow: เลือกโหมดก่อน (ยังไม่เห็นคำถาม) → ปกติ = คำถาม L1 ทันที /
 //        มั่นใจ = modal ยืนยัน + countdown → คำถาม L4 (ยากกว่า, คนละชุด)
-function renderSpace(id) {
+// resume = record จาก Session (มีเมื่อผู้เล่น refresh กลางคำถาม) — กู้ข้อเดิม+เวลาเดิม
+function renderSpace(id, resume) {
   const sp = SPACES[id];
   const l1pool = QUESTIONS.filter(q => q.space_id === id && q.level === 1);
   const l4pool = QUESTIONS.filter(q => q.space_id === id && q.level === CONFIG.bet_confident.question_level);
@@ -631,8 +784,22 @@ function renderSpace(id) {
         "⚠️ ยังไม่มีคำถามมั่นใจสำหรับช่องนี้ — ใช้คำถามปกติแทน");
   }
 
+  // ---- หน้าหมุนวงล้อแบบยืนแยก (ใช้ตอน refresh หนีวงล้อ — โหลดกลับมาเจอวงล้อรออยู่) ----
+  function renderRouletteStage() {
+    screen.innerHTML = headerCard + `
+      <div class="card">
+        <div class="result lose">💥 มั่นใจแต่พลาด — ระบบพัง! ต้องสุ่มผลแก้บั๊ก</div>
+        <button class="btn" id="spinBtn">🎰 หมุนแก้บั๊ก</button>
+        <div id="rouletteBox"></div>
+      </div>`;
+    setContent();
+    document.getElementById("spinBtn").onclick = () => spinFailRoulette(sp, id);
+  }
+
   // ---- การ์ดคำถาม (ใช้ทั้ง 2 โหมด) time_limit มาจากตัวคำถามเอง (L4 = 25 วิ) ----
-  function startQuiz(mode, q, level, toast) {
+  function startQuiz(mode, q, level, toast, sess) {
+    // จดสถานะไว้ก่อนเริ่มจับเวลา — refresh แล้วกลับมาได้ข้อเดิม เวลาที่เหลือเท่าเดิม
+    sess = sess || Session.begin({ route: "space", key: routeKey(), mode, level, qkey: qKey(q) }, q.time_limit);
     screen.innerHTML = `
       <div class="card">
         ${zoneTag(sp.zone)}
@@ -657,6 +824,8 @@ function renderSpace(id) {
 
       // เลน มั่นใจ+ผิด — ไม่รู้ยอดทันที ต้องหมุนวงล้อสุ่มผลแก้บั๊ก (คงพฤติกรรม REV 1.6)
       if (!ok && mode === "confident") {
+        // ยังไม่เคลียร์ cc_active — เทิร์นยังไม่จบจนกว่าจะหมุนวงล้อ (กัน refresh หนีค่าปรับ)
+        Session.patch({ phase: "roulette" });
         document.getElementById("result").innerHTML = `
           <div class="result lose">💥 มั่นใจแต่พลาด — ระบบพัง! ต้องสุ่มผลแก้บั๊ก</div>
           <button class="btn" id="spinBtn">🎰 หมุนแก้บั๊ก</button>
@@ -665,6 +834,7 @@ function renderSpace(id) {
         return;
       }
 
+      Session.done(routeKey());   // จบ flow ของช่องนี้
       const pay = payPrice(mode, ok).toLocaleString();
       let msg;
       if (ok) msg = mode === "confident"
@@ -672,9 +842,16 @@ function renderSpace(id) {
         : `<div class="result win">🎉 ตอบถูก! ซื้อได้ในราคา <b>${pay}</b> (ลด ${CONFIG.discount_percent}%)</div>`;
       else msg = `<div class="result lose">ตอบผิด — ซื้อได้ในราคาเต็ม ${sp.price.toLocaleString()} TechCoin</div>`;
       document.getElementById("result").innerHTML = msg;
-    });
+    }, false, sess);
   }
 
+  // กู้สถานะเดิมถ้ามี (refresh กลางคัน) ไม่งั้นเริ่มที่หน้าเลือกโหมดตามปกติ
+  if (resume) {
+    if (resume.phase === "roulette") { renderRouletteStage(); return; }
+    const q = findQuestion(resume.qkey);
+    if (q) { startQuiz(resume.mode, q, resume.level, undefined, resume); return; }
+    Session.clear();   // คำถามหายจากคลัง (ข้อมูลเปลี่ยน) — เริ่มใหม่ดีกว่าค้าง
+  }
   renderModeSelect();
 }
 
@@ -714,11 +891,12 @@ function spinFailRoulette(sp, spaceId) {
     if (final.mult < 1)      { SFX.correct(); flash("green"); }   // รอดถูกกว่าราคาเต็ม
     else if (final.mult > 1 || final.skip) { SFX.wrong(); flash("red"); }
     logAnswer("fail_roulette", spaceId, 1, false, { roulette_label: final.label, pay });
+    Session.done(routeKey());   // วงล้อหยุดแล้ว = จบเทิร์นของช่องนี้จริง ๆ
   })();
 }
 
 // ---------- หน้าอัปเกรดทรัพย์สิน (?space={id}&upgrade={level}) ----------
-function renderUpgrade(id, level) {
+function renderUpgrade(id, level, resume) {
   const sp = SPACES[id];
   const name = CONFIG.upgrade_names[level];
 
@@ -746,18 +924,21 @@ function renderUpgrade(id, level) {
     return;
   }
 
-  const q = pool[Math.floor(Math.random() * pool.length)];
+  // refresh กลางคัน → ใช้คำถามข้อเดิม (ไม่ใช่สุ่มใหม่) แล้วนับเวลาต่อจาก deadline เดิม
+  const q = (resume && findQuestion(resume.qkey)) || pool[Math.floor(Math.random() * pool.length)];
+  const sess = resume || Session.begin({ route: "upgrade", key: routeKey(), level, qkey: qKey(q) }, q.time_limit);
   screen.innerHTML = infoCard + `
     <div class="card">
       <div id="timerBox"></div>
       <p class="q" id="qText"></p>
       <div id="choices"></div>
       <div id="result"></div>
-      <button class="btn ghost" onclick="location.search='?space=${id}'">กลับหน้าช่อง</button>
+      <button class="btn ghost" onclick="Session.clear();location.search='?space=${id}'">กลับหน้าช่อง</button>
     </div>`;
   document.getElementById("qText").textContent = "Q: " + q.question_th;
 
   renderQuiz(q, (ok, timedOut) => {
+    Session.done(routeKey());
     logAnswer("upgrade", id, level, ok);
     document.getElementById("result").innerHTML = ok
       ? `<div class="result win pop">🎉 ตอบถูก! จ่าย <b>${sp.upgrade_cost.toLocaleString()}</b> เพื่ออัปเกรดเป็น "${name}" — ค่าเช่าใหม่ <b>${sp.rent[level].toLocaleString()}</b> TechCoin</div>`
@@ -765,15 +946,19 @@ function renderUpgrade(id, level) {
 
     if (ok) { SFX.celebrate(); confetti(); }         // อัปเกรดสำเร็จ = highlight moment
     else if (!timedOut) { SFX.wrong(); flash("red"); }
-  });
+  }, false, sess);
 }
 
 // ---------- หน้าช่องเหตุการณ์ ----------
-function renderEvent(zone) {
-  const ev = weightedPick(EVENTS.filter(e => e.zone === zone));
+function renderEvent(zone, resume) {
+  // refresh กลางเกม speed → ใช้ใบเดิม ไม่ให้สุ่มใบใหม่หนีใบที่ไม่ชอบ
+  const ev = (resume && EVENTS.find(e => e.event_id === resume.evId))
+          || weightedPick(EVENTS.filter(e => e.zone === zone));
 
-  if (ev.mechanic === "speed") { renderSpeedEvent(ev, zone); return; }
+  if (ev.mechanic === "speed") { renderSpeedEvent(ev, zone, resume); return; }
 
+  // ใบที่ไม่มีการจับเวลา: จดทันทีที่เปิด — กันสแกนซ้ำเพื่อรีดสุ่มใบใหม่
+  Session.markDone(routeKey());
   let body = "";
 
   if (ev.mechanic === "choice") {
@@ -793,7 +978,7 @@ function renderEvent(zone) {
       <h2>🎰 ${ev.title_th}</h2>
       ${ev.description_th ? `<p class="content" id="evDesc" style="margin-bottom:10px;"></p>` : ""}
       ${body}
-      <button class="btn ghost" onclick="location.search='?space=event_${zone}'">สุ่มใหม่ (ทดสอบ)</button>
+      <button class="btn ghost" onclick="Session.allowAgain(routeKey());location.search='?space=event_${zone}'">สุ่มใหม่ (ทดสอบ)</button>
       <button class="btn" onclick="renderMenu()">กลับเมนู</button>
     </div>`;
 
@@ -818,8 +1003,10 @@ function renderEvent(zone) {
 // ---------- event แบบ speed: แข่งตอบเร็วรอบโต๊ะ ----------
 // ไม่ใช่ multiplayer จริง — ทุกคนดูจอเดียวกัน แข่งตอบปากเปล่า แล้วคนถือมือถือ
 // กดหมายเลขผู้เล่นที่วงตัดสินว่าตอบถูกไวสุด (state อยู่ในฟังก์ชันนี้ ใช้ครั้งเดียวจบ)
-function renderSpeedEvent(ev, zone) {
-  const q = QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)];
+function renderSpeedEvent(ev, zone, resume) {
+  const q = (resume && findQuestion(resume.qkey)) || QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)];
+  const sess = resume || Session.begin(
+    { route: "speed", key: routeKey(), evId: ev.event_id, qkey: qKey(q) }, CONFIG.speed_time_limit);
 
   screen.innerHTML = `
     <div class="card">
@@ -834,7 +1021,7 @@ function renderSpeedEvent(ev, zone) {
       <p class="q" style="margin-top:12px;">ใครตอบถูกไวสุด? (วงตัดสินเอง แล้วกดหมายเลข)</p>
       <div class="speed-players" id="speedPlayers"></div>
       <div id="result"></div>
-      <button class="btn ghost" onclick="location.search='?space=event_${zone}'">สุ่มใหม่ (ทดสอบ)</button>
+      <button class="btn ghost" onclick="Session.clear();Session.allowAgain(routeKey());location.search='?space=event_${zone}'">สุ่มใหม่ (ทดสอบ)</button>
       <button class="btn" id="speedBack">กลับเมนู</button>
     </div>`;
 
@@ -854,11 +1041,15 @@ function renderSpeedEvent(ev, zone) {
   let timer = null;
 
   // กลับเมนูโดยไม่ reload หน้า — ต้องหยุด timer ก่อน ไม่งั้นเสียงติ๊ก/บัซเซอร์ตามไปหน้าเมนู
-  document.getElementById("speedBack").onclick = () => { clearInterval(timer); renderMenu(); };
+  document.getElementById("speedBack").onclick = () => {
+    clearInterval(timer); Wake.off(); Session.clear(); renderMenu();
+  };
 
   // จบรอบ: winner = เลขผู้เล่น หรือ null = หมดเวลา (กดย้อนหลังไม่ได้ — ปุ่มถูก disable)
   const finish = winner => {
     clearInterval(timer);
+    Wake.off();
+    Session.done(routeKey());
     [...wrap.children].forEach(b => b.disabled = true);
     box.children[q.answer].classList.add("correct");  // เฉลยให้วงเห็น
     if (winner) {
@@ -880,21 +1071,24 @@ function renderSpeedEvent(ev, zone) {
     wrap.appendChild(b);
   }
 
-  // timer แบบเดียวกับ renderQuiz (ติ๊กเร่งเมื่อเหลือ ≤5 วิ, หมดเวลา = buzzer + แฟลชแดง)
-  let t = CONFIG.speed_time_limit;
+  // timer แบบเดียวกับ renderQuiz — นับจาก deadline สัมบูรณ์ (refresh แล้วเวลาเดินต่อ)
   const tb = document.getElementById("timerBox");
-  tb.innerHTML = `<div class="timer">⏱ ${t} วินาที</div>`;
-  timer = setInterval(() => {
-    t--;
-    tb.innerHTML = `<div class="timer ${t <= 5 ? "danger" : ""}">⏱ ${t} วินาที</div>`;
-    if (t <= 0) {
-      SFX.buzzer();
-      flash("red");
-      finish(null);
-    } else {
+  const deadline = sess.deadlineTs || (Date.now() + CONFIG.speed_time_limit * 1000);
+  const left = () => Math.ceil((deadline - Date.now() - 20) / 1000);
+  const paint = t => tb.innerHTML = `<div class="timer ${t <= 5 ? "danger" : ""}">⏱ ${Math.max(0, t)} วินาที</div>`;
+  const timeUp = () => { paint(0); SFX.buzzer(); flash("red"); finish(null); };
+
+  if (left() <= 0) timeUp();     // refresh กลับมาหลังหมดเวลา = ปิดรอบทันที
+  else {
+    paint(left());
+    Wake.on();
+    timer = setInterval(() => {
+      const t = left();
+      if (t <= 0) { timeUp(); return; }
+      paint(t);
       SFX.tick(t <= 5);
-    }
-  }, 1000);
+    }, 1000);
+  }
 }
 
 // ---------- หน้าติดบั๊ก: เลือกระดับก่อน แล้วค่อยสุ่มโจทย์ ----------
@@ -924,24 +1118,34 @@ function renderBugjam() {
 
 // สลับตำแหน่งตัวเลือกแบบสุ่ม (Fisher-Yates) + รีแมป index เฉลย — กันเด็กจำตำแหน่งเฉลยรอบก่อน
 // คืน bug ก็อปใหม่ที่ choices สลับแล้ว, answer ชี้ถูก, และ time_limit ตามระดับ (จาก CONFIG)
-function shuffledBug(bug, timeLimit) {
-  const idx = bug.choices.map((_, i) => i);
+// order แยกออกมาเพื่อเก็บลง sessionStorage ได้ — refresh แล้วตัวเลือกต้องเรียงเหมือนเดิม
+function shuffleOrder(n) {
+  const idx = Array.from({ length: n }, (_, i) => i);
   for (let i = idx.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [idx[i], idx[j]] = [idx[j], idx[i]];
   }
+  return idx;
+}
+function shuffledBug(bug, timeLimit, order) {
+  const idx = order || shuffleOrder(bug.choices.length);
   return { ...bug, choices: idx.map(i => bug.choices[i]), answer: idx.indexOf(bug.answer), time_limit: timeLimit };
 }
 
 // โจทย์ Bug Jam หนึ่งข้อตามระดับที่เลือก — 1 เทิร์นตอบได้ครั้งเดียว (ปุ่มล็อกหลังตอบ)
 // ตอบผิด/หมดเวลา = เสียค่าปรับ ไม่ให้ลองซ้ำฟรี (state ในฟังก์ชันนี้ ใช้ครั้งเดียวจบ ไม่ persist)
-function renderBugQuestion(diff) {
+function renderBugQuestion(diff, resume) {
   const isHard = diff === "hard";
   const pool = BUGJAM.filter(b => (b.difficulty || "easy") === diff);
-  const raw = pool[Math.floor(Math.random() * pool.length)];
-  const bug = shuffledBug(raw, isHard ? CONFIG.bugjam_time_hard : CONFIG.bugjam_time_easy);
+  // refresh กลางคัน → โจทย์เดิม + ตัวเลือกเรียงเดิม + เวลาที่เหลือเดิม
+  const raw = (resume && pool.find(b => bugKey(b) === resume.bugKey)) || pool[Math.floor(Math.random() * pool.length)];
+  const tl = isHard ? CONFIG.bugjam_time_hard : CONFIG.bugjam_time_easy;
+  const order = (resume && resume.order) || shuffleOrder(raw.choices.length);
+  const bug = shuffledBug(raw, tl, order);
+  const sess = resume || Session.begin(
+    { route: "bugjam", key: routeKey(), diff, bugKey: bugKey(raw), order }, tl);
   const fine = isHard ? CONFIG.bugjam_fine_hard : CONFIG.bugjam_fine;
-  let hintUsed = false;
+  let hintUsed = !!(resume && resume.hintUsed);   // เคยกด hint ไปแล้วก็ยังนับว่ากดแล้ว
 
   screen.innerHTML = `
     <div class="card">
@@ -962,15 +1166,19 @@ function renderBugQuestion(diff) {
   document.getElementById("qText").textContent = "Q: " + bug.question_th;
 
   const hintBtn = document.getElementById("hintBtn");
-  if (hintBtn) hintBtn.onclick = () => {
-    hintUsed = true;
+  const showHint = () => {
     hintBtn.disabled = true;  // กดได้ครั้งเดียวต่อโจทย์
     const ht = document.getElementById("hintText");
     ht.textContent = "💡 " + bug.hint;
     ht.style.display = "block";
   };
+  if (hintBtn) {
+    hintBtn.onclick = () => { hintUsed = true; Session.patch({ hintUsed: true }); showHint(); };
+    if (hintUsed) showHint();   // refresh หลังกด hint → ยังเห็น hint เดิม ปุ่มยังล็อก
+  }
 
   renderQuiz(bug, (ok, timedOut) => {
+    Session.done(routeKey());
     if (hintBtn) hintBtn.disabled = true;
     logAnswer(isHard ? "bugjam_hard" : "bugjam", bug.bug_id || "bugjam", 0, ok, { difficulty: diff, hinted: hintUsed });
     let msg;
@@ -991,22 +1199,25 @@ function renderBugQuestion(diff) {
 
     if (ok) { SFX.correct(); flash("green"); }
     else if (!timedOut) { SFX.wrong(); flash("red"); }
-  }, true);
+  }, true, sess);
 }
 
 // ---------- ระบบควิซ + จับเวลา (ใช้ร่วมกันทุกหน้า) ----------
 // onDone(ok, timedOut) — timedOut = true เฉพาะกรณีหมดเวลา (เสียง buzzer + แฟลชแดง
 // เล่นจากในนี้แล้ว ผู้เรียกจัดการเฉพาะเสียง/เอฟเฟกต์ของการคลิกตอบ)
-function renderQuiz(q, onDone, timeout_fail) {
+// sess = record จาก Session.begin (ถ้ามี) — เวลานับจาก deadlineTs สัมบูรณ์
+// จึงกัน "refresh หนีเวลา" ได้: โหลดใหม่แล้วเวลาเดินต่อ ไม่ได้เริ่มนับหนึ่ง
+function renderQuiz(q, onDone, timeout_fail, sess) {
   const box = document.getElementById("choices");
   let timer = null;
+  const stop = () => { clearInterval(timer); Wake.off(); };
 
   q.choices.forEach((c, i) => {
     const b = document.createElement("button");
     b.className = "choice";
     b.textContent = String.fromCharCode(65 + i) + ". " + c;
     b.onclick = () => {
-      clearInterval(timer);
+      stop();
       [...box.children].forEach((el, j) => {
         el.disabled = true;
         if (j === q.answer) el.classList.add("correct");
@@ -1018,21 +1229,28 @@ function renderQuiz(q, onDone, timeout_fail) {
   });
 
   if (q.time_limit > 0) {
-    let t = q.time_limit;
     const tb = document.getElementById("timerBox");
-    tb.innerHTML = `<div class="timer">⏱ ${t} วินาที</div>`;
+    const deadline = (sess && sess.deadlineTs) || (Date.now() + q.time_limit * 1000);
+    // -20ms กันเคส setInterval เด้งเร็วกว่ากำหนดนิดหน่อยแล้วเลขค้างซ้ำวินาที
+    const left = () => Math.ceil((deadline - Date.now() - 20) / 1000);
+    const paint = t => tb.innerHTML = `<div class="timer ${t <= 5 ? "danger" : ""}">⏱ ${Math.max(0, t)} วินาที</div>`;
+    const timeUp = () => {
+      stop();
+      paint(0);
+      [...box.children].forEach(el => el.disabled = true);
+      SFX.buzzer();
+      flash("red");
+      onDone(false, true);
+    };
+
+    if (left() <= 0) { timeUp(); return; }   // refresh กลับมาหลังหมดเวลา = เข้า flow หมดเวลาทันที
+    paint(left());
+    Wake.on();
     timer = setInterval(() => {
-      t--;
-      tb.innerHTML = `<div class="timer ${t <= 5 ? "danger" : ""}">⏱ ${t} วินาที</div>`;
-      if (t <= 0) {
-        clearInterval(timer);
-        [...box.children].forEach(el => el.disabled = true);
-        SFX.buzzer();
-        flash("red");
-        onDone(false, true);
-      } else {
-        SFX.tick(t <= 5);
-      }
+      const t = left();
+      if (t <= 0) { timeUp(); return; }
+      paint(t);
+      SFX.tick(t <= 5);
     }, 1000);
   }
 }
@@ -1176,13 +1394,14 @@ function rescueTimer(seconds, boxId, onEnd) {
   const tb = document.getElementById(boxId);
   const paint = () => tb.innerHTML = `<div class="timer ${t <= 5 ? "danger" : ""}">⏱ ${t} วินาที</div>`;
   paint();
+  Wake.on();   // กันจอดับระหว่างลุ้น (มินิเกมนี้มือไม่ได้แตะจอนาน ๆ)
   const iv = setInterval(() => {
     t--; paint();
-    if (t <= 0) { clearInterval(iv); SFX.buzzer(); flash("red"); onEnd(false); }
+    if (t <= 0) { clearInterval(iv); Wake.off(); SFX.buzzer(); flash("red"); onEnd(false); }
     else SFX.tick(t <= 5);
   }, 1000);
   return {
-    stop: () => clearInterval(iv),
+    stop: () => { clearInterval(iv); Wake.off(); },
     cut: pct => { t = Math.max(1, Math.round(t * (1 - pct))); paint(); }, // ตัดเวลาเมื่อขอ hint
   };
 }
@@ -1413,14 +1632,56 @@ function renderBankPanel() {
 }
 
 // ---------- ROUTER: อ่าน ?space= (+ &upgrade= / &role= &code=) แล้วเลือกหน้า ----------
+// ลำดับสำคัญ: กู้คำถามที่ค้าง → กันสแกนซ้ำ → เปิดหน้าปกติ
 function route() {
+  const act = Session.active(routeKey());
+  if (act) {
+    if (resumeFrom(act)) return;
+    Session.clear();   // กู้ไม่ได้ (คำถามหายจากคลัง/ข้อมูลเปลี่ยน) — เริ่มปกติแทน
+  }
+  const wait = param ? Session.doneRecently(routeKey()) : 0;
+  if (wait) { renderRescanGate(wait); return; }
+  dispatch();
+}
+
+// กู้สถานะที่ค้างอยู่จาก sessionStorage — คืน true ถ้ากู้สำเร็จ
+function resumeFrom(act) {
+  try {
+    if (act.route === "space" && SPACES[param]) { renderSpace(param, act); return true; }
+    if (act.route === "upgrade" && SPACES[param]) { renderUpgrade(param, act.level, act); return true; }
+    if (act.route === "bugjam") { renderBugQuestion(act.diff, act); return true; }
+    if (act.route === "speed" && param.startsWith("event_")) {
+      renderEvent(param.replace("event_", ""), act); return true;
+    }
+  } catch (e) { console.warn("กู้สถานะเดิมไม่สำเร็จ:", e); }
+  return false;
+}
+
+// เพิ่งเล่นช่องนี้จบไปไม่ถึงนาที — เตือนไว้ก่อน แต่ต้องข้ามได้เสมอ (เจอบั๊กแล้วต้องเล่นต่อได้)
+function renderRescanGate(sec) {
+  screen.innerHTML = `
+    <div class="card">
+      <span class="zone-tag" style="background:var(--gold)">สแกนซ้ำ</span>
+      <h2>⏳ ช่องนี้เพิ่งทำไปแล้ว</h2>
+      <p class="content">เพิ่งเปิดช่องนี้ไปเมื่อไม่ถึงนาทีที่แล้ว — กันเผลอสแกนซ้ำในเทิร์นเดียว
+        (เปิดได้เองอีกครั้งในอีก <b>${sec}</b> วินาที)</p>
+      <button class="btn" id="gateAgain">🔓 ทำอีกครั้ง (ครูอนุญาต)</button>
+      <button class="btn ghost" onclick="renderMenu()">กลับเมนู</button>
+    </div>`;
+  document.getElementById("gateAgain").onclick = () => { Session.allowAgain(routeKey()); dispatch(); };
+}
+
+function dispatch() {
   if (!param) renderMenu();
   else if (param === "bugjam") renderBugjam();
   else if (param === "debug_rescue") renderDebugRescue();
   else if (param === "cooling") renderCoolingBoss();
-  else if (param.startsWith("event_")) renderEvent(param.replace("event_", ""));
+  else if (param.startsWith("event_")) {
+    const zone = param.replace("event_", "");
+    EVENTS.some(e => e.zone === zone) ? renderEvent(zone) : showNotFound();
+  }
   else if (SPACES[param]) upgradeParam ? renderUpgrade(param, +upgradeParam) : renderSpace(param);
-  else screen.innerHTML = `<div class="card"><h2>ไม่พบรหัสช่อง "${param}"</h2><button class="btn" onclick="renderMenu()">กลับเมนู</button></div>`;
+  else showNotFound();
 }
 
 loadData();
