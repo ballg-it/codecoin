@@ -43,7 +43,7 @@ CodeCoin คือบอร์ดเกมเพื่อการศึกษ�
 
 ### 3. QR และสื่อสิ่งพิมพ์
 - `gen_qr.py` สร้าง QR 21 ใบจาก data.json (16 ทรัพย์สิน + event 4 โซน + bugjam)
-- การ์ดทรัพย์สิน `codecoin_cards_rev1_2.html`: QR ฝังเป็น data URI (เปิดไฟล์เดี่ยวส่งโรงพิมพ์ได้) ค่าเช่าจริงจากฐานข้อมูล `[เริ่มต้น L0, ชำนาญ L2, ผู้เชี่ยวชาญ L3]`
+- การ์ดทรัพย์สิน `codecoin_cards_rev3_1.html`: QR ฝังเป็น data URI (เปิดไฟล์เดี่ยวได้ ไม่ต้องมีโฟลเดอร์ qr_output) ค่าเช่า/ค่าอัปเกรดจริงจากฐานข้อมูล — ใช้ไฟล์นี้ export เป็น PDF ใน `Final/` ซึ่งเป็นตัวที่ส่งโรงพิมพ์จริง
 - ผังกระดาน `codecoin_board_rev2_3_canva.html`
 
 ### 4. Deploy
@@ -126,8 +126,7 @@ CodeCoin คือบอร์ดเกมเพื่อการศึกษ�
 | `data.json` | ฐานข้อมูลที่เว็บใช้จริง (ห้ามแก้มือ) |
 | `gen_qr.py` | สร้าง QR 21 ใบ → `qr_output/` |
 | `qr_output/*.png` | QR พร้อมพิมพ์ (URL จริง) |
-| `codecoin_cards_rev3_1.html` | **การ์ด 16 ใบ ฉบับล่าสุด** (duplex หน้า-หลัง, QR ฝังแล้ว) |
-| `codecoin_cards_rev1_2.html` | การ์ดเวอร์ชันก่อน (เก็บไว้อ้างอิง) |
+| `codecoin_cards_rev3_1.html` | **การ์ด 16 ใบ ฉบับล่าสุด** (duplex หน้า-หลัง, QR ฝังแล้ว) — ต้นทางของ PDF ใน `Final/` |
 | `codecoin_board_rev2_3_canva.html` | ผังกระดาน SVG 28 ช่อง ธีม PCB |
 | `tools/hotspot_picker.html` | เครื่องมือหาพิกัดคำถาม hotspot — ลากไฟล์ SVG มาวาง คลิกจุด ปรับรัศมี ได้ค่า `x,y,r` ไปวางในคอลัมน์ `answer` (ทีม content ใช้เองได้ ไม่ต้องเปิดโค้ด) |
 | `tools/motherboard.svg` | ต้นฉบับภาพเมนบอร์ดที่ฝัง inline อยู่ใน `index.html` — **แก้ภาพเมื่อไรต้องหาพิกัดใหม่ทุกข้อ** |
