@@ -292,14 +292,12 @@
       "question_id": "coding_02_L2_01",
       "space_id": "coding_02",
       "level": 2,
-      "question_th": "Python ใช้อะไรแบ่งบล็อกโค้ด?",
-      "choices": [
-        "การย่อหน้า (indent)",
-        "เครื่องหมาย ;",
-        "วงเล็บปีกกา { }"
-      ],
-      "answer": 0,
-      "time_limit": 30
+      "question_th": "แตะบรรทัดที่ย่อหน้า (indent) ผิด",
+      "choices": [],
+      "answer": "4",
+      "time_limit": 20,
+      "qtype": "linepick",
+      "payload": "def total_score(scores):\n    total = 0\n    for s in scores:\n    total = total + s\n    return total"
     },
     {
       "question_id": "coding_02_L3_01",
@@ -435,14 +433,13 @@
       "question_id": "design_01_L1_02",
       "space_id": "design_01",
       "level": 1,
-      "question_th": "สีคู่ตรงข้าม (Complementary) ให้ความรู้สึกแบบใด?",
-      "choices": [
-        "โดดเด่น สะดุดตา",
-        "มองไม่เห็น",
-        "ง่วงนอน"
-      ],
-      "answer": 0,
-      "time_limit": 0
+      "question_th": "แตะสีคู่ตรงข้าม (Complementary) ของสีส้ม",
+      "choices": [],
+      "answer": "225",
+      "time_limit": 15,
+      "qtype": "colorwheel",
+      "asset": "wheel:orange",
+      "payload": "16"
     },
     {
       "question_id": "design_01_L2_01",
@@ -851,14 +848,13 @@
       "question_id": "hardware_01_L1_02",
       "space_id": "hardware_01",
       "level": 1,
-      "question_th": "CPU ติดตั้งลงบนส่วนใดของเมนบอร์ด?",
-      "choices": [
-        "Socket",
-        "RAM Slot",
-        "ที่วางแก้วน้ำ"
-      ],
-      "answer": 0,
-      "time_limit": 0
+      "question_th": "แตะตำแหน่งที่ใช้ติดตั้ง CPU บนเมนบอร์ด",
+      "choices": [],
+      "answer": "44,23,10",
+      "time_limit": 15,
+      "qtype": "hotspot",
+      "asset": "motherboard",
+      "payload": "CPU Socket"
     },
     {
       "question_id": "hardware_01_L2_01",
@@ -981,14 +977,13 @@
       "question_id": "hardware_03_L3_01",
       "space_id": "hardware_03",
       "level": 3,
-      "question_th": "สายไฟเส้นใหญ่ที่สุดที่เสียบเข้าเมนบอร์ดโดยตรงคือสายใด?",
-      "choices": [
-        "สาย 24-pin",
-        "สาย LAN",
-        "สายหูฟัง"
-      ],
-      "answer": 0,
-      "time_limit": 30
+      "question_th": "แตะช่องที่ใช้เสียบสายไฟหลัก ATX 24-pin",
+      "choices": [],
+      "answer": "91,33,8",
+      "time_limit": 15,
+      "qtype": "hotspot",
+      "asset": "motherboard",
+      "payload": "ATX 24-pin"
     },
     {
       "question_id": "hardware_04_L1_01",
@@ -1249,6 +1244,18 @@
       ],
       "answer": 0,
       "time_limit": 25
+    },
+    {
+      "question_id": "hardware_02_L1_03",
+      "space_id": "hardware_02",
+      "level": 1,
+      "question_th": "แตะสลอตที่ใช้ติดตั้ง RAM บนเมนบอร์ด",
+      "choices": [],
+      "answer": "70,31,11",
+      "time_limit": 15,
+      "qtype": "hotspot",
+      "asset": "motherboard",
+      "payload": "DIMM Slots (สลอต RAM)"
     }
   ],
   "events": [

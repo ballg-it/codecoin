@@ -195,6 +195,71 @@
   .speed-player:hover { background:#14200E; }
   .speed-player:disabled { opacity:.5; cursor:default; }
 
+  /* ---------- คำถามแบบ "ชี้ตำแหน่ง" (hotspot / colorwheel / linepick) ---------- */
+  .point-wrap {
+    background:#05100C; border:1px solid var(--line); border-radius:12px;
+    padding:8px; margin-bottom:10px; touch-action:manipulation;
+  }
+  /* ห้าม preserveAspectRatio="none" — การคำนวณพิกัดอิงอัตราส่วนที่คงที่ */
+  .point-wrap svg { width:100%; height:auto; display:block; cursor:crosshair; }
+  .point-hint { text-align:center; font-size:12px; color:var(--muted); margin-bottom:8px; }
+
+  /* linepick — โจทย์วัดเรื่องย่อหน้า ช่องว่างห้ามหาย */
+  .lp-box { border:1px solid var(--line); border-radius:10px; overflow:hidden; margin-bottom:10px; }
+  .lp-row {
+    display:flex; align-items:stretch; width:100%; text-align:left; cursor:pointer;
+    background:#05100C; border:none; border-bottom:1px solid #10281F; padding:0; color:#A7F3D0;
+  }
+  .lp-row:last-child { border-bottom:none; }
+  .lp-row:hover { background:#0B241B; }
+  .lp-num {
+    flex:0 0 32px; padding:9px 0; text-align:center; font-family:monospace; font-size:12px;
+    color:var(--muted); background:#0B241B; border-right:1px solid #10281F; user-select:none;
+  }
+  .lp-code {
+    flex:1; min-width:0; padding:9px 10px; font-family:monospace; font-size:13px;
+    white-space:pre; overflow-x:auto;   /* เลื่อนเฉพาะบรรทัดที่ยาว ไม่ลากทั้งหน้า */
+  }
+  .lp-row.picked { background:#3B1414; color:var(--bad); }
+  .lp-row.picked .lp-num { background:#4A1A1A; color:var(--bad); }
+  .lp-row.answer { background:#0F3B2A; color:var(--ok); }
+  .lp-row.answer .lp-num { background:#14472F; color:var(--ok); }
+  .lp-row:disabled { cursor:default; }
+
+  /* ---------- บอสไฟต์ Server Meltdown (?space=cooling) ---------- */
+  .hp-wrap { background:#05100C; border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:10px; }
+  .hp-row { display:flex; justify-content:space-between; align-items:baseline; font-size:12.5px; color:var(--muted); margin-bottom:7px; }
+  .hp-row b { color:var(--gold); font-family:'Kanit',sans-serif; font-size:17px; }
+  .hp-bar { height:12px; background:#0B241B; border-radius:8px; overflow:hidden; }
+  .hp-fill { height:100%; width:0; background:linear-gradient(90deg,#4ADE80,var(--gold)); transition:width .25s ease-out; }
+  .shout {
+    text-align:center; font-size:12.5px; color:#FDE68A; background:#3A2A0A;
+    border:1px solid var(--gold); border-radius:20px; padding:6px 10px; margin-bottom:11px;
+  }
+  /* เอฟเฟกต์ฟันโดน — fixed + transform ล้วน ไม่แตะ layout ไม่หน่วง timer */
+  .hit-fx {
+    position:fixed; inset:0; z-index:65; display:flex; align-items:center; justify-content:center;
+    pointer-events:none; font-family:'Kanit',sans-serif; font-size:46px; color:var(--gold);
+    text-shadow:0 4px 20px rgba(0,0,0,.7); animation:hitPop .5s ease-out forwards;
+  }
+  @keyframes hitPop {
+    0% { transform:scale(.5); opacity:0; } 22% { transform:scale(1.14); opacity:1; }
+    100% { transform:scale(1.4); opacity:0; }
+  }
+  .lockout {
+    text-align:center; background:#3B1414; border:1px solid var(--bad); border-radius:12px;
+    padding:22px 14px; color:var(--bad); font-family:'Kanit',sans-serif; font-size:19px;
+  }
+  .pick-row { display:flex; flex-wrap:wrap; gap:7px; margin:4px 0 12px; }
+  .pick {
+    flex:1 0 17%; background:#0B241B; border:1px solid var(--line); border-radius:9px;
+    color:var(--text); font-family:'Kanit',sans-serif; font-size:14.5px; padding:9px 0;
+    text-align:center; cursor:pointer;
+  }
+  .pick.on { border-color:var(--gold); background:#14200E; color:var(--gold); }
+  .big-num { font-family:'Kanit',sans-serif; font-size:56px; color:var(--gold); text-align:center; line-height:1.15; }
+  .countdown-big { font-family:'Kanit',sans-serif; font-size:74px; color:var(--gold); text-align:center; margin:6px 0; animation:resultPop .4s ease-out; }
+
   /* ---------- ปุ่ม mute ลอยมุมขวาล่าง ---------- */
   .mute-btn {
     position:fixed; right:14px; bottom:14px; z-index:70;
@@ -356,6 +421,20 @@ const CONFIG = {
   bossfight_time: 75,      // เวลาบอสไฟต์ (วินาที) — นานกว่า Bug Jam เพราะเป็นโมเมนต์พีคทั้งวง
   bossfight_rounds: 6,     // จำนวน "เลขรอบ" ให้เลือก (ใช้เป็น seed ให้ทุกเครื่องได้โจทย์เดียวกัน)
 
+  // ---------- Server Meltdown: บอสไฟต์แบบรัวตอบคำถาม (แทนตัดสายไฟ) ----------
+  // เหตุผลที่เปลี่ยน: โจทย์ตัดสายไฟชุดเดียวกันทั้งโต๊ะ = ชำเลืองจอเพื่อนแล้วลอกได้
+  // และไม่ได้วัดเนื้อหา 4 วิชาเลย ทั้งที่เป็นโมเมนต์เงินก้อนใหญ่สุดของเกม
+  // แก้ด้วยการให้ seed ต่างกันรายคน (รอบ+จำนวนคน+เลขผู้เล่น) → คนละชุดคำถาม
+  cooling_boss: {
+    mode: "meltdown",      // 'meltdown' | 'wirecut' — สลับกลับของเดิมได้เพื่อเทียบตอน defense
+    seconds: 75,
+    hp_per_player: 1.5,    // เป้าหมายทีม = ceil(จำนวนคน × ค่านี้) → 4 คน = 6 แต้ม
+    entry_fee: 200,        // แสดงเตือนอย่างเดียว — Banker เก็บเงินจริงบนโต๊ะ เว็บไม่คิดเงิน
+    wrong_lockout_sec: 5,  // ตอบผิดแล้วล็อกกี่วินาที (กันกดมั่วรัว ๆ แต่ไม่ตกรอบ)
+    question_levels: [2, 3, 4],  // คละทุกวิชา เอาเฉพาะระดับที่ยากพอ
+    max_players: 6,
+  },
+
   // ---------- มินิเกม "กู้บั๊กด่วน" (Debug Rescue) ----------
   // 2 คน 2 มือถือ: solver เห็นปริศนา + guide เห็นกฎ คุยด้วยปากเปล่า
   // ไม่มี backend — ใช้ "รหัสร่วม 4 ตัว" เป็น seed ให้ทั้งคู่ derive ปริศนา+กฎชุดเดียวกัน
@@ -419,8 +498,9 @@ async function loadData() {
   }
 
   SPACES = source.spaces;
-  // ข้ามแถวร่าง: question_th ขึ้นต้นด้วย DRAFT
-  QUESTIONS = source.questions.filter(q => !String(q.question_th).startsWith("DRAFT"));
+  // ข้ามแถวร่าง (question_th ขึ้นต้นด้วย DRAFT) และข้อที่เรนเดอร์ไม่ได้จริง ๆ
+  QUESTIONS = source.questions.filter(q =>
+    !String(q.question_th).startsWith("DRAFT") && questionUsable(q));
   EVENTS = source.events;
   BUGJAM = source.bugjam.filter(b => !String(b.question_th).startsWith("DRAFT"));
 
@@ -1004,7 +1084,9 @@ function renderEvent(zone, resume) {
 // ไม่ใช่ multiplayer จริง — ทุกคนดูจอเดียวกัน แข่งตอบปากเปล่า แล้วคนถือมือถือ
 // กดหมายเลขผู้เล่นที่วงตัดสินว่าตอบถูกไวสุด (state อยู่ในฟังก์ชันนี้ ใช้ครั้งเดียวจบ)
 function renderSpeedEvent(ev, zone, resume) {
-  const q = (resume && findQuestion(resume.qkey)) || QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)];
+  // แข่งตอบเร็วด้วยปากเปล่า → ใช้ได้เฉพาะคำถามแบบตัวเลือก (ข้อ "ชี้ตำแหน่ง" อ่านออกเสียงไม่ได้)
+  const pool = QUESTIONS.filter(x => !x.qtype);
+  const q = (resume && findQuestion(resume.qkey)) || pool[Math.floor(Math.random() * pool.length)];
   const sess = resume || Session.begin(
     { route: "speed", key: routeKey(), evId: ev.event_id, qkey: qKey(q) }, CONFIG.speed_time_limit);
 
@@ -1127,6 +1209,15 @@ function shuffleOrder(n) {
   }
   return idx;
 }
+// เวอร์ชัน seeded — ใช้กับบอสไฟต์ที่ต้องสร้างลำดับเดิมซ้ำได้ (กู้สถานะตอน refresh)
+function shuffleOrderSeeded(n, rng) {
+  const idx = Array.from({ length: n }, (_, i) => i);
+  for (let i = idx.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [idx[i], idx[j]] = [idx[j], idx[i]];
+  }
+  return idx;
+}
 function shuffledBug(bug, timeLimit, order) {
   const idx = order || shuffleOrder(bug.choices.length);
   return { ...bug, choices: idx.map(i => bug.choices[i]), answer: idx.indexOf(bug.answer), time_limit: timeLimit };
@@ -1205,27 +1296,365 @@ function renderBugQuestion(diff, resume) {
 // ---------- ระบบควิซ + จับเวลา (ใช้ร่วมกันทุกหน้า) ----------
 // onDone(ok, timedOut) — timedOut = true เฉพาะกรณีหมดเวลา (เสียง buzzer + แฟลชแดง
 // เล่นจากในนี้แล้ว ผู้เรียกจัดการเฉพาะเสียง/เอฟเฟกต์ของการคลิกตอบ)
-// sess = record จาก Session.begin (ถ้ามี) — เวลานับจาก deadlineTs สัมบูรณ์
-// จึงกัน "refresh หนีเวลา" ได้: โหลดใหม่แล้วเวลาเดินต่อ ไม่ได้เริ่มนับหนึ่ง
-function renderQuiz(q, onDone, timeout_fail, sess) {
-  const box = document.getElementById("choices");
-  let timer = null;
-  const stop = () => { clearInterval(timer); Wake.off(); };
+/* =====================================================================
+   คำถามแบบ "ชี้ตำแหน่ง" — hotspot / colorwheel / linepick
+   ---------------------------------------------------------------------
+   แยกเป็น 2 ชั้น: renderQuestion เป็น dispatcher / แต่ละแบบมี renderer ของตัวเอง
+   ทุก renderer คืนคำตอบผ่าน onAnswer(ถูกไหม) เหมือน MCQ เป๊ะ — ไม่รู้เรื่องเงิน
+   ส่วนลด หรือ flow ของเกม และคืน { lock } ให้ผู้เรียกล็อกอินพุตตอนหมดเวลา
+   ===================================================================== */
 
+// asset ฝัง inline ไม่ใช้ <img> — ต้องวาดวงเฉลยทับได้ และต้องขึ้นตอนออฟไลน์
+const ASSETS = {
+  motherboard: `<svg viewBox="0 0 400 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="แผนผังเมนบอร์ด">
+  <rect x="4" y="4" width="392" height="322" rx="9" fill="#0f3a2e" stroke="#2f6b57" stroke-width="1.5"/>
+  <g stroke="#4ADE80" stroke-opacity=".16" fill="none" stroke-width="1.4">
+    <path d="M30 130 H120 L140 150 H235 M30 150 H115 L135 170 H235"/>
+    <path d="M225 60 H240 L248 52 H320 M225 78 H238 L246 70 H320"/>
+    <path d="M60 230 H120 L132 242 H210 M330 180 H346 V210"/>
+    <path d="M120 60 V95 H132"/>
+  </g>
+  <g fill="#4ADE80" fill-opacity=".3">
+    <circle cx="18" cy="18" r="4"/><circle cx="382" cy="18" r="4"/>
+    <circle cx="18" cy="312" r="4"/><circle cx="382" cy="312" r="4"/>
+    <circle cx="200" cy="18" r="4"/><circle cx="200" cy="312" r="4"/>
+  </g>
+  <rect x="22" y="14" width="96" height="32" rx="3" fill="#0B2B22" stroke="#2f6b57"/>
+  <g fill="#164034" stroke="#2f6b57" stroke-width=".8">
+    <rect x="28" y="20" width="16" height="9" rx="1"/><rect x="28" y="32" width="16" height="9" rx="1"/>
+    <rect x="50" y="20" width="20" height="21" rx="1"/>
+    <rect x="76" y="22" width="16" height="17" rx="1"/><rect x="96" y="22" width="16" height="17" rx="1"/>
+  </g>
+  <rect x="140" y="40" width="70" height="70" rx="5" fill="#164034" stroke="#FBBF24" stroke-opacity=".3" stroke-width="1.4"/>
+  <rect x="149" y="49" width="52" height="52" rx="2" fill="#0B2B22" stroke="#2f6b57" stroke-width=".8"/>
+  <g fill="#2f6b57">
+    <circle cx="158" cy="58" r="1.4"/><circle cx="168" cy="58" r="1.4"/><circle cx="178" cy="58" r="1.4"/><circle cx="188" cy="58" r="1.4"/>
+    <circle cx="158" cy="70" r="1.4"/><circle cx="168" cy="70" r="1.4"/><circle cx="178" cy="70" r="1.4"/><circle cx="188" cy="70" r="1.4"/>
+    <circle cx="158" cy="82" r="1.4"/><circle cx="168" cy="82" r="1.4"/><circle cx="178" cy="82" r="1.4"/><circle cx="188" cy="82" r="1.4"/>
+    <circle cx="158" cy="93" r="1.4"/><circle cx="168" cy="93" r="1.4"/><circle cx="178" cy="93" r="1.4"/><circle cx="188" cy="93" r="1.4"/>
+  </g>
+  <g fill="#0B2B22" stroke="#2f6b57" stroke-width=".8">
+    <rect x="136" y="34" width="8" height="5" rx="1"/><rect x="206" y="34" width="8" height="5" rx="1"/>
+    <rect x="136" y="111" width="8" height="5" rx="1"/><rect x="206" y="111" width="8" height="5" rx="1"/>
+  </g>
+  <g fill="#0B2B22" stroke="#2f6b57" stroke-width="1">
+    <rect x="250" y="35" width="11" height="135" rx="2"/>
+    <rect x="266" y="35" width="11" height="135" rx="2"/>
+    <rect x="282" y="35" width="11" height="135" rx="2"/>
+    <rect x="298" y="35" width="11" height="135" rx="2"/>
+  </g>
+  <g fill="#164034">
+    <rect x="252" y="42" width="7" height="121"/><rect x="268" y="42" width="7" height="121"/>
+    <rect x="284" y="42" width="7" height="121"/><rect x="300" y="42" width="7" height="121"/>
+  </g>
+  <rect x="352" y="60" width="27" height="95" rx="3" fill="#0B2B22" stroke="#2f6b57"/>
+  <g fill="#164034">
+    <rect x="356" y="66" width="8" height="83"/><rect x="367" y="66" width="8" height="83"/>
+  </g>
+  <rect x="70" y="172" width="130" height="9" rx="2" fill="#0B2B22" stroke="#2f6b57"/>
+  <rect x="58" y="202" width="242" height="13" rx="2" fill="#0B2B22" stroke="#2f6b57"/>
+  <rect x="58" y="242" width="118" height="11" rx="2" fill="#0B2B22" stroke="#2f6b57"/>
+  <rect x="58" y="272" width="118" height="11" rx="2" fill="#0B2B22" stroke="#2f6b57"/>
+  <rect x="240" y="205" width="58" height="54" rx="5" fill="#164034" stroke="#2f6b57"/>
+  <g stroke="#2f6b57" stroke-width=".8">
+    <path d="M246 214 H292 M246 224 H292 M246 234 H292 M246 244 H292 M246 252 H292"/>
+  </g>
+  <g fill="#0B2B22" stroke="#2f6b57" stroke-width=".9">
+    <rect x="334" y="224" width="44" height="13" rx="2"/><rect x="334" y="241" width="44" height="13" rx="2"/>
+    <rect x="334" y="258" width="44" height="13" rx="2"/><rect x="334" y="275" width="44" height="13" rx="2"/>
+  </g>
+  <g fill="#164034" stroke="#2f6b57" stroke-width=".8">
+    <circle cx="128" cy="48" r="7"/><circle cx="128" cy="66" r="7"/><circle cx="128" cy="84" r="7"/>
+    <circle cx="228" cy="48" r="7"/><circle cx="228" cy="66" r="7"/>
+  </g>
+  <text x="20" y="322" font-family="monospace" font-size="8" fill="#4ADE80" fill-opacity=".4">CODECOIN ATX REV2.3</text>
+</svg>`,
+};
+
+// ชื่อสีไทย ↔ องศาบนวงล้อ (เสี้ยว i กินมุม i*30 ถึง (i+1)*30 สี hsl(i*30))
+const WHEEL_COLORS = {
+  red:     { th: "สีแดง",          hue: 0   },
+  orange:  { th: "สีส้ม",           hue: 30  },
+  yellow:  { th: "สีเหลือง",        hue: 60  },
+  lime:    { th: "สีเขียวอมเหลือง", hue: 90  },
+  green:   { th: "สีเขียว",         hue: 120 },
+  teal:    { th: "สีเขียวอมฟ้า",    hue: 150 },
+  cyan:    { th: "สีฟ้าอมเขียว",    hue: 180 },
+  azure:   { th: "สีฟ้า",           hue: 210 },
+  blue:    { th: "สีน้ำเงิน",        hue: 240 },
+  violet:  { th: "สีม่วง",          hue: 270 },
+  magenta: { th: "สีบานเย็น",       hue: 300 },
+  rose:    { th: "สีชมพูอมแดง",     hue: 330 },
+};
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+function svgEl(tag, attrs) {
+  const el = document.createElementNS(SVG_NS, tag);
+  for (const k in attrs) el.setAttribute(k, attrs[k]);
+  return el;
+}
+// คืนจำนวนเต็มเมื่อค่าเป็นตัวเลขล้วนจริง ๆ ("" → null ไม่ใช่ 0)
+const intOf = v => {
+  const s = String(v == null ? "" : v).trim();
+  return /^-?\d+$/.test(s) ? +s : null;
+};
+
+const QTYPES = {
+  hotspot: {
+    valid: q => {
+      const a = String(q.answer || "").trim();
+      return /^\d{1,3},\d{1,3},\d{1,3}$/.test(a)
+        && a.split(",").every(n => +n >= 0 && +n <= 100)
+        && !!ASSETS[String(q.asset || "").trim()];
+    },
+    render: (q, cb) => renderHotspot(q, cb),
+  },
+  colorwheel: {
+    valid: q => {
+      const d = intOf(q.answer), t = intOf(q.payload);
+      return d !== null && d >= 0 && d <= 359 && t !== null && t >= 1 && t <= 45;
+    },
+    render: (q, cb) => renderColorWheel(q, cb),
+  },
+  linepick: {
+    valid: q => {
+      const p = String(q.payload || ""), n = intOf(q.answer);
+      return p !== "" && n !== null && n >= 1 && n <= p.split("\n").length;
+    },
+    render: (q, cb) => renderLinePick(q, cb),
+  },
+};
+
+// เรนเดอร์ไม่ได้จริง ๆ (qtype เพี้ยน + ไม่มีตัวเลือกให้ถอย) — คัดทิ้งตั้งแต่ตอนโหลด
+// จะได้ไม่ถูกสุ่มมาให้ผู้เล่นเจอข้อที่ตอบไม่ได้
+function questionUsable(q) {
+  const t = String(q.qtype || "").trim().toLowerCase();
+  const hasChoices = Array.isArray(q.choices) && q.choices.length > 0;
+  if (!t) return hasChoices;
+  const spec = QTYPES[t];
+  return !!((spec && spec.valid(q)) || hasChoices);
+}
+
+// dispatcher — default ต้องตกมาที่ MCQ เสมอ ห้ามจอขาว
+function renderQuestion(q, onAnswer) {
+  const t = String(q.qtype || "").trim().toLowerCase();
+  if (t) {
+    const spec = QTYPES[t];
+    if (!spec)
+      console.warn(`[qtype] "${t}" ไม่รู้จัก (${q.question_id}) — ถอยไปใช้ตัวเลือกแบบเดิม`);
+    else if (!spec.valid(q))
+      console.warn(`[qtype] ข้อมูล ${t} ของ ${q.question_id} ไม่ถูกต้อง — ถอยไปใช้ตัวเลือกแบบเดิม`);
+    else
+      return spec.render(q, onAnswer);
+  }
+  return renderMCQ(q, onAnswer);
+}
+
+// ---------- แบบเดิม: ตัวเลือก a/b/c/d ----------
+function renderMCQ(q, onAnswer) {
+  const box = document.getElementById("choices");
+  if (!q.choices || !q.choices.length) {
+    // ไม่มีทั้ง renderer และตัวเลือก — ให้ทางออกไว้ ไม่ปล่อยให้ผู้เล่นค้าง
+    box.innerHTML = `<div class="result info">⚠️ ข้อนี้แสดงผลไม่ได้</div>`;
+    const b = document.createElement("button");
+    b.className = "btn ghost";
+    b.textContent = "ข้ามข้อนี้ (นับว่าตอบผิด)";
+    b.onclick = () => { b.disabled = true; onAnswer(false); };
+    box.appendChild(b);
+    return { lock: () => { b.disabled = true; } };
+  }
   q.choices.forEach((c, i) => {
     const b = document.createElement("button");
     b.className = "choice";
     b.textContent = String.fromCharCode(65 + i) + ". " + c;
     b.onclick = () => {
-      stop();
       [...box.children].forEach((el, j) => {
         el.disabled = true;
         if (j === q.answer) el.classList.add("correct");
         else if (j === i) el.classList.add("wrong");
       });
-      onDone(i === q.answer, false);
+      onAnswer(i === q.answer);
     };
     box.appendChild(b);
+  });
+  return { lock: () => [...box.children].forEach(el => el.disabled = true) };
+}
+
+// ---------- hotspot: แตะตำแหน่งบนภาพ ----------
+function renderHotspot(q, onAnswer) {
+  const box = document.getElementById("choices");
+  const [ax, ay, ar] = String(q.answer).split(",").map(Number);
+
+  box.innerHTML = `<div class="point-wrap" id="hsWrap"></div>
+    <p class="point-hint">แตะตำแหน่งบนภาพเพื่อตอบ</p>
+    <button class="btn ghost" id="hsSkip">ข้ามข้อนี้ (นับว่าตอบผิด)</button>`;
+  const wrap = document.getElementById("hsWrap");
+  wrap.innerHTML = ASSETS[String(q.asset).trim()];
+  const svg = wrap.querySelector("svg");
+  svg.removeAttribute("preserveAspectRatio");   // ต้องคงอัตราส่วน ไม่งั้นพิกัดเพี้ยน
+  const skip = document.getElementById("hsSkip");
+  let locked = false;
+
+  const lock = () => { locked = true; skip.disabled = true; svg.style.cursor = "default"; };
+
+  // เฉลย: วงกลมเส้นประ + ชื่อชิ้นส่วน — ตอบผิดแล้วยังได้เรียน
+  const reveal = () => {
+    const vb = svg.viewBox.baseVal;
+    const cx = ax / 100 * vb.width, cy = ay / 100 * vb.height, r = ar / 100 * vb.width;
+    svg.appendChild(svgEl("circle", {
+      cx, cy, r, fill: "none", stroke: "#4ADE80", "stroke-width": 2.5, "stroke-dasharray": "7 5",
+    }));
+    const label = String(q.payload || "").trim();
+    if (!label) return;
+    const t = svgEl("text", {
+      x: Math.min(vb.width * 0.82, Math.max(vb.width * 0.18, cx)),
+      y: Math.max(vb.width * 0.05, cy - r - 6),
+      "text-anchor": "middle", "font-family": "'Kanit',sans-serif",
+      "font-size": Math.round(vb.width * 0.045), fill: "#4ADE80",
+      stroke: "#05100C", "stroke-width": 3.5, "paint-order": "stroke",  // ขอบเข้มให้อ่านออกบนลายวงจร
+    });
+    t.textContent = label;   // ชื่อชิ้นส่วนมาจากข้อมูล — ใส่แบบ text ล้วนเสมอ
+    svg.appendChild(t);
+  };
+
+  svg.addEventListener("click", ev => {
+    if (locked) return;
+    // คิดกรอบใหม่ทุกครั้งที่แตะ — หมุนจอ/ย่อขยายแล้วพิกัดยังถูก
+    const rect = svg.getBoundingClientRect();
+    const px = (ev.clientX - rect.left) / rect.width * 100;
+    const py = (ev.clientY - rect.top) / rect.height * 100;
+    const vb = svg.viewBox.baseVal;
+    const dx = (px - ax) / 100 * vb.width;
+    const dy = (py - ay) / 100 * vb.height;
+    // รัศมีคิดเป็น % ของความกว้าง viewBox เสมอ — พื้นที่จะได้เป็นวงกลมจริง ไม่ใช่วงรี
+    const hit = Math.hypot(dx, dy) <= ar / 100 * vb.width;
+
+    lock();
+    svg.appendChild(svgEl("circle", {          // จุดทองตรงที่แตะ ให้รู้ว่าระบบรับแล้ว
+      cx: px / 100 * vb.width, cy: py / 100 * vb.height, r: Math.max(4, vb.width * 0.013),
+      fill: "#FBBF24", stroke: "#05100C", "stroke-width": 1.5,
+    }));
+    if (!hit) reveal();
+    onAnswer(hit);
+  });
+
+  skip.onclick = () => { if (locked) return; lock(); reveal(); onAnswer(false); };
+  return { lock };
+}
+
+// ---------- colorwheel: แตะเสี้ยวสีบนวงล้อ ----------
+function renderColorWheel(q, onAnswer) {
+  const box = document.getElementById("choices");
+  const deg = intOf(q.answer), tol = intOf(q.payload);
+  const key = String(q.asset || "").replace(/^wheel:/i, "").trim().toLowerCase();
+  const info = WHEEL_COLORS[key] || { th: key || "สีโจทย์", hue: null };
+  const C = 150, R_OUT = 118, R_IN = 52;
+
+  // 0° อยู่ด้านบน แล้วไล่ตามเข็มนาฬิกา
+  const pt = (r, a) => {
+    const t = (a - 90) * Math.PI / 180;
+    return [C + r * Math.cos(t), C + r * Math.sin(t)];
+  };
+  const wedge = (a0, a1) => {
+    const [x0, y0] = pt(R_OUT, a0), [x1, y1] = pt(R_OUT, a1);
+    const [x2, y2] = pt(R_IN, a1), [x3, y3] = pt(R_IN, a0);
+    return `M${x0} ${y0}A${R_OUT} ${R_OUT} 0 0 1 ${x1} ${y1}L${x2} ${y2}A${R_IN} ${R_IN} 0 0 0 ${x3} ${y3}Z`;
+  };
+
+  let wedges = "";
+  for (let i = 0; i < 12; i++)
+    wedges += `<path d="${wedge(i * 30, (i + 1) * 30)}" fill="hsl(${i * 30} 78% 55%)" stroke="#05100C" stroke-width="1"/>`;
+  const ring = info.hue === null ? ""   // วงแหวนทองรอบสีโจทย์ ให้เห็นว่าโจทย์อยู่ตรงไหน
+    : `<path d="${wedge(info.hue, info.hue + 30)}" fill="none" stroke="#FBBF24" stroke-width="4"/>`;
+
+  box.innerHTML = `<div class="point-wrap">
+      <svg viewBox="0 0 300 300" id="cwSvg">
+        ${wedges}${ring}
+        <circle cx="150" cy="150" r="50" fill="#0D3327" stroke="#1F4A3A" stroke-width="1.5"/>
+        <text id="cwName" x="150" y="150" text-anchor="middle" dominant-baseline="central"
+              font-family="'Kanit',sans-serif" font-size="19" fill="#FBBF24"></text>
+      </svg>
+    </div>
+    <p class="point-hint">แตะบนวงแหวนสีเพื่อตอบ (แตะตรงกลางหรือนอกวงไม่นับ)</p>`;
+  document.getElementById("cwName").textContent = info.th;
+
+  const svg = document.getElementById("cwSvg");
+  let locked = false;
+  svg.addEventListener("click", ev => {
+    if (locked) return;
+    const rect = svg.getBoundingClientRect();
+    const px = (ev.clientX - rect.left) / rect.width * 100;
+    const py = (ev.clientY - rect.top) / rect.height * 100;
+    const dist = Math.hypot((px - 50) / 100 * 300, (py - 50) / 100 * 300);
+    if (dist <= R_IN || dist >= R_OUT) return;   // แตะตรงกลาง/นอกวง = ไม่นับ ยังแตะใหม่ได้
+
+    const ang = (Math.atan2(py - 50, px - 50) * 180 / Math.PI + 90 + 360) % 360;
+    const diff = Math.abs(((ang - deg + 540) % 360) - 180);   // ระยะเชิงมุมสั้นสุด
+    const hit = diff <= tol;
+    locked = true;
+    svg.style.cursor = "default";
+    svg.appendChild(svgEl("circle", {
+      cx: px / 100 * 300, cy: py / 100 * 300, r: 7,
+      fill: "#FBBF24", stroke: "#05100C", "stroke-width": 2,
+    }));
+    if (!hit) svg.appendChild(svgEl("path", {   // เฉลย: กรอบเขียวรอบเสี้ยวที่ถูก
+      d: wedge(deg - 15, deg + 15), fill: "none",
+      stroke: "#4ADE80", "stroke-width": 4, "stroke-dasharray": "8 5",
+    }));
+    onAnswer(hit);
+  });
+  return { lock: () => { locked = true; } };
+}
+
+// ---------- linepick: แตะบรรทัดโค้ดที่ผิด ----------
+function renderLinePick(q, onAnswer) {
+  const box = document.getElementById("choices");
+  const lines = String(q.payload || "").split("\n");
+  const ansLine = intOf(q.answer);
+  box.innerHTML = `<div class="lp-box" id="lpBox"></div>
+    <p class="point-hint">แตะบรรทัดที่คิดว่าผิด</p>`;
+  const wrap = document.getElementById("lpBox");
+  const rows = [];
+  let locked = false;
+
+  const lock = () => { locked = true; rows.forEach(r => r.disabled = true); };
+
+  lines.forEach((ln, i) => {
+    const row = document.createElement("button");
+    row.className = "lp-row";
+    row.innerHTML = `<span class="lp-num"></span><span class="lp-code"></span>`;
+    row.querySelector(".lp-num").textContent = i + 1;
+    row.querySelector(".lp-code").textContent = ln;   // โค้ดอาจมีอักขระพิเศษ — text ล้วนเสมอ
+    row.onclick = () => {
+      if (locked) return;
+      const ok = (i + 1) === ansLine;
+      lock();
+      if (ok) {
+        row.classList.add("answer");
+      } else {
+        row.classList.add("picked");                       // บรรทัดที่แตะ = แดง
+        rows[ansLine - 1] && rows[ansLine - 1].classList.add("answer");   // บรรทัดเฉลย = เขียว
+      }
+      onAnswer(ok);
+    };
+    rows.push(row);
+    wrap.appendChild(row);
+  });
+  return { lock };
+}
+
+// sess = record จาก Session.begin (ถ้ามี) — เวลานับจาก deadlineTs สัมบูรณ์
+// จึงกัน "refresh หนีเวลา" ได้: โหลดใหม่แล้วเวลาเดินต่อ ไม่ได้เริ่มนับหนึ่ง
+function renderQuiz(q, onDone, timeout_fail, sess) {
+  let timer = null, done = false;
+  const stop = () => { clearInterval(timer); Wake.off(); };
+
+  // คำถามทุกแบบผ่านทางเดียวกันหมด — ตัวจับเวลา/เสียง/เอฟเฟกต์อยู่ที่นี่ที่เดียว
+  const view = renderQuestion(q, ok => {
+    if (done) return;
+    done = true;
+    stop();
+    onDone(ok, false);
   });
 
   if (q.time_limit > 0) {
@@ -1235,9 +1664,11 @@ function renderQuiz(q, onDone, timeout_fail, sess) {
     const left = () => Math.ceil((deadline - Date.now() - 20) / 1000);
     const paint = t => tb.innerHTML = `<div class="timer ${t <= 5 ? "danger" : ""}">⏱ ${Math.max(0, t)} วินาที</div>`;
     const timeUp = () => {
+      if (done) return;
+      done = true;
       stop();
       paint(0);
-      [...box.children].forEach(el => el.disabled = true);
+      view.lock();
       SFX.buzzer();
       flash("red");
       onDone(false, true);
@@ -1498,10 +1929,13 @@ function renderDebugRescue() {
 /* =====================================================================
    บอสไฟต์จุดพักเครื่อง (Cooling Zone — ?space=cooling)
    ---------------------------------------------------------------------
-   กติกาใหม่: ใครหยุดตรงช่องนี้ = ทั้งวงเข้าบอสไฟต์พร้อมกัน ทุกคนสแกน QR
-   เดียวกัน เลือก "เลขรอบ" ตามที่คนหยุดประกาศ → seed ตรงกัน → โจทย์เดียวกัน
-   ทุกเครื่อง (โหมด solo: เห็นกฎ+สายไฟบนจอตัวเอง อ่านกฎเองใต้เวลากดดัน)
-   เงินกองกลางเป็นธนบัตรจริงบนโต๊ะ — เว็บแค่ประกาศสัดส่วนแบ่งให้ธนาคารแจก
+   ใครหยุดตรงช่องนี้ = ทั้งวงเข้าบอสไฟต์พร้อมกัน ทุกคนสแกน QR เดียวกัน
+   เงินกองกลางเป็นธนบัตรจริงบนโต๊ะ — เว็บแค่ประกาศตัวเลขให้ธนาคารแจก
+
+   มี 2 โหมด สลับที่ CONFIG.cooling_boss.mode:
+     meltdown (ปัจจุบัน) — รัวตอบคำถาม 4 วิชา ฟันบอสที่มี HP ร่วมทั้งโต๊ะ
+                            seed ต่างกันรายคน → คนละชุดคำถาม ลอกกันไม่ได้
+     wirecut  (ของเดิม)  — ตัดสายไฟชุดเดียวกันทุกเครื่อง (โค้ดยังอยู่ครบด้านล่าง)
    ===================================================================== */
 function renderCoolingBoss() {
   if (!CONFIG.bossfight_enabled) {
@@ -1514,7 +1948,296 @@ function renderCoolingBoss() {
       </div>`;
     return;
   }
+  CONFIG.cooling_boss.mode === "wirecut" ? renderCoolingWirecut() : renderMeltdownJoin();
+}
 
+/* ---------------------------------------------------------------------
+   โหมด Server Meltdown
+   --------------------------------------------------------------------- */
+
+// seed ผูกกับ "รอบ + จำนวนคน + เลขผู้เล่น" — คนละ slot = คนละชุดคำถาม (กันลอก)
+// slot เดียวกัน = ได้ชุดเดิมเป๊ะ (จำเป็นตอน refresh กลางเกม)
+const meltdownSeed = (round, count, slot) => `meltdown-${round}-${count}-${slot}`;
+const meltdownTarget = count => Math.ceil(count * CONFIG.cooling_boss.hp_per_player);
+
+// คลังคำถามบอส: คละทุกวิชา (ต่างจากช่องทรัพย์สินที่ผูกวิชาตามช่อง) เอาเฉพาะระดับที่ยากพอ
+// สับด้วย seeded RNG ทีละรอบ — ไม่ซ้ำภายในรอบเดียว คลังหมดแล้ววนใหม่โดยสับลำดับใหม่
+function meltdownDeck(seedStr) {
+  const lv = CONFIG.cooling_boss.question_levels;
+  // เฉพาะแบบตัวเลือก — บอสไฟต์เป็นการรัวตอบ ไม่เหมาะกับข้อที่ต้องแตะตำแหน่ง
+  let pool = QUESTIONS.filter(q => lv.includes(q.level) && !q.qtype);
+  if (!pool.length) pool = QUESTIONS.filter(q => !q.qtype);   // กันเคสข้อมูลสำรองที่ไม่มีระดับเหล่านี้
+  const rng = seededRng(seedStr);
+  const deck = [];
+  while (deck.length < 120 && pool.length)
+    shuffleOrderSeeded(pool.length, rng).forEach(i => deck.push(pool[i]));
+  return deck;
+}
+
+// คำถามข้อที่ idx — ตัวเลือกสับด้วย seed ที่ผูกกับ idx จึงคำนวณกลับมาได้ตอน refresh
+const meltdownQuestion = (deck, idx, seedStr) => {
+  const q = deck[idx % deck.length];
+  return shuffledBug(q, 0, shuffleOrderSeeded(q.choices.length, seededRng(seedStr + "#" + idx)));
+};
+
+// ---- หน้า 1: เข้าร่วม (เลือกเลขรอบ / จำนวนคน / เลขผู้เล่นของตัวเอง) ----
+function renderMeltdownJoin(pre) {
+  const C = CONFIG.cooling_boss;
+  let round = (pre && pre.round) || 0, count = (pre && pre.count) || 0, slot = (pre && pre.slot) || 0;
+
+  const chips = (a, b, cur, attr) => {
+    let s = "";
+    for (let i = a; i <= b; i++)
+      s += `<button class="pick${cur === i ? " on" : ""}" data-${attr}="${i}">${i}</button>`;
+    return s;
+  };
+
+  const paint = err => {
+    if (count && slot > count) slot = 0;   // ลดจำนวนคนแล้วเลขเดิมเกิน — ล้างให้เลือกใหม่
+    screen.innerHTML = `
+      <div class="card">
+        <span class="zone-tag" style="background:#38BDF8">จุดพักเครื่อง (Cooling Zone)</span>
+        <h2>🔥 SERVER MELTDOWN</h2>
+        <p class="content"><b>ทุกคนหยิบมือถือขึ้นมาสแกน QR ช่องนี้ — ไม่ใช่เฉพาะคนที่หยุด!</b>
+          บอสมีพลังชีวิตร่วมกันทั้งโต๊ะ · <b>ตอบถูก 1 ข้อ = ฟันบอส 1 แต้ม</b></p>
+        <div class="result info" style="margin-top:10px;font-size:13px;">
+          💸 ค่าเข้าร่วม ${C.entry_fee.toLocaleString()} TechCoin — จ่ายเข้ากองกลางก่อนกดเริ่ม (ไม่ผ่าน = เสียเลย)
+        </div>
+      </div>
+      <div class="card">
+        <p class="q">1️⃣ เลขรอบปัจจุบัน <span style="color:var(--muted);font-weight:400;font-size:12px;">(คนที่หยุดประกาศ — ทั้งโต๊ะต้องตรงกัน)</span></p>
+        <div class="pick-row">${chips(1, 12, round, "round")}</div>
+
+        <p class="q">2️⃣ โต๊ะนี้มีกี่คน <span style="color:var(--muted);font-weight:400;font-size:12px;">(ทั้งโต๊ะต้องตรงกัน)</span></p>
+        <div class="pick-row">${chips(2, C.max_players, count, "count")}</div>
+
+        <p class="q">3️⃣ คุณคือผู้เล่นหมายเลข <span style="color:var(--muted);font-weight:400;font-size:12px;">(ห้ามซ้ำกับเพื่อน)</span></p>
+        <div class="pick-row">${count
+          ? chips(1, count, slot, "slot")
+          : `<span class="content" style="font-size:13px;color:var(--muted);">— เลือกจำนวนผู้เล่นก่อน —</span>`}</div>
+
+        <div class="result info">🎯 เป้าหมายทีม: ฟันบอสให้ครบ <b>${count ? meltdownTarget(count) : "—"}</b> แต้ม ใน ${C.seconds} วินาที</div>
+        ${err ? `<div class="result lose" style="margin-top:8px;">${err}</div>` : ""}
+        <button class="btn" id="meltGo">เข้าร่วมบอสไฟต์</button>
+        <button class="btn ghost" onclick="renderMenu()">กลับเมนู</button>
+      </div>`;
+
+    const pick = (attr, set) => screen.querySelectorAll(`[data-${attr}]`).forEach(b =>
+      b.onclick = () => { set(+b.dataset[attr]); SFX.tick(false); paint(); });
+    pick("round", v => round = v);
+    pick("count", v => count = v);
+    pick("slot", v => slot = v);
+
+    document.getElementById("meltGo").onclick = () => {
+      if (!round || !count || !slot) { paint("⚠️ ยังเลือกไม่ครบทั้ง 3 ข้อ"); return; }
+      if (slot > count) { paint("⚠️ หมายเลขผู้เล่นเกินจำนวนคนในโต๊ะ"); return; }
+      renderMeltdownReady({ round, count, slot });
+    };
+  };
+  paint();
+}
+
+// ---- หน้า 2: เตรียมพร้อม + นับ 3-2-1 ----
+function renderMeltdownReady(cfg) {
+  const C = CONFIG.cooling_boss;
+  const target = meltdownTarget(cfg.count);
+  screen.innerHTML = `
+    <div class="card">
+      <span class="zone-tag" style="background:#38BDF8">รอบ ${cfg.round} · คุณคือผู้เล่น ${cfg.slot}/${cfg.count}</span>
+      <h2>🔥 SERVER MELTDOWN</h2>
+      <div class="result info">🎯 เป้าหมายทีม: ฟันบอสให้ครบ <b>${target}</b> แต้ม ใน ${C.seconds} วินาที</div>
+      <p class="content" style="margin-top:10px;">คำถามของแต่ละคน<b>คนละชุด</b> — ชำเลืองจอเพื่อนไม่ได้ช่วยอะไร
+        <b>เชียร์กันได้เต็มที่</b> แต่ห้ามบอกเฉลย</p>
+      <p class="content" style="margin-top:8px;font-size:13px;">
+        รอทุกคนมาถึงหน้านี้ → คนที่หยุดนับ 3-2-1 → กด "เริ่ม" พร้อมกันทั้งโต๊ะ</p>
+      <div id="cdBox"></div>
+      <button class="btn" id="meltStart">🚀 เริ่ม!</button>
+      <button class="btn ghost" id="meltBack">ย้อนกลับ</button>
+    </div>`;
+
+  document.getElementById("meltBack").onclick = () => renderMeltdownJoin(cfg);
+  document.getElementById("meltStart").onclick = () => {
+    document.getElementById("meltStart").disabled = true;
+    document.getElementById("meltBack").disabled = true;
+    const box = document.getElementById("cdBox");
+    let n = 3;
+    const show = () => box.innerHTML = `<div class="countdown-big">${n}</div>`;
+    show(); SFX.tick(true);
+    const iv = setInterval(() => {
+      n--;
+      if (n > 0) { show(); SFX.tick(true); }
+      else { clearInterval(iv); SFX.fanfare(); startMeltdown(cfg); }
+    }, 1000);
+  };
+}
+
+// จดสถานะลง sessionStorage ก่อนเริ่มจับเวลา — refresh กลางเกมแล้วเวลาต้องเดินต่อ
+function startMeltdown(cfg) {
+  renderMeltdownFight(Session.begin({
+    route: "meltdown", key: routeKey(),
+    round: cfg.round, count: cfg.count, slot: cfg.slot,
+    damage: 0, qIndex: 0, wrong: 0, lockoutUntil: 0, subjects: [],
+  }, CONFIG.cooling_boss.seconds));
+}
+
+// ---- หน้า 3: สู้ (รัวตอบ ตอบถูก = ฟัน 1 แต้ม / ตอบผิด = ล็อก 5 วิ) ----
+function renderMeltdownFight(st) {
+  const C = CONFIG.cooling_boss;
+  const seed = meltdownSeed(st.round, st.count, st.slot);
+  const deck = meltdownDeck(seed);
+  const target = meltdownTarget(st.count);
+  let damage = st.damage || 0, qIndex = st.qIndex || 0, wrong = st.wrong || 0;
+  let lockUntil = st.lockoutUntil || 0;
+  const subjects = st.subjects || [];
+  let tick = null, lastSec = -1, ended = false;
+
+  screen.innerHTML = `
+    <div class="card">
+      <span class="zone-tag" style="background:#38BDF8">🔥 SERVER MELTDOWN · รอบ ${st.round}</span>
+      <div id="timerBox"></div>
+      <div class="hp-wrap">
+        <div class="hp-row">
+          <span>ดาเมจของคุณ <b id="dmgNum">0</b></span>
+          <span>เป้าหมายทีม <b id="tgtNum">0</b></span>
+        </div>
+        <div class="hp-bar"><div class="hp-fill" id="hpFill"></div></div>
+      </div>
+      <div class="shout">📢 ตะโกนบอกเพื่อนทุกครั้งที่ฟันโดน!</div>
+      <p class="q" id="qText"></p>
+      <div id="choices"></div>
+    </div>`;
+  document.getElementById("tgtNum").textContent = target;
+
+  const save = () => Session.patch({ damage, qIndex, wrong, lockoutUntil: lockUntil, subjects });
+  const paintHp = () => {
+    document.getElementById("dmgNum").textContent = damage;
+    document.getElementById("hpFill").style.width = Math.min(100, damage / target * 100) + "%";
+  };
+
+  // เอฟเฟกต์ฟันโดน — เสียง + แฟลช + สั่น + ตัวใหญ่กลางจอ (ความรู้สึก "สู้ร่วมกัน" มาจากเสียงในห้อง)
+  const hitFx = () => {
+    SFX.correct(); flash("green");
+    try { if (navigator.vibrate) navigator.vibrate(60); } catch (e) {}
+    const el = document.createElement("div");
+    el.className = "hit-fx";
+    el.textContent = "💥 โจมตี!";
+    el.addEventListener("animationend", () => el.remove());
+    document.body.appendChild(el);
+  };
+
+  const askNext = () => {
+    if (ended) return;
+    const q = meltdownQuestion(deck, qIndex, seed);
+    // คำถาม/ตัวเลือกอาจมีแท็ก HTML เป็นตัวอย่างบทเรียน — ใส่แบบ text ล้วนเสมอ
+    document.getElementById("qText").textContent = "Q: " + q.question_th;
+    const box = document.getElementById("choices");
+    box.innerHTML = "";
+    q.choices.forEach((c, i) => {
+      const b = document.createElement("button");
+      b.className = "choice";
+      b.textContent = String.fromCharCode(65 + i) + ". " + c;
+      b.onclick = () => answer(q, i);
+      box.appendChild(b);
+    });
+  };
+
+  const paintLockout = () => {
+    const left = Math.max(0, Math.ceil((lockUntil - Date.now()) / 1000));
+    document.getElementById("qText").textContent = "❌ ตอบผิด — รอระบบกลับมา";
+    document.getElementById("choices").innerHTML =
+      `<div class="lockout">⚙️ ระบบกำลังรีบูต... <span id="lockNum">${left}</span></div>`;
+  };
+
+  const answer = (q, i) => {
+    if (ended || Date.now() < lockUntil) return;
+    qIndex++;
+    if (i === q.answer) {
+      damage++;
+      const zone = (SPACES[q.space_id] || {}).zone;
+      if (zone && subjects.indexOf(zone) < 0) subjects.push(zone);
+      save(); paintHp(); hitFx(); askNext();
+    } else {
+      wrong++;
+      lockUntil = Date.now() + C.wrong_lockout_sec * 1000;   // ล็อกเวลาแทนตัดสิทธิ์ — ไม่ตกรอบกลางคัน
+      save(); SFX.wrong(); flash("red"); paintLockout();
+    }
+  };
+
+  const timeLeft = () => Math.ceil((st.deadlineTs - Date.now() - 20) / 1000);
+
+  const finish = () => {
+    if (ended) return;
+    ended = true;
+    clearInterval(tick);
+    Wake.off();
+    Session.done(routeKey());
+    logAnswer("cooling_boss", "cooling", 0, damage >= target, {
+      round: st.round, player_slot: st.slot, player_count: st.count,
+      damage, hp_target: target, questions_seen: qIndex, wrong_count: wrong, subjects_hit: subjects,
+    });
+    renderMeltdownSummary({ round: st.round, count: st.count, damage, qIndex, wrong }, target);
+  };
+
+  const paintTime = () => {
+    const t = Math.max(0, timeLeft());
+    if (t === lastSec) return;
+    lastSec = t;
+    const danger = t <= 15;
+    document.getElementById("timerBox").innerHTML =
+      `<div class="timer ${danger ? "danger" : ""}">⏱ ${t} วินาที</div>`;
+    if (danger && t > 0) SFX.tick(true);
+  };
+
+  paintHp();
+  if (timeLeft() <= 0) { SFX.buzzer(); finish(); return; }   // refresh กลับมาหลังหมดเวลา = สรุปทันที
+  paintTime();
+  Wake.on();
+  if (lockUntil > Date.now()) paintLockout(); else { lockUntil = 0; askNext(); }
+
+  // tick ถี่กว่า 1 วิ เพื่อให้ตัวเลขนับถอยหลังของ lockout ตอบสนองไว (เสียง/เวลาอัปเดตทีละวินาที)
+  tick = setInterval(() => {
+    if (ended) return;
+    paintTime();
+    if (timeLeft() <= 0) { SFX.buzzer(); flash("red"); finish(); return; }
+    if (lockUntil) {
+      const l = Math.ceil((lockUntil - Date.now()) / 1000);
+      const n = document.getElementById("lockNum");
+      if (l > 0) { if (n) n.textContent = l; }
+      else { lockUntil = 0; save(); askNext(); }
+    }
+  }, 250);
+}
+
+// ---- หน้า 4: หมดเวลา → ตะโกนบอก Banker ----
+function renderMeltdownSummary(r, target) {
+  const share = Math.ceil(target / r.count);   // "ส่วนของตัวเอง" ไว้ตัดสินว่าควรฉลองไหม
+  screen.innerHTML = `
+    <div class="card">
+      <span class="zone-tag" style="background:#38BDF8">บอสไฟต์จบแล้ว · รอบ ${r.round}</span>
+      <h2>⏱ หมดเวลา!</h2>
+      <p class="content" style="text-align:center;margin-top:8px;">ดาเมจของคุณ</p>
+      <div class="big-num">${r.damage}</div>
+      <div class="result info" style="margin-top:12px;">📢 ตะโกนบอกเลขนี้ให้ Banker</div>
+      <p class="content" style="margin-top:10px;text-align:center;">
+        เป้าหมายทีม <b>${target}</b> — ถ้ารวมดาเมจทุกคนถึง ${target} = ล้มบอสสำเร็จ</p>
+    </div>
+    <div class="card">
+      <p class="q">🏦 วิธีแบ่งกองกลาง</p>
+      <div class="result win">✅ ถึงเป้า: แบ่งกองกลาง<b>ตามสัดส่วนดาเมจ</b><br>
+        <span style="font-size:12.5px;">(ทำ 3 จาก 6 = ได้ครึ่งกอง)</span></div>
+      <div class="result lose" style="margin-top:8px;">❌ ไม่ถึงเป้า: ไม่มีใครได้ — กองกลางสะสมต่อ</div>
+      <p class="content" style="margin-top:12px;font-size:12.5px;color:var(--muted);">
+        สถิติรอบนี้: ตอบไป ${r.qIndex} ข้อ · พลาด ${r.wrong} ครั้ง</p>
+      <button class="btn" onclick="renderMenu()">กลับหน้าแรก</button>
+    </div>`;
+  if (r.damage >= share) confetti();   // ทำครบส่วนของตัวเองแล้ว (เสียงหมดเวลาเล่นไปแล้ว ไม่ซ้อนอีก)
+}
+
+/* ---------------------------------------------------------------------
+   โหมด wirecut (ของเดิม) — เก็บไว้ให้ CONFIG.cooling_boss.mode = 'wirecut'
+   เรียกใช้ได้ และโค้ด wire_cut ยังใช้ร่วมกับ ?space=debug_rescue
+   --------------------------------------------------------------------- */
+function renderCoolingWirecut() {
   let roundBtns = "";
   for (let r = 1; r <= CONFIG.bossfight_rounds; r++)
     roundBtns += `<button class="speed-player" data-round="${r}" style="flex:0 0 30%;">รอบ ${r}</button>`;
@@ -1650,6 +2373,7 @@ function resumeFrom(act) {
     if (act.route === "space" && SPACES[param]) { renderSpace(param, act); return true; }
     if (act.route === "upgrade" && SPACES[param]) { renderUpgrade(param, act.level, act); return true; }
     if (act.route === "bugjam") { renderBugQuestion(act.diff, act); return true; }
+    if (act.route === "meltdown" && param === "cooling") { renderMeltdownFight(act); return true; }
     if (act.route === "speed" && param.startsWith("event_")) {
       renderEvent(param.replace("event_", ""), act); return true;
     }
