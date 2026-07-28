@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeCoin — เครื่องมือหาพิกัด hotspot</title>
+<style>
+  :root { --board:#0B2B22; --panel:#0D3327; --line:#1F4A3A; --gold:#FBBF24; --text:#E2E8F0; --muted:#94A3B8; --ok:#4ADE80; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    background:var(--board); color:var(--text); font-family:'Sarabun',sans-serif;
+    min-height:100vh; padding:20px 14px 40px; display:flex; justify-content:center;
+    background-image:linear-gradient(#0F4C3A 1px,transparent 1px),linear-gradient(90deg,#0F4C3A 1px,transparent 1px);
+    background-size:28px 28px;
+  }
+  .app { width:100%; max-width:560px; }
+  header {
+    background:#111827; border:2px solid var(--gold); border-radius:14px;
+    padding:12px 18px; text-align:center; margin-bottom:16px;
+  }
+  header h1 { font-size:19px; color:var(--gold); }
+  header p { font-size:12px; color:#86EFAC; margin-top:2px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:14px; }
+  h2 { font-size:15px; margin-bottom:8px; color:var(--gold); }
+  p.help { font-size:12.5px; line-height:1.7; color:#CBD5E1; }
+  .drop {
+    border:2px dashed var(--line); border-radius:12px; padding:22px 14px; text-align:center;
+    font-size:13px; color:var(--muted); cursor:pointer;
+  }
+  .drop.over { border-color:var(--gold); color:var(--gold); }
+  .stage { background:#05100C; border:1px solid var(--line); border-radius:12px; padding:8px; margin-bottom:10px; }
+  .stage svg { width:100%; height:auto; display:block; cursor:crosshair; }
+  .row { display:flex; align-items:center; gap:10px; margin-top:10px; }
+  .row label { font-size:12.5px; color:var(--muted); flex:0 0 84px; }
+  input[type=range] { flex:1; accent-color:var(--gold); }
+  .out {
+    display:flex; gap:8px; align-items:stretch; margin-top:12px;
+  }
+  .out code {
+    flex:1; background:#05100C; border:1px solid var(--gold); border-radius:10px;
+    color:var(--gold); font-family:monospace; font-size:21px; padding:11px 14px; text-align:center; letter-spacing:1px;
+  }
+  button {
+    border:none; border-radius:10px; padding:11px 16px; font-family:inherit; font-size:14px;
+    background:var(--gold); color:#05100C; cursor:pointer; font-weight:700;
+  }
+  button.ghost { background:transparent; border:1px solid var(--gold); color:var(--gold); }
+  .hint { font-size:11.5px; color:var(--muted); margin-top:8px; text-align:center; }
+  .copied { color:var(--ok); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>🎯 เครื่องมือหาพิกัด hotspot</h1>
+    <p>CodeCoin — สำหรับกรอกคอลัมน์ answer ของคำถามแบบ hotspot</p>
+  </header>
+
+  <div class="card">
+    <h2>วิธีใช้</h2>
+    <p class="help">
+      1. ลากไฟล์ <b>.svg</b> มาวาง (หรือกดเพื่อเลือกไฟล์)<br>
+      2. <b>คลิกบนภาพ</b> ตรงตำแหน่งที่ต้องการให้เป็นคำตอบ<br>
+      3. ลากแถบ <b>รัศมี</b> ให้วงกลมครอบพื้นที่ที่ยอมรับว่าตอบถูก<br>
+      4. กด <b>คัดลอก</b> แล้ววางลงคอลัมน์ <code>answer</code> ในไฟล์ Excel
+    </p>
+    <p class="help" style="margin-top:8px;color:var(--muted);font-size:11.5px;">
+      ⚠️ พิกัดผูกกับไฟล์ภาพเวอร์ชันที่ใช้อยู่ — ถ้าดีไซเนอร์วาดภาพใหม่ ต้องหาพิกัดใหม่ทุกข้อ
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="drop" id="drop">📂 ลากไฟล์ .svg มาวางที่นี่ หรือกดเพื่อเลือกไฟล์</div>
+    <input type="file" id="file" accept=".svg,image/svg+xml" hidden>
+    <div id="stageWrap" style="display:none;">
+      <div class="stage" id="stage"></div>
+      <div class="row">
+        <label>รัศมี (r)</label>
+        <input type="range" id="rad" min="1" max="40" value="10">
+        <span id="radVal" style="font-family:monospace;color:var(--gold);width:34px;text-align:right;">10</span>
+      </div>
+      <div class="out">
+        <code id="outVal">— คลิกบนภาพ —</code>
+        <button id="copy">คัดลอก</button>
+      </div>
+      <p class="hint" id="hint">รัศมีคิดเป็นเปอร์เซ็นต์ของ<b>ความกว้าง</b>ภาพ — พื้นที่จึงเป็นวงกลมจริงเสมอ</p>
+      <div class="row" style="margin-top:12px;">
+        <button class="ghost" id="reset" style="flex:1;">เริ่มใหม่ (เลือกไฟล์อื่น)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const NS = "http://www.w3.org/2000/svg";
+const drop = document.getElementById("drop");
+const fileInput = document.getElementById("file");
+const stage = document.getElementById("stage");
+const stageWrap = document.getElementById("stageWrap");
+const rad = document.getElementById("rad");
+const radVal = document.getElementById("radVal");
+const outVal = document.getElementById("outVal");
+
+let svg = null, px = null, py = null;   // px/py เป็นเปอร์เซ็นต์
+
+function loadSvg(text) {
+  stage.innerHTML = text.replace(/<\?xml[^>]*\?>/i, "");
+  svg = stage.querySelector("svg");
+  if (!svg) { alert("ไฟล์นี้ไม่มีแท็ก <svg>"); return; }
+  svg.removeAttribute("preserveAspectRatio");   // ต้องคงอัตราส่วน ให้ตรงกับที่เกมใช้
+  svg.removeAttribute("width"); svg.removeAttribute("height");
+  if (!svg.getAttribute("viewBox")) alert("⚠️ ไฟล์นี้ไม่มี viewBox — พิกัดอาจไม่ตรงกับในเกม");
+  drop.style.display = "none";
+  stageWrap.style.display = "block";
+  px = py = null;
+  outVal.textContent = "— คลิกบนภาพ —";
+  svg.addEventListener("click", onTap);
+}
+
+function onTap(ev) {
+  const rect = svg.getBoundingClientRect();
+  px = Math.round((ev.clientX - rect.left) / rect.width * 100);
+  py = Math.round((ev.clientY - rect.top) / rect.height * 100);
+  draw();
+}
+
+// วาดวงกลมด้วยสูตรเดียวกับในเกมเป๊ะ: รัศมีคิดจากความกว้าง viewBox
+function draw() {
+  if (px === null) return;
+  svg.querySelectorAll("[data-picker]").forEach(el => el.remove());
+  const vb = svg.viewBox.baseVal;
+  const r = +rad.value;
+  const cx = px / 100 * vb.width, cy = py / 100 * vb.height;
+  const mk = (tag, attrs) => {
+    const el = document.createElementNS(NS, tag);
+    el.setAttribute("data-picker", "1");
+    for (const k in attrs) el.setAttribute(k, attrs[k]);
+    svg.appendChild(el);
+    return el;
+  };
+  mk("circle", { cx, cy, r: r / 100 * vb.width, fill: "#FBBF24", "fill-opacity": ".18",
+                 stroke: "#FBBF24", "stroke-width": 2, "stroke-dasharray": "6 4" });
+  mk("circle", { cx, cy, r: Math.max(2.5, vb.width * 0.008), fill: "#FBBF24" });
+  outVal.textContent = `${px},${py},${r}`;
+  outVal.classList.remove("copied");
+}
+
+rad.oninput = () => { radVal.textContent = rad.value; draw(); };
+
+drop.onclick = () => fileInput.click();
+fileInput.onchange = () => {
+  const f = fileInput.files[0];
+  if (f) f.text().then(loadSvg);
+};
+["dragenter", "dragover"].forEach(e =>
+  drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(e =>
+  drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", ev => {
+  const f = ev.dataTransfer.files[0];
+  if (f) f.text().then(loadSvg);
+});
+
+document.getElementById("copy").onclick = () => {
+  if (px === null) return;
+  const txt = outVal.textContent;
+  const done = () => { outVal.classList.add("copied"); document.getElementById("hint").textContent = "✅ คัดลอกแล้ว — วางลงคอลัมน์ answer ได้เลย"; };
+  if (navigator.clipboard) navigator.clipboard.writeText(txt).then(done).catch(fallback);
+  else fallback();
+  function fallback() {   // file:// บางเบราว์เซอร์ไม่ให้ใช้ clipboard API
+    const ta = document.createElement("textarea");
+    ta.value = txt; document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); done(); } catch (e) { alert("คัดลอกเอง: " + txt); }
+    ta.remove();
+  }
+};
+
+document.getElementById("reset").onclick = () => {
+  stage.innerHTML = ""; svg = null; px = py = null;
+  stageWrap.style.display = "none"; drop.style.display = "block";
+  fileInput.value = "";
+};
+</script>
+</body>
+</html>
