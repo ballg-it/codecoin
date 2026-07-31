@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CodeCoin — Box Demo v5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;800&family=Sarabun:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --dark:#0B2B22; --darker:#071510; --trace:#17513E;
+  --gold:#FBBF24; --green:#4ADE80; --ink:#DCF5E6;
+  --qrgreen:#1D9E75; --coral:#D85A30; --pink:#D4537E; --purple:#7F77DD;
+  --faint:#7FD9A8; --cyan:#00E5FF;
+  --bg:#141513; --card:#1c1e1b; --line:#2c322d;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+  font-family:'Sarabun',sans-serif;-webkit-font-smoothing:antialiased}
+.app{max-width:1400px;margin:0 auto;padding:26px 22px 60px}
+
+header.top{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;
+  padding-bottom:16px;border-bottom:1px solid var(--line);margin-bottom:20px}
+h1{font-family:'Kanit',sans-serif;font-weight:800;color:var(--gold);font-size:25px;margin:0;letter-spacing:-.4px}
+.sub{color:#7f978a;font-size:12.5px;margin:5px 0 0;line-height:1.55;max-width:620px}
+.rev{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1.4px;color:var(--faint);
+  border:1px solid var(--trace);border-radius:20px;padding:6px 14px;white-space:nowrap}
+
+.tabs{display:flex;gap:0;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:4px;
+  width:fit-content;margin-bottom:18px;flex-wrap:wrap}
+.tab{font-family:'Kanit',sans-serif;font-weight:600;font-size:13px;color:#8fae9f;background:none;border:0;
+  padding:8px 18px;border-radius:7px;cursor:pointer;transition:.15s}
+.tab:hover{color:var(--ink)}
+.tab.on{background:var(--gold);color:#0B2B22}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:24px;align-items:start}
+@media(max-width:1020px){.layout{grid-template-columns:1fr}}
+
+.stage{background:radial-gradient(circle at 50% 30%,#232520 0%,#171815 65%,#101210 100%);
+  border:1px solid var(--line);border-radius:14px;min-height:720px;position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;padding:24px}
+.stage.flat{display:block;overflow:auto;background:#171815;padding:28px}
+
+/* ---------- 3D ---------- */
+.scene{perspective:1900px;width:100%;display:flex;align-items:center;justify-content:center}
+.rig{position:relative;transform-style:preserve-3d;cursor:grab;width:0;height:0}
+.rig:active{cursor:grabbing}
+.grp{position:absolute;transform-style:preserve-3d}
+.face{position:absolute;background:var(--dark);overflow:hidden;outline:1px solid rgba(0,0,0,.35);
+  outline-offset:-1px;cursor:pointer}
+.face.sel{outline:1.5px solid var(--cyan);outline-offset:-1px;z-index:5}
+.face .inner{position:absolute;left:0;top:0;transform-origin:0 0}
+.shadow{position:absolute;left:50%;top:50%;border-radius:50%;filter:blur(22px);pointer-events:none;
+  background:rgba(0,0,0,.6);transform:translate(-50%,-50%) rotateX(90deg)}
+
+/* z-index 20 : แถบควบคุมต้องคลิกได้เสมอ ห้ามให้เลเยอร์ไหนมาคลุม */
+.ctrls{position:absolute;left:16px;bottom:14px;right:16px;display:flex;gap:14px;align-items:center;z-index:20;
+  flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#7f978a;letter-spacing:.4px}
+.ctrl{display:flex;align-items:center;gap:7px}
+.ctrl input[type=range]{width:110px;accent-color:var(--gold)}
+.ctrl input[type=checkbox]{accent-color:var(--gold)}
+.pill{background:#0f1210;border:1px solid var(--line);border-radius:16px;padding:6px 12px}
+.vbtn{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.4px;color:#8fae9f;
+  background:#171a17;border:1px solid var(--line);border-radius:11px;padding:3px 8px;cursor:pointer;transition:.15s}
+.vbtn:hover{color:var(--ink);border-color:var(--trace)}
+.vbtn.on{background:var(--gold);color:#0B2B22;border-color:var(--gold)}
+.hintbar{position:absolute;left:0;right:0;top:14px;text-align:center;font-family:'IBM Plex Mono',monospace;
+  font-size:10px;color:#5f7269;letter-spacing:.6px;pointer-events:none}
+
+.layer{position:absolute;overflow:hidden;transform-origin:50% 50%}
+.layer.sel{outline:1.5px solid var(--cyan);outline-offset:-1px}
+.layer .inner{position:absolute;left:0;top:0;transform-origin:0 0}
+
+/* ป้ายชื่อชั้น (2D overlay — คมเสมอ ไม่บิดตามมุมกล้อง) */
+.lay3d{position:absolute;left:0;top:0;right:0;bottom:0;pointer-events:none;z-index:8}
+.laychip{position:absolute;transform:translate(-50%,-100%);text-align:center;white-space:nowrap;
+  background:rgba(10,14,11,.92);border:1px solid var(--line);border-radius:10px;padding:5px 12px 6px;
+  cursor:pointer;pointer-events:auto;transition:border-color .15s,background .15s}
+.laychip:hover{border-color:var(--gold);background:#14180f}
+.laychip .no{display:inline-block;min-width:16px;height:16px;line-height:16px;border-radius:4px;
+  background:var(--gold);color:#0B2B22;font-family:'IBM Plex Mono',monospace;font-size:9.5px;
+  font-weight:600;margin-right:7px;text-align:center}
+.laychip .nm2{font-family:'Kanit',sans-serif;font-weight:600;font-size:12.5px;color:var(--ink)}
+.laychip .dm2{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#7f978a;letter-spacing:.3px;margin-left:7px}
+.laychip .ct2{font-family:'Sarabun',sans-serif;font-size:10.5px;color:var(--faint);margin-top:2px}
+.item{display:flex;align-items:center;gap:12px;background:#0f1210;border:1px solid var(--line);
+  border-radius:10px;padding:9px 12px;cursor:pointer;transition:.15s}
+.item:hover{border-color:var(--trace);transform:translateX(2px)}
+.item.sel{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan) inset}
+
+/* ---------- parts grid ---------- */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:14px;width:100%}
+.thumb{background:#0f1210;border:1px solid var(--line);border-radius:10px;padding:11px;cursor:pointer;transition:.15s}
+.thumb:hover{border-color:var(--trace);transform:translateY(-2px)}
+.thumb.sel{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan) inset}
+.thumb .holder{display:flex;align-items:center;justify-content:center;height:118px;overflow:hidden}
+.thumb .nm{margin-top:9px;font-family:'Kanit',sans-serif;font-weight:600;font-size:11.5px;color:var(--ink)}
+.thumb .dm{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#6f8579;margin-top:2px}
+
+/* ---------- dieline ---------- */
+.die{display:flex;gap:46px;flex-wrap:wrap;justify-content:center;align-items:flex-start}
+.diewrap{text-align:center}
+.dietitle{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1.6px;color:var(--faint);margin-bottom:12px}
+.diecross{position:relative}
+.dieslot{position:absolute;overflow:hidden;background:var(--dark);outline:1px dashed rgba(0,229,255,.5);
+  outline-offset:-1px;cursor:pointer}
+.dieslot.sel{outline:1.5px solid var(--cyan)}
+.dieslot .inner{position:absolute;left:0;top:0;transform-origin:0 0}
+.dielbl{position:absolute;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--cyan);
+  letter-spacing:.5px;pointer-events:none;z-index:4}
+
+/* ---------- side rail ---------- */
+.rail{display:flex;flex-direction:column;gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px 16px}
+.card h3{margin:0 0 10px;font-family:'Kanit',sans-serif;font-weight:600;font-size:14px;color:var(--gold);
+  display:flex;align-items:center;justify-content:space-between;gap:8px}
+.card h3 .dim{font-family:'IBM Plex Mono',monospace;font-weight:400;font-size:9.5px;color:var(--faint);letter-spacing:.6px}
+.card p{margin:0;font-size:12.3px;line-height:1.65;color:#bcd8c8}
+.preview{background:#0f1210;border:1px solid var(--line);border-radius:8px;padding:10px;position:relative;
+  display:flex;align-items:center;justify-content:center;min-height:120px;overflow:hidden;margin-bottom:11px;
+  cursor:zoom-in;transition:border-color .15s}
+.preview:hover{border-color:var(--gold)}
+.preview::after{content:'⤢ คลิกเพื่อดูเต็มจอ';position:absolute;right:7px;bottom:6px;pointer-events:none;
+  font-family:'Sarabun',sans-serif;font-size:10px;color:#8fae9f;background:rgba(8,11,9,.82);
+  border:1px solid var(--line);border-radius:11px;padding:2px 8px;opacity:.75;transition:.15s}
+.preview:hover::after{opacity:1;color:var(--gold);border-color:var(--gold)}
+
+/* ---------- ดูเต็มจอ ---------- */
+#lightbox{position:fixed;inset:0;z-index:99;display:none;align-items:center;justify-content:center;
+  flex-direction:column;gap:14px;padding:24px;background:rgba(6,9,7,.95);cursor:zoom-out}
+#lightbox .lbhead{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;justify-content:center}
+#lightbox .lbname{font-family:'Kanit',sans-serif;font-weight:600;font-size:17px;color:var(--gold)}
+#lightbox .lbdim{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.6px;color:var(--faint)}
+#lightbox .lbtip{font-family:'Sarabun',sans-serif;font-size:11px;color:#6f8579;
+  border:1px solid var(--line);border-radius:12px;padding:3px 10px}
+table.kv{width:100%;border-collapse:collapse;font-size:11.6px}
+table.kv td{padding:4px 3px;border-bottom:1px solid #1e241f;color:#bcd8c8;vertical-align:top}
+table.kv td.k{color:var(--faint);white-space:nowrap;width:38%;font-family:'IBM Plex Mono',monospace;font-size:9.6px;
+  letter-spacing:.3px;padding-top:6px}
+ul.el{margin:0;padding-left:16px;font-size:11.8px;line-height:1.7;color:#bcd8c8}
+ul.el li::marker{color:var(--green)}
+.swatches{display:flex;gap:6px;flex-wrap:wrap}
+.sw{width:22px;height:22px;border-radius:5px;border:1px solid rgba(255,255,255,.14)}
+.flag{background:#241315;border:1px solid #5e2a2e;border-radius:12px;padding:14px 16px}
+.flag h3{margin:0 0 9px;font-family:'Kanit',sans-serif;font-weight:600;font-size:13.5px;color:#ff9d9d}
+.flag ol{margin:0;padding-left:17px;font-size:11.7px;line-height:1.75;color:#e6c2c2}
+.flag li::marker{color:#c96a6a}
+.flag b{color:#ffb8b8}
+.tagrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.tg{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.5px;color:var(--faint);
+  border:1px solid var(--trace);border-radius:12px;padding:3px 9px}
+footer{margin-top:34px;text-align:center;font-size:10.5px;color:#4f6058;font-family:'IBM Plex Mono',monospace;letter-spacing:.4px}
+</style>
+</head>
+<body>
+<div class="app">
+
+<header class="top">
+  <div>
+    <h1>CodeCoin — Box Demo</h1>
+    <p class="sub">ภาพจำลองกล่องจาก Artboard 1–3 · สัดส่วนตามสเปกประกอบกล่อง 29 ก.ค. 2026 · ทุกแผงเรนเดอร์จากพิกัดมิลลิเมตรจริง</p>
+  </div>
+  <div class="rev">268 × 268 × 55 MM · REV 3.1</div>
+</header>
+
+<div class="tabs" id="tabs">
+  <button class="tab on" data-mode="box">กล่องประกอบ</button>
+  <button class="tab" data-mode="parts">แยกแผง</button>
+  <button class="tab" data-mode="die">แผ่นคลี่</button>
+  <button class="tab" data-mode="contents">ของในกล่อง</button>
+</div>
+
+<div class="layout">
+  <div class="stage" id="stage"></div>
+
+  <div class="rail">
+    <div class="card" id="detail"></div>
+
+    <div class="card">
+      <h3>โครงสร้าง <span class="dim">STRUCTURE</span></h3>
+      <table class="kv">
+        <tr><td class="k">ฝา LID</td><td>268 × 268 × 34 mm</td></tr>
+        <tr><td class="k">ฐาน BASE</td><td>264 × 264 × 52 mm</td></tr>
+        <tr><td class="k">ประกอบแล้ว</td><td>268 × 268 × 55 mm</td></tr>
+        <tr><td class="k">รอยต่อ</td><td>34 mm จากขอบบน</td></tr>
+        <tr><td class="k">ผนังฐานโผล่</td><td>21 mm (สเปกเขียน 18)</td></tr>
+        <tr><td class="k">วัสดุ</td><td>อาร์ตการ์ด 400 gsm เคลือบด้าน</td></tr>
+      </table>
+      <div class="tagrow">
+        <span class="tg">ไม่มีหน้าต่างไดคัท</span>
+        <span class="tg">ผิวด้าน ไม่มีไฮไลต์เงา</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>พาเลตต์ <span class="dim">PCB PALETTE</span></h3>
+      <div class="swatches">
+        <div class="sw" style="background:#0B2B22" title="#0B2B22 พื้น PCB"></div>
+        <div class="sw" style="background:#071510" title="#071510 พื้นเข้ม"></div>
+        <div class="sw" style="background:#17513E" title="#17513E เส้น trace"></div>
+        <div class="sw" style="background:#FBBF24" title="#FBBF24 ทอง"></div>
+        <div class="sw" style="background:#4ADE80" title="#4ADE80 เขียววงจร"></div>
+        <div class="sw" style="background:#1D9E75" title="#1D9E75 ไทล์ QR"></div>
+        <div class="sw" style="background:#DCF5E6" title="#DCF5E6 ตัวอักษร"></div>
+      </div>
+      <p style="margin-top:10px;font-size:11.5px">Kanit 400/600/800 · Sarabun 400/500/700 · IBM Plex Mono 400/500/600</p>
+    </div>
+
+    <div class="flag">
+      <h3>⚠️ ต้องเคลียร์ก่อนส่งพิมพ์</h3>
+      <ol>
+        <li><b>จำนวนคำถาม</b> A1=64 · A2=99 · A3=81</li>
+        <li><b>เวลาเล่น</b> A1≈50 · A2=50 · A3=60–90 นาที</li>
+        <li><b>รหัสรุ่น</b> A1=IC-CC-2569 · A3=C5-2569</li>
+        <li>A2 มี “การ์ดเหตุการณ์ 20 ใบ” ขัดกับคู่มือ REV 3.1</li>
+        <li>คลิปอัปเกรด 16 ตัว พอดีเกินไป — แนะนำ 24</li>
+        <li><b>ถาดตั้งการ์ด 150 × 100 มม. ไม่ลงช่อง 72 × 144 มม.</b> ต้องย้ายไปช่องสำรอง หรือแก้ dieline ถาด</li>
+        <li>ธนบัตรต้อง<b>วางตะแคง 45 × 95 มม.</b> ถึงจะลงครบ 5 ราคาในช่อง 250 × 102 มม.</li>
+        <li>คลิป 24 ตัวลงได้ 10 ตัว/ชั้น — ต้องซ้อน 2–3 ชั้น</li>
+        <li>เส้นชมพู A3 อยู่ 27 mm ควรเป็น 34 mm</li>
+        <li>ข้อความสันฐาน 32–46 mm ถูกฝาบัง ต้องเลื่อนลง</li>
+        <li>สันฐาน 4 ด้านซ้ำข้อความเดิมทั้งหมด</li>
+        <li>A2 ไม่มีรูสกรูมุมเหมือน A1</li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<footer>reconstructed from Artboard-1-Lid · Artboard-2-Back · Artboard-3-Spines — visualization only, not print output</footer>
+</div>
+
+<script>
+/* ============ helpers : 1 unit = 1 mm ============ */
+const PT = 0.3528;                       // pt → mm
+const pt = v => (v*PT).toFixed(2)+'px';
+const px = v => v+'px';
+const el = (tag, style, html) => {
+  const d = document.createElement(tag);
+  if (style) d.setAttribute('style', style);
+  if (html != null) d.innerHTML = html;
+  return d;
+};
+const abs = (l,t,w,h,extra='') =>
+  `position:absolute;left:${l}px;top:${t}px;` +
+  (w!=null?`width:${w}px;`:'') + (h!=null?`height:${h}px;`:'') + extra;
+
+const PCB = op => `position:absolute;inset:0;opacity:${op};background-image:
+  radial-gradient(circle at 18% 26%, #17513E 0 1.15px, transparent 1.2px),
+  radial-gradient(circle at 62% 58%, #17513E 0 1.15px, transparent 1.2px),
+  radial-gradient(circle at 40% 86%, #17513E 0 .9px, transparent .95px),
+  linear-gradient(135deg,transparent 48.4%,#17513E 48.6%,#17513E 49.2%,transparent 49.4%),
+  linear-gradient(45deg,transparent 61.4%,#17513E 61.6%,#17513E 62.2%,transparent 62.4%);
+  background-size:34px 34px,46px 46px,28px 28px,34px 34px,46px 46px;`;
+
+/* ============ panel renderers (all coordinates in mm) ============ */
+const P = {};
+
+/* ---- A1 · LID TOP 268×268 ---- */
+P.A1 = () => {
+  const W=268, root = el('div', `position:relative;width:${W}px;height:${W}px;background:#0B2B22;overflow:hidden`);
+  root.appendChild(el('div', PCB(.55)));
+  root.appendChild(el('div', abs(8,8,W-16,W-16,'border:.35px solid #FBBF24;opacity:.5')));
+
+  // screw eyelets 4 corners
+  [[19,19],[239,19],[19,239],[239,239]].forEach(([x,y])=>{
+    root.appendChild(el('div', abs(x,y,10,10,'border:.6px solid #FBBF24;border-radius:50%')));
+    root.appendChild(el('div', abs(x+3,y+3,4,4,'border:.35px solid #FBBF24;border-radius:50%')));
+  });
+
+  // eyebrow
+  root.appendChild(el('div', abs(32,23.4,42,.35,'background:#FBBF24;opacity:.4')));
+  root.appendChild(el('div', abs(196,23.4,42,.35,'background:#FBBF24;opacity:.4')));
+  root.appendChild(el('div', abs(0,22,W,null,
+    `text-align:center;font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:${pt(8)};letter-spacing:1.6px;color:#FBBF24`),
+    'IT EDUCATION SERIES · IC-CC-2569'));
+
+  // QR mosaic 7×7, tile 19.5, pitch 21, block at 60.5,42 (147×147)
+  const blk = el('div', abs(60.5,42,147,147));
+  const ICON = {
+    code:'<path d="M5.5 4.5 L1.5 8 L5.5 11.5"/><path d="M10.5 4.5 L14.5 8 L10.5 11.5"/>',
+    chip:'<rect x="4.5" y="4.5" width="7" height="7"/><path d="M6.5 1.8V4.5M9.5 1.8V4.5M6.5 11.5V14.2M9.5 11.5V14.2M1.8 6.5H4.5M1.8 9.5H4.5M11.5 6.5H14.2M11.5 9.5H14.2"/>',
+    doc:'<path d="M3.5 1.5H9.5L12.5 4.5V14.5H3.5Z"/><path d="M9.5 1.5V4.5H12.5"/><path d="M6 8.5H10M6 11H10"/>',
+    palette:'<path d="M8 1.6A6.4 6.4 0 1 0 8 14.4C9.3 14.4 9.6 13.4 9 12.7C8.3 11.9 8.8 11 9.8 11H11.6A2.8 2.8 0 0 0 14.4 8.2C14.4 4.5 11.5 1.6 8 1.6Z"/><path d="M5 6.6h.01M8 5h.01M11 6.9h.01"/>',
+    brush:'<path d="M8 9 L4 12 L2.5 15.5 L6 14 L9 10"/><path d="M9 10 L13.5 5.5A2.1 2.1 0 0 0 10.5 2.5L6 7 L9 10Z"/>',
+    star:'<path d="M8 1 L9.6 6 L14.5 6.2 L10.6 9.3 L12 14.3 L8 11.1 L4 14.3 L5.4 9.3 L1.5 6.2 L6.4 6Z"/>',
+    coin:'<circle cx="8" cy="8" r="6"/><path d="M8 4.5V11.5M6 6h4M6 10h4"/>'
+  };
+  const svg = (d,stroke,op=1) =>
+    `<svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="${stroke}" stroke-width="1.4"
+      stroke-linecap="round" stroke-linejoin="round" opacity="${op}">${d}</svg>`;
+
+  for (let r=0;r<7;r++) for (let c=0;c<7;c++){
+    if (r>0 && r<6 && c>0 && c<6) continue;          // hollow ring, medal sits inside
+    const x = .75 + c*21, y = .75 + r*21;
+    const corner = (r===0||r===6) && (c===0||c===6);
+    let bg, icon = '';
+    if (corner){
+      bg = '#FBBF24';
+      const ic = [ICON.brush, ICON.coin, ICON.chip, ICON.star][(r?2:0)+(c?1:0)];
+      icon = svg(ic, '#0B2B22');
+    } else if (r===0){ bg='#1D9E75'; if(c===3) icon = svg(ICON.code,'#FFFFFF',.85); }
+    else if (r===6){ bg='#D85A30'; if(c===3) icon = svg(ICON.palette,'#FFFFFF',.85); }
+    else if (c===0){ bg='#D4537E'; if(r===3) icon = svg(ICON.chip,'#FFFFFF',.85); }
+    else { bg='#7F77DD'; if(r===3) icon = svg(ICON.doc,'#FFFFFF',.85); }
+    const t = el('div', abs(x,y,19.5,19.5,
+      `background:${bg};display:flex;align-items:center;justify-content:center`), icon);
+    if (!icon){
+      const dot = el('div', abs(r===0?7.25:(c===0?13.5:(c===6?1:7.25)), r===6?1:(r===0?13.5:7.25), 5,5,
+        'background:#FFFFFF;opacity:.25'));
+      t.appendChild(dot);
+    }
+    blk.appendChild(t);
+  }
+  const core = el('div', abs(0,36,147,null,'display:flex;flex-direction:column;align-items:center'));
+  core.appendChild(el('div',
+    `width:52px;height:52px;border-radius:50%;border:2.5px solid #FBBF24;display:flex;align-items:center;
+     justify-content:center;font-family:'Kanit',sans-serif;font-weight:800;font-size:18px;color:#FBBF24;line-height:1`,'CC'));
+  core.appendChild(el('div',
+    `margin-top:8px;font-family:'IBM Plex Mono',monospace;font-size:${pt(7)};letter-spacing:1.5px;color:#7FD9A8`,'TECHCOIN'));
+  core.appendChild(el('div','margin-top:5px;width:30px;height:.4px;background:#FBBF24'));
+  core.appendChild(el('div',
+    `margin-top:5px;font-family:'IBM Plex Mono',monospace;font-size:${pt(6)};letter-spacing:1px;color:#7FD9A8`,'4 SUBJECT / 64 QUESTION'));
+  blk.appendChild(core);
+  root.appendChild(blk);
+
+  root.appendChild(el('div', abs(0,202,W,null,
+    `text-align:center;font-family:'Kanit',sans-serif;font-weight:800;font-size:34px;line-height:.85;
+     letter-spacing:-.5px;color:#FBBF24`),'CodeCoin'));
+  root.appendChild(el('div', abs(0,232,W,null,
+    `text-align:center;font-family:'Sarabun',sans-serif;font-size:${pt(10)};color:#DCF5E6`),
+    'เกมกระดานเรียนรู้เทคโนโลยีสารสนเทศ 4 สาขาวิชา'));
+
+  const bar = el('div', abs(0,241,W,null,'display:flex;justify-content:center;gap:4px'));
+  [['CODING','#0F6E56',ICON.code],['MS OFFICE','#534AB7',ICON.doc],
+   ['DESIGN','#993C1D',ICON.palette],['HARDWARE','#993556',ICON.chip]].forEach(([t,bg,ic])=>{
+    bar.appendChild(el('div',
+      `background:${bg};color:#fff;font-family:'Kanit',sans-serif;font-weight:600;font-size:${pt(9)};line-height:1;
+       padding:2.2px 5.5px;border-radius:6px;display:flex;align-items:center;gap:2px;white-space:nowrap`,
+      `<svg width="4" height="4" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.6"
+        stroke-linecap="round" stroke-linejoin="round">${ic}</svg><span>${t}</span>`));
+  });
+  root.appendChild(bar);
+
+  root.appendChild(el('div', abs(0,253,W,null,
+    `text-align:center;font-family:'Sarabun',sans-serif;font-size:${pt(9)};color:#FBBF24`),
+    'ผู้เล่น 2–4 คน · ~50 นาที (1 คาบเรียน) · อายุ 12 ปีขึ้นไป'));
+  return root;
+};
+
+/* ---- A2 · BASE BOTTOM 264×264 ---- */
+P.A2 = () => {
+  const W=264, root = el('div', `position:relative;width:${W}px;height:${W}px;background:#0B2B22;overflow:hidden`);
+  root.appendChild(el('div', PCB(.5)));
+  root.appendChild(el('div', abs(0,0,W,110,'background:#0B2B22;opacity:.45')));
+
+  root.appendChild(el('div', abs(16,18,null,null,
+    `font-family:'Kanit',sans-serif;font-weight:800;font-size:20px;line-height:.9;color:#FBBF24`),'CodeCoin'));
+  root.appendChild(el('div', abs(16,40,128,null,
+    `font-family:'Sarabun',sans-serif;font-size:${pt(10.5)};line-height:1.5;color:#DCF5E6`),
+    'เกมกระดานลงทุนที่สอนไอที 4 สาขาวิชา สแกน QR ตอบคำถาม อัปเกรดระบบ สะสม TechCoin ให้ได้มากที่สุดใน 12 รอบ'));
+
+  const stats = el('div', abs(16,57,232,null,'display:flex'));
+  [['2–4','ผู้เล่น'],['12+','อายุ (ปี)'],['50','นาที'],['4','สาขาวิชา']].forEach(([n,l])=>{
+    stats.appendChild(el('div','flex:1',
+      `<div style="font-family:'Kanit',sans-serif;font-weight:800;font-size:${pt(16)};color:#FBBF24;line-height:1.2">${n}</div>
+       <div style="margin-top:1px;font-family:'Sarabun',sans-serif;font-size:${pt(9)};color:#4ADE80">${l}</div>`));
+  });
+  root.appendChild(stats);
+
+  const slot = (l,t,w,h,tag,cap) => {
+    const d = el('div', abs(l,t,w,h,'background:#071510;border:.3px solid #17513E'));
+    d.appendChild(el('div', abs(0,0,w,cap?h-8:h,
+      `display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5px`),
+      `<div style="font-family:'IBM Plex Mono',monospace;font-size:${pt(8)};letter-spacing:.5px;color:#4ADE80">${tag}</div>
+       <div style="font-family:'Sarabun',sans-serif;font-size:${pt(9)};color:#DCF5E6">${w} × ${h} mm</div>`));
+    if (cap) d.appendChild(el('div', abs(0,h-8,w,8,'background:#0B2B22;padding:2px 4px'),
+      `<div style="font-family:'Kanit',sans-serif;font-weight:600;font-size:${pt(9.5)};color:#4ADE80">${cap}</div>`));
+    return d;
+  };
+  root.appendChild(slot(16,78,154,100,'IMAGE · BOARD'));
+  root.appendChild(slot(174,78,74,48,'IMAGE · CARDS','การ์ด 16 ใบ มี QR ในตัว'));
+  root.appendChild(slot(174,130,74,48,'IMAGE · SCAN','สแกนเล่นได้เลย ไม่ต้องติดตั้งแอป'));
+
+  root.appendChild(el('div', abs(16,180,154,null,''),
+    `<div style="font-family:'Kanit',sans-serif;font-weight:600;font-size:${pt(11)};color:#4ADE80">กระดาน 50 × 50 ซม.</div>
+     <div style="margin-top:1px;font-family:'Sarabun',sans-serif;font-size:${pt(9.5)};color:#DCF5E6">16 ช่องทรัพย์สิน 4 โซนวิชา พับเก็บ 4 ส่วน</div>`));
+
+  root.appendChild(el('div', abs(0,192,W,72,'background:#071510')));
+
+  const items = ['กระดานเกม 50 × 50 ซม.','การ์ดทรัพย์สิน 16 ใบ (มี QR ในตัว)','การ์ดเหตุการณ์ 20 ใบ',
+    'ธนบัตร TechCoin 200 ใบ','โทเค็นผู้เล่น 4 ตัว','ลูกเต๋า 2 ลูก','คลิปบอกระดับอัปเกรด 16 ตัว','ถาดเก็บการ์ด + คู่มือกติกา'];
+  root.appendChild(el('div', abs(16,208,150,null,''),
+    `<div style="font-family:'Kanit',sans-serif;font-weight:600;font-size:${pt(12)};color:#FBBF24">ในกล่องประกอบด้วย</div>
+     <div style="margin-top:2px;column-count:2;column-gap:6px;font-family:'Sarabun',sans-serif;font-size:${pt(9.5)};line-height:1.45;color:#DCF5E6">
+     ${items.map(i=>`<div style="display:flex;gap:2px"><span style="color:#4ADE80">•</span><span>${i}</span></div>`).join('')}</div>`));
+
+  root.appendChild(el('div', abs(16,238,null,null,
+    `font-family:'Kanit',sans-serif;font-weight:600;font-size:${pt(10)};color:#4ADE80`),
+    'คำถามในระบบ 99 ข้อ · Bug Jam 19 โจทย์ · เหตุการณ์ 20 ใบ'));
+  root.appendChild(el('div', abs(16,246,null,null,
+    `font-family:'Sarabun',sans-serif;font-size:${pt(9)};line-height:1.5;color:#DCF5E6`),
+    '<div>ผลงานโครงงาน · ทนุธรรม ช้างวิเศษ · ชวิน สีหาบุตร · แพรวา พิมพ์เพชา</div>' +
+    '<div>Made in Thailand · REV 3.1 · มีชิ้นส่วนขนาดเล็ก เก็บให้พ้นมือเด็กเล็ก</div>'));
+
+  root.appendChild(el('div', abs(200,194,48,48,'background:#FFFFFF')));
+  root.appendChild(el('div', abs(204,198,40,40,
+    `background:#0B2B22;display:flex;align-items:center;justify-content:center;
+     font-family:'IBM Plex Mono',monospace;font-size:${pt(7)};letter-spacing:.6px;color:#4ADE80`),'QR 40 mm'));
+  root.appendChild(el('div', abs(192,244,64,null,'text-align:center'),
+    `<div style="font-family:'Kanit',sans-serif;font-weight:600;font-size:${pt(9)};color:#4ADE80">สแกนเล่นได้เลย</div>
+     <div style="margin-top:.8px;font-family:'IBM Plex Mono',monospace;font-size:${pt(7)};color:#DCF5E6;white-space:nowrap">ballgamerzaman-code.github.io/codecoin</div>`));
+  return root;
+};
+
+/* ---- spine strips ---- */
+const spine = (w,h,build) => () => {
+  const root = el('div', `position:relative;width:${w}px;height:${h}px;background:#0B2B22;overflow:hidden`);
+  root.appendChild(el('div', PCB(.28)));
+  const bar = el('div', abs(0,0,w,h,'background:#071510'));
+  bar.appendChild(el('div', abs(0,h-1.2,w,1.2,'background:#FBBF24')));
+  root.appendChild(bar);
+  const body = el('div', abs(0,0,w,h-1.2,'padding:0 12px;display:flex;'+
+    'align-items:center;justify-content:center;gap:6px'));
+  build(body, w, h);
+  root.appendChild(body);
+  return root;
+};
+const KAN = (s,c,w=800)=>`font-family:'Kanit',sans-serif;font-weight:${w};font-size:${s};color:${c};line-height:1`;
+const MON = (s,c,ls,w=500)=>`font-family:'IBM Plex Mono',monospace;font-weight:${w};font-size:${s};color:${c};letter-spacing:${ls}`;
+const SAR = (s,c)=>`font-family:'Sarabun',sans-serif;font-size:${s};color:${c}`;
+
+P.LF = spine(268,34,(b)=>{
+  b.style.justifyContent='space-between';
+  b.appendChild(el('div',KAN('11px','#FBBF24'),'CodeCoin'));
+  b.appendChild(el('div',MON(pt(9),'#4ADE80','1.4px'),'2-4 PLAYERS / 60-90 MIN / AGE 12+'));
+  b.appendChild(el('div',MON(pt(9),'#FBBF24','1px',600),'C5-2569'));
+});
+P.LB = spine(268,34,(b)=>{
+  b.style.flexDirection='column'; b.style.gap='2px';
+  b.appendChild(el('div',KAN(pt(11),'#4ADE80',600),'สแกน QR บนกระดาน — เล่นผ่านเว็บได้ทันที ไม่ต้องติดตั้งแอป'));
+  b.appendChild(el('div',MON(pt(9),'#4ADE80','.5px',400),'ballgamerzaman-code.github.io/codecoin'));
+});
+P.LR = spine(268,34,(b)=>{
+  b.appendChild(el('div',MON(pt(9),'#4ADE80','1.6px',600),'SPECIFICATIONS'));
+  b.appendChild(el('div','width:.3px;height:7px;background:#FBBF24;opacity:.6'));
+  b.appendChild(el('div',SAR(pt(9),'#DCF5E6'),'กระดาน 50×50 ซม. · การ์ดทรัพย์สิน 16 ใบ · คำถาม 81 ข้อ · QR 23 จุด'));
+});
+P.LL = spine(268,34,(b)=>{
+  b.appendChild(el('div',MON(pt(9),'#4ADE80','1.6px',600),'4 SUBJECT MODULES'));
+  b.appendChild(el('div','width:.3px;height:7px;background:#FBBF24;opacity:.6'));
+  b.appendChild(el('div',SAR(pt(9),'#DCF5E6'),'การเขียนโปรแกรม · โปรแกรมสำนักงาน · ออกแบบกราฟิก · ประกอบคอมพิวเตอร์'));
+});
+const baseSpine = spine(264,52,(b,w,h)=>{
+  b.style.alignItems='flex-end'; b.style.paddingBottom='3px';
+  b.appendChild(el('div',KAN('14px','#FBBF24'),'CodeCoin'));
+  // magenta guide = lid overlap edge (spec says should sit at 34 mm, file has 27)
+  b.appendChild(el('div', abs(0,27,w,.25,'background:#FF00AA;opacity:.75')));
+  b.appendChild(el('div', abs(0,34,w,.25,'background:#00E5FF;opacity:.55')));
+});
+P.B1 = baseSpine; P.B2 = baseSpine; P.B3 = baseSpine; P.B4 = baseSpine;
+
+/* ============ part registry ============ */
+const PARTS = {
+  A1:{n:'A1 · ฝากล่อง (แผงบน)',  w:268,h:268, src:'Artboard-1-Lid-268mm', trim:'268 × 268 mm', bleed:'3 mm → artboard 274 × 274',
+      d:'หน้ากล่อง — โมเสก QR ยักษ์ 7×7 ไทล์ (19.5 mm พิทช์ 21 mm) ล้อมเหรียญ TechCoin 52 mm ตรงกลาง เวิร์ดมาร์กและป้าย 4 สาขาวิชาอยู่ครึ่งล่าง',
+      f:['พื้นหลัง PCB trace 2 ชั้น (34 mm + 46 mm)','กรอบทองบาง inset 8 mm','รูสกรูเมนบอร์ด 4 มุม','หน้าต่างไดคัทถูกถอดออกแล้ว — กล่องปิดทึบ'],
+      issues:['คำถามระบุ 64 ข้อ (A2 = 99, A3 = 81)','รหัสรุ่น IC-CC-2569 ไม่ตรงกับ C5-2569 บนสัน']},
+  A2:{n:'A2 · หลังกล่อง (พื้นล่างฐาน)', w:264,h:264, src:'Artboard-2-Back-264mm', trim:'264 × 264 mm', bleed:'3 mm → artboard 270 × 270',
+      d:'แผงล่างของถาดฐาน — คำโปรย สถิติ 4 ช่อง ช่องภาพ 3 ช่อง รายการของในกล่อง และ QR 40 mm บนแผ่นรองขาว',
+      f:['ทับ overlay ทึบ 45% เฉพาะ 110 mm บน','แถบทึบ #071510 เต็มความกว้างที่ 192 mm','ช่องภาพยังเป็น placeholder รอภาพจริง 3 ภาพ'],
+      issues:['“การ์ดเหตุการณ์ 20 ใบ” ขัดกับคู่มือ REV 3.1','คลิปอัปเกรด 16 ตัว ไม่มีสำรอง แนะนำ 24','ยังไม่มีรูสกรูมุมให้เข้าชุดกับ A1']},
+  LF:{n:'สันฝา · FRONT', w:268,h:34, src:'Artboard-3-Spines', trim:'268 × 34 mm', bleed:'3 mm',
+      d:'ด้านหน้าของกล่อง (ประกบกับ BASE 1) — โลโก้ซ้าย สเปกผู้เล่นกลาง รหัสรุ่นขวา',
+      f:['หมุน 0° ตอนประกบ'], issues:['เวลา 60–90 MIN ขัดกับ ~50 นาที บน A1/A2']},
+  LB:{n:'สันฝา · BACK', w:268,h:34, src:'Artboard-3-Spines', trim:'268 × 34 mm', bleed:'3 mm',
+      d:'ด้านหลัง — ประโยคชวนสแกน QR พร้อม URL เว็บแอป', f:['หมุน 180° ตอนประกบ'], issues:[]},
+  LR:{n:'สันฝา · RIGHT', w:268,h:34, src:'Artboard-3-Spines', trim:'268 × 34 mm', bleed:'3 mm',
+      d:'ด้านขวา — บล็อก SPECIFICATIONS', f:['หมุน −90° ตอนประกบ'], issues:['คำถาม 81 ข้อ ไม่ตรงกับ A1/A2']},
+  LL:{n:'สันฝา · LEFT', w:268,h:34, src:'Artboard-3-Spines', trim:'268 × 34 mm', bleed:'3 mm',
+      d:'ด้านซ้าย — บล็อก 4 SUBJECT MODULES', f:['หมุน +90° ตอนประกบ'], issues:[]},
+  B1:{n:'สันฐาน · BASE 1', w:264,h:52, src:'Artboard-3-Spines', trim:'264 × 52 mm', bleed:'3 mm',
+      d:'ผนังฐานด้านหน้า ประกบใต้ LID·FRONT — มองเห็นจริงเฉพาะ 21 mm ล่างสุด',
+      f:['หมุน 180° เพราะฐานต้องพลิกให้ปากถาดหงายขึ้น','เส้นชมพู = ขอบฝาครอบทับ','เส้นฟ้า = ตำแหน่งที่ควรจะเป็น (34 mm)'],
+      issues:['เส้นชมพูอยู่ 27 mm ควรเป็น 34 mm','ข้อความอยู่ 32–46 mm ส่วนบนจะถูกฝาบัง','ซ้ำกับ BASE 2–4 ทุกตัวอักษร']},
+  B2:{n:'สันฐาน · BASE 2', w:264,h:52, src:'Artboard-3-Spines', trim:'264 × 52 mm', bleed:'3 mm',
+      d:'ผนังฐานด้านหลัง ประกบใต้ LID·BACK', f:['หมุน 0°'], issues:['เนื้อหาซ้ำ — เสนอใส่ REV 3.1 แทน']},
+  B3:{n:'สันฐาน · BASE 3', w:264,h:52, src:'Artboard-3-Spines', trim:'264 × 52 mm', bleed:'3 mm',
+      d:'ผนังฐานด้านซ้าย (สลับข้างกับฝาเพราะการพลิก)', f:['หมุน +90°'], issues:['เนื้อหาซ้ำ — เสนอใส่ชื่อทีม/สถาบัน']},
+  B4:{n:'สันฐาน · BASE 4', w:264,h:52, src:'Artboard-3-Spines', trim:'264 × 52 mm', bleed:'3 mm',
+      d:'ผนังฐานด้านขวา (สลับข้างกับฝาเพราะการพลิก)', f:['หมุน −90°'], issues:['เนื้อหาซ้ำ — เสนอใส่ MADE IN THAILAND']}
+};
+
+/* ============ ของในกล่อง — component renderers (1 unit = 1 mm) ============ */
+const C = {};
+const ZONE = {
+  coding:{n:'CODING AVENUE', bg:'#123528', c:'#0F6E56', ic:'code'},
+  office:{n:'OFFICE STREET', bg:'#0E2A3A', c:'#534AB7', ic:'doc'},
+  design:{n:'DESIGN DISTRICT', bg:'#3A2410', c:'#993C1D', ic:'palette'},
+  hardware:{n:'HARDWARE TOWN', bg:'#3A1428', c:'#993556', ic:'chip'}
+};
+const IC = {
+  code:'<path d="M5.5 4.5 L1.5 8 L5.5 11.5"/><path d="M10.5 4.5 L14.5 8 L10.5 11.5"/>',
+  chip:'<rect x="4.5" y="4.5" width="7" height="7"/><path d="M6.5 1.8V4.5M9.5 1.8V4.5M6.5 11.5V14.2M9.5 11.5V14.2M1.8 6.5H4.5M1.8 9.5H4.5M11.5 6.5H14.2M11.5 9.5H14.2"/>',
+  doc:'<path d="M3.5 1.5H9.5L12.5 4.5V14.5H3.5Z"/><path d="M9.5 1.5V4.5H12.5"/><path d="M6 8.5H10M6 11H10"/>',
+  palette:'<path d="M8 1.6A6.4 6.4 0 1 0 8 14.4C9.3 14.4 9.6 13.4 9 12.7C8.3 11.9 8.8 11 9.8 11H11.6A2.8 2.8 0 0 0 14.4 8.2C14.4 4.5 11.5 1.6 8 1.6Z"/><path d="M5 6.6h.01M8 5h.01M11 6.9h.01"/>'
+};
+const ico = (k,col,sz)=>`<svg width="${sz}" height="${sz}" viewBox="0 0 16 16" fill="none" stroke="${col}"
+  stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${IC[k]}</svg>`;
+
+/* ============ ของจริงจาก Final/*.pdf — สร้างรูปด้วย gen_demo_assets.py ============ */
+const ASSET = 'demo_assets/';
+/* ลำดับตรงกับ demo_assets/cards/index.json (ฝังไว้เลย เพราะ fetch() ใช้ไม่ได้ตอนเปิดไฟล์ตรง ๆ) */
+const CARDS = [
+  ['coding_01','HTML & CSS เบื้องต้น','1,000'], ['coding_02','Python พื้นฐาน','1,200'],
+  ['coding_03','JavaScript เชิงโต้ตอบ','1,400'], ['coding_04','ฐานข้อมูล SQL เบื้องต้น','1,600'],
+  ['office_01','Word จัดหน้าเอกสาร','800'],     ['office_02','Excel สูตรคำนวณ','1,000'],
+  ['office_03','Excel Pivot Table & กราฟ','1,200'], ['office_04','PowerPoint นำเสนองาน','1,400'],
+  ['design_01','ทฤษฎีสีและองค์ประกอบศิลป์','1,200'], ['design_02','Photoshop ตกแต่งภาพ','1,400'],
+  ['design_03','Illustrator วาดเวกเตอร์','1,600'], ['design_04','Canva ออกแบบสื่อโซเชียล','1,800'],
+  ['hardware_01','CPU และเมนบอร์ด','1,800'],    ['hardware_02','RAM และหน่วยเก็บข้อมูล','2,000'],
+  ['hardware_03','Power Supply และการต่อสายไฟ','2,200'], ['hardware_04','ประกอบเครื่อง & ลงวินโดวส์','2,500']
+];
+const artwork = (src,w,h,extra='') => {
+  // ห้ามใส่ loading="lazy" — รูปอยู่ในเลเยอร์ที่ถูก transform 3 มิติ
+  // เบราว์เซอร์คำนวณว่าอยู่นอกจอแล้วไม่ยอมโหลดเลย
+  const i = el('img', `position:absolute;left:0;top:0;width:${w}px;height:${h}px;display:block;${extra}`);
+  i.src = src;
+  return i;
+};
+
+/* การ์ดทรัพย์สิน 63 × 88 — งานพิมพ์จริงจาก Final/หน้า.pdf · หลัง.pdf */
+C.card = (i=0, side='f') => {
+  const w=63,h=88, c=CARDS[i%CARDS.length];
+  const r = el('div', `position:relative;width:${w}px;height:${h}px;background:#0B2B22;overflow:hidden;
+    border-radius:2px;box-shadow:0 0 0 .3px #17513E`);
+  const img = artwork(`${ASSET}cards/${c[0]}_${side}.webp`, w, h);
+  img.alt = c[1];
+  r.appendChild(img);
+  return r;
+};
+
+/* ธนบัตร TechCoin 95 × 45 */
+const NOTES = [
+  {v:'10',   c:'#4ADE80', t:'#06301F'},
+  {v:'50',   c:'#7FD9A8', t:'#06301F'},
+  {v:'100',  c:'#FBBF24', t:'#3A2410'},
+  {v:'500',  c:'#D4537E', t:'#2A0A16'},
+  {v:'1000', c:'#7F77DD', t:'#14103A'}
+];
+C.note = (i=2) => {
+  const n=NOTES[i], w=95,h=45;
+  const r = el('div', `position:relative;width:${w}px;height:${h}px;background:#071510;overflow:hidden;
+    border:.4px solid ${n.c}`);
+  r.appendChild(el('div', PCB(.3)));
+  r.appendChild(el('div', abs(0,0,26,h,`background:${n.c}`)));
+  r.appendChild(el('div', abs(0,0,26,h,`display:flex;align-items:center;justify-content:center;
+    font-family:'Kanit',sans-serif;font-weight:800;font-size:${pt(15)};color:${n.t}`),n.v));
+  r.appendChild(el('div', abs(30,8,null,null,
+    `font-family:'Kanit',sans-serif;font-weight:800;font-size:${pt(13)};color:${n.c}`),n.v+' ₮'));
+  r.appendChild(el('div', abs(30,19,null,null,
+    `font-family:'IBM Plex Mono',monospace;font-size:${pt(6)};letter-spacing:1.2px;color:#7FD9A8`),'TECHCOIN'));
+  r.appendChild(el('div', abs(30,26,null,null,
+    `font-family:'Sarabun',sans-serif;font-size:${pt(6)};color:#DCF5E6`),'CodeCoin · ธนาคารกลางระบบ'));
+  r.appendChild(el('div', abs(74,26,16,14,'border:.4px solid #17513E;display:flex;align-items:center;justify-content:center'),
+    ico('chip',n.c,8)));
+  return r;
+};
+
+/* โทเค็นผู้เล่น Ø22 (มองจากบน) */
+C.token = (i=0) => {
+  const keys=Object.keys(ZONE), z=ZONE[keys[i%4]], d=22;
+  const r = el('div', `position:relative;width:${d}px;height:${d}px`);
+  r.appendChild(el('div', abs(0,0,d,d,`background:${z.c};border-radius:50%;border:1px solid #FBBF24;
+    display:flex;align-items:center;justify-content:center`), ico(z.ic,'#fff',11)));
+  return r;
+};
+
+/* ลูกเต๋า 16 มม. */
+C.die = () => {
+  const d=16, r=el('div', `position:relative;width:${d}px;height:${d}px;background:#071510;border-radius:2.5px;
+    border:.5px solid #FBBF24`);
+  [[4,4],[12,4],[8,8],[4,12],[12,12]].forEach(([x,y])=>
+    r.appendChild(el('div', abs(x-1.3,y-1.3,2.6,2.6,'background:#FBBF24;border-radius:50%'))));
+  return r;
+};
+
+/* คลิปบอกระดับอัปเกรด 12 × 20 */
+C.clip = (lv=2) => {
+  const w=12,h=20, cols=['#4ADE80','#FBBF24','#D85A30'];
+  const r = el('div', `position:relative;width:${w}px;height:${h}px`);
+  r.appendChild(el('div', abs(0,0,w,h,`background:${cols[lv-1]};border-radius:2px 2px 0 0;
+    clip-path:polygon(0 0,100% 0,100% 74%,50% 100%,0 74%);display:flex;align-items:flex-start;
+    justify-content:center;padding-top:3px;font-family:'Kanit',sans-serif;font-weight:800;
+    font-size:${pt(9)};color:#0B2B22`),'L'+lv));
+  return r;
+};
+
+/* กระดานพับ 250 × 250 — งานพิมพ์จริงจาก Final/CodeCoin-Board-50x50-Final1.pdf
+   แสดงกระดานเต็มผืน 50 × 50 ซม. ย่อลงในกรอบ 250 มม. พร้อมเส้นพับ 4 ส่วน */
+C.board = () => {
+  const W=250, r=el('div', `position:relative;width:${W}px;height:${W}px;background:#0B2B22;overflow:hidden`);
+  r.appendChild(artwork(ASSET+'board.webp', W, W));
+  r.appendChild(el('div', abs(W/2-.15,0,.3,W,'background:#00E5FF;opacity:.5')));
+  r.appendChild(el('div', abs(0,W/2-.15,W,.3,'background:#00E5FF;opacity:.5')));
+  return r;
+};
+
+/* คู่มือกติกา A5 148 × 210 */
+C.book = () => {
+  const w=148,h=210, r=el('div', `position:relative;width:${w}px;height:${h}px;background:#0B2B22;overflow:hidden;
+    border:.4px solid #17513E`);
+  r.appendChild(el('div', PCB(.45)));
+  r.appendChild(el('div', abs(0,0,7,h,'background:#FBBF24')));
+  r.appendChild(el('div', abs(18,26,null,null,
+    `font-family:'IBM Plex Mono',monospace;font-size:${pt(9)};letter-spacing:2px;color:#4ADE80`),'RULEBOOK · REV 3.1'));
+  r.appendChild(el('div', abs(18,40,110,null,
+    `font-family:'Kanit',sans-serif;font-weight:800;font-size:26px;line-height:.95;color:#FBBF24`),'CodeCoin'));
+  r.appendChild(el('div', abs(18,72,110,null,
+    `font-family:'Sarabun',sans-serif;font-size:${pt(11)};line-height:1.5;color:#DCF5E6`),
+    'คู่มือกติกาฉบับละเอียด · 15 ข้อ + กติกาเลือกใช้ D/E + ตารางราคาเต็ม 16 ช่อง'));
+  r.appendChild(el('div', abs(18,110,112,66,'background:#071510;border:.3px solid #17513E;padding:6px 8px'),
+    ['1. ภาพรวมเกม','2. การเตรียมเกม','3. ผังกระดาน 28 ช่อง','…','15. จบเกมและคิดคะแนน'].map(t=>
+      `<div style="font-family:'Sarabun',sans-serif;font-size:${pt(8)};line-height:1.6;color:#7FD9A8">${t}</div>`).join('')));
+  r.appendChild(el('div', abs(18,186,null,null,
+    `font-family:'IBM Plex Mono',monospace;font-size:${pt(7.5)};color:#DCF5E6`),'ballgamerzaman-code.github.io/codecoin'));
+  return r;
+};
+
+/* ถาดเก็บการ์ด 4 ช่อง (มองจากบน) 150 × 100 */
+C.tray = () => {
+  const w=150,h=100, r=el('div', `position:relative;width:${w}px;height:${h}px;background:#071510;overflow:hidden;
+    border:.5px solid #FBBF24`);
+  r.appendChild(el('div', PCB(.3)));
+  Object.keys(ZONE).forEach((k,i)=>{
+    const z=ZONE[k], sw=(w-10)/4;
+    const s=el('div', abs(4+i*(sw+.7), 4, sw, h-8, `background:${z.bg};border:.4px solid ${z.c}`));
+    s.appendChild(el('div', abs(0,0,sw,6,`background:${z.c};display:flex;align-items:center;justify-content:center`),
+      ico(z.ic,'#fff',4)));
+    s.appendChild(el('div', abs(0,h-20,sw,null,
+      `text-align:center;font-family:'IBM Plex Mono',monospace;font-size:${pt(6)};color:${z.c}`),'4 ใบ'));
+    r.appendChild(s);
+  });
+  return r;
+};
+
+/* ============ ผังจัดวางในถาด (อินเสิร์ต 258 × 258) ============ */
+const BAYS = [
+  {id:'bay_cards', x:4,  y:4,   w:72,  h:144, lbl:'ถาดการ์ด',       sub:'16 ใบ · 63 × 88 มม.',  comp:'card',  col:'#4ADE80'},
+  {id:'bay_small', x:80, y:4,   w:66,  h:70,  lbl:'ลูกเต๋า + โทเค็น', sub:'2 ลูก · 4 ตัว',        comp:'token', col:'#FBBF24'},
+  {id:'bay_clip',  x:80, y:78,  w:66,  h:70,  lbl:'คลิปอัปเกรด',     sub:'24 ตัว · ซ้อน 2 ชั้น',  comp:'clip',  col:'#D85A30'},
+  {id:'bay_spare', x:150,y:4,   w:104, h:144, lbl:'ช่องสำรอง',       sub:'ว่าง · Phase 2',       comp:null,    col:'#7F77DD'},
+  {id:'bay_money', x:4,  y:152, w:250, h:102, lbl:'ธนบัตร TechCoin',  sub:'5 ราคา · 200 ใบ',      comp:'note',  col:'#D4537E'}
+];
+const NOTE_QTY = [40,30,50,40,40];
+
+/* วางของจริงลงในช่อง — ทุกชิ้นสเกล 1 : 1 มม. เท่ากับอินเสิร์ต */
+const put = (parent,node,x,y) => {
+  node.style.position='absolute'; node.style.left=x+'px'; node.style.top=y+'px';
+  parent.appendChild(node); return node;
+};
+const FILL = {
+  /* สำรับการ์ด 16 ใบ วางแบน + ถาดตั้งการ์ดพับเก็บใต้สำรับ */
+  bay_cards(d,b){
+    for(let i=3;i>=1;i--) d.appendChild(el('div', abs(4.5+i*.9, 20+i*.9, 63, 88,
+      'background:#0d3327;border:.3px solid #17513E;border-radius:1px')));
+    put(d, C.card(), 4.5, 20);
+    d.appendChild(el('div', abs(4,110,64,null,
+      `text-align:center;font-family:'IBM Plex Mono',monospace;font-size:${pt(6.5)};color:#4ADE80`),
+      'ซ้อน 16 ใบ ≈ 9 มม.'));
+    d.appendChild(el('div', abs(4,117,64,22,
+      `border:.5px dashed #4ADE80;opacity:.55;display:flex;align-items:center;justify-content:center;
+       text-align:center;font-family:'Sarabun',sans-serif;font-size:${pt(6.5)};color:#7FD9A8`),
+      'ถาดตั้งการ์ด<br>(พับเก็บ)'));
+  },
+  /* โทเค็น 4 ตัว 2×2 + ลูกเต๋า 2 ลูก */
+  bay_small(d){
+    [[2,17],[24,17],[2,39],[24,39]].forEach(([x,y],i)=>put(d,C.token(i),x,y));
+    [[48,19],[48,38]].forEach(([x,y])=>put(d,C.die(),x,y));
+  },
+  /* คลิปอัปเกรด — เห็น 10 ตัวต่อชั้น รวม 24 ตัวต้องซ้อน */
+  bay_clip(d){
+    for(let r=0;r<2;r++) for(let c=0;c<5;c++)
+      put(d, C.clip((r*5+c)%3+1), 2+c*12.6, 18+r*23);
+    d.appendChild(el('div', abs(2,64,62,null,
+      `text-align:center;font-family:'IBM Plex Mono',monospace;font-size:${pt(6)};color:#D85A30`),
+      '10 ตัว/ชั้น · ซ้อน 2–3 ชั้น'));
+  },
+  bay_spare(d,b){
+    d.appendChild(el('div', abs(8,24,b.w-16,b.h-32,
+      `border:.5px dashed #7F77DD;opacity:.55;display:flex;align-items:center;justify-content:center;
+       text-align:center;line-height:1.6;font-family:'IBM Plex Mono',monospace;font-size:${pt(7.5)};
+       letter-spacing:.5px;color:#7F77DD`),
+      'ว่าง 104 × 144 มม.<br>เผื่อ Power-Up Cards'));
+  },
+  /* ธนบัตรตะแคง 45 × 95 มม. × 5 ราคา — ป้ายชื่อวางแนวตั้งเพื่อกันกินพื้นที่ */
+  bay_money(d,b){
+    for(let i=0;i<5;i++){
+      const lx = 10 + i*48;
+      for(let s=2;s>=1;s--) d.appendChild(el('div', abs(lx+s*.9, 3+s*.9, 45, 95,
+        `background:#050f0c;border:.3px solid ${NOTES[i].c};opacity:.45;border-radius:1px`)));
+      const w = el('div', abs(lx,3,45,95,'overflow:hidden'));
+      const n = C.note(i);
+      n.style.position='absolute'; n.style.left='0'; n.style.top='0';
+      n.style.transformOrigin='0 0'; n.style.transform='translate(45px,0) rotate(90deg)';
+      w.appendChild(n); d.appendChild(w);
+      // จำนวนต่อราคา — เป็นหมายเหตุกำกับ วางทับขอบล่างธนบัตรบนแถบทึบ
+      d.appendChild(el('div', abs(lx,89,45,9,
+        `background:rgba(5,15,12,.88);display:flex;align-items:center;justify-content:center;
+         font-family:'IBM Plex Mono',monospace;font-size:${pt(6.5)};color:${NOTES[i].c}`),
+        NOTES[i].v+' ₮ × '+NOTE_QTY[i]));
+    }
+  }
+};
+C.insert = () => {
+  const W=258, r=el('div', `position:relative;width:${W}px;height:${W}px;background:#071510;overflow:hidden;
+    border:.6px solid #17513E`);
+  r.appendChild(el('div', PCB(.25)));
+  BAYS.forEach(b=>{
+    const d=el('div', abs(b.x,b.y,b.w,b.h,
+      `background:#0B2B22;border:.6px solid ${b.col};border-radius:2px;overflow:hidden`));
+    d.dataset.bay=b.id;
+    d.style.cursor='pointer';
+    if(b.id==='bay_money'){
+      d.appendChild(el('div', abs(0,0,9,b.h,`background:${b.col};opacity:.16`)));
+      d.appendChild(el('div', abs(0,0,b.h,9,
+        `transform-origin:0 0;transform:translate(0,${b.h}px) rotate(-90deg);display:flex;align-items:center;
+         justify-content:center;gap:5px;font-family:'Kanit',sans-serif;font-weight:600;
+         font-size:${pt(9.5)};color:${b.col}`),
+        `${b.lbl}<span style="font-family:'IBM Plex Mono',monospace;font-size:${pt(7)};opacity:.85">${b.sub}</span>`));
+    } else {
+      d.appendChild(el('div', abs(4,2.5,b.w-8,null,
+        `font-family:'Kanit',sans-serif;font-weight:600;font-size:${pt(9.5)};color:${b.col}`),b.lbl));
+      d.appendChild(el('div', abs(4,9,b.w-8,null,
+        `font-family:'IBM Plex Mono',monospace;font-size:${pt(7)};letter-spacing:.3px;color:#7FD9A8`),b.sub));
+    }
+    if(FILL[b.id]) FILL[b.id](d,b);
+    r.appendChild(d);
+  });
+  r.appendChild(el('div', abs(0,W-6,W,null,
+    `text-align:center;font-family:'IBM Plex Mono',monospace;font-size:${pt(6.5)};letter-spacing:.6px;color:#5f7269`),
+    'INSERT 258 × 258 mm · ลึก 30 mm · ของทุกชิ้นวาดตามขนาดจริง 1:1'));
+  return r;
+};
+
+/* ============ รายการของในกล่อง ============ */
+const CONTENTS = [
+  {id:'board', comp:'board', n:'กระดานเกม',            qty:'1 แผ่น',  size:'50 × 50 ซม. · พับ 4 ส่วน → 25 × 25 ซม.',
+   st:'ok',   src:'Final/CodeCoin-Board-50x50-Final1.pdf',
+   note:'ไฟล์ส่งพิมพ์เป็น 51 × 51 ซม. (รวมเผื่อตัด) · มี QR บนกระดาน 7 จุด'},
+  {id:'card', comp:'card', n:'การ์ดทรัพย์สิน',          qty:'16 ใบ',  size:'63 × 88 มม. + bleed 3 มม.',
+   st:'ok',   src:'Final/หน้า.pdf + หลัง.pdf',
+   note:'พิมพ์ 2 หน้า (flip on long edge) · QR ฝังในไฟล์แล้ว · ตรวจแล้วหลังการ์ดสลับซ้าย-ขวาตรงกับการพิมพ์พลิกด้านยาว'},
+  {id:'tray', comp:'tray', n:'ถาดตั้งการ์ด 4 ช่อง',     qty:'1 ชิ้น',  size:'150 × 100 มม. (ตามที่เดโมสมมติ)',
+   st:'warn', src:'codecoin_card_tray_dieline_rev2.html',
+   note:'ตั้งการ์ดให้หันหน้า QR ออก สแกนได้โดยไม่ต้องหยิบ · ⚠️ กว้าง 150 มม. เกินช่องถาดการ์ด 72 มม. — ต้องเช็ก dieline จริงแล้วย้ายไปช่องสำรอง 104 × 144 มม. หรือย่อถาด'},
+  {id:'book', comp:'book', n:'คู่มือกติกา REV 3.1',     qty:'1 เล่ม',  size:'A5 148 × 210 มม. · 13 หน้า',
+   st:'warn', src:'PDF รูปเล่ม (ธีม PCB)',
+   note:'⚠️ ไฟล์ปัจจุบันเป็น A4 (297 มม.) ยาวเกินกล่อง 264 มม. — ต้องจัดใหม่เป็น A5 หรือพับครึ่ง'},
+  {id:'note', comp:'note', n:'ธนบัตร TechCoin',        qty:'200 ใบ', size:'95 × 45 มม. (เสนอ)',
+   st:'todo', src:'ยังไม่มีไฟล์ออกแบบ',
+   note:'ต้องมี 5 ราคา (10/50/100/500/1000) เพราะค่าเช่ามีเลขลงท้าย 10 เช่น 80 / 90 / 140 / 150'},
+  {id:'token', comp:'token', n:'โทเค็นผู้เล่น',          qty:'4 ตัว',  size:'Ø 22 มม.',
+   st:'todo', src:'ยังไม่มีไฟล์ออกแบบ',
+   note:'ใช้สีประจำ 4 วิชา (Coding / Office / Design / Hardware) ให้ตรงกับโซนบนกระดาน'},
+  {id:'die', comp:'die', n:'ลูกเต๋า',                   qty:'2 ลูก',  size:'16 มม.',
+   st:'ok',   src:'ซื้อสำเร็จรูป',
+   note:'กติกาใช้ทอย 2 ลูก · ทอยเบิ้ลได้ทอยซ้ำ และใช้ออกจาก Bug Jam'},
+  {id:'clip', comp:'clip', n:'คลิปบอกระดับอัปเกรด',     qty:'24 ตัว', size:'~12 × 20 มม.',
+   st:'warn', src:'ยังไม่มีไฟล์ออกแบบ',
+   note:'A2 ระบุ 16 ตัว — จำลองพบอัปเกรดเฉลี่ย ~16.3 ครั้ง/เกม จึงไม่มีสำรองเลย แนะนำ 24'}
+];
+const EXCLUDED = [
+  ['การ์ดเหตุการณ์', 'คู่มือ REV 3.1 ระบุว่าเหตุการณ์สุ่มผ่านการสแกน QR บนกระดาน ไม่มีการ์ดจริง — แต่ A2 ยังพิมพ์ว่ามี 20 ใบ'],
+  ['มือถือผู้เล่น', 'ผู้เล่นใช้เครื่องตัวเอง เปิดเว็บแอปค้างไว้ ไม่ต้องติดตั้งแอป'],
+  ['กระดาษจดคะแนน', 'เว็บแอปสรุปคะแนนท้ายเกมให้เอง']
+];
+const LAYERS = [
+  {n:'ฝากล่อง', h:34, y:0,  col:'#FBBF24', d:'ครอบลงมา 34 มม. เหลือผนังฐานโผล่ 21 มม.'},
+  {n:'กระดานพับ', h:8,  y:14, col:'#4ADE80', d:'250 × 250 มม. วางปิดทับชั้นบนสุดในถาด'},
+  {n:'คู่มือกติกา', h:3,  y:22, col:'#7F77DD', d:'A5 วางแบนใต้กระดาน'},
+  {n:'อินเสิร์ตช่องเก็บ', h:30, y:25, col:'#D4537E', d:'258 × 258 มม. ลึก 30 มม. — 5 ช่อง'},
+  {n:'ก้นถาดฐาน', h:0,  y:55, col:'#17513E', d:'พื้นล่างคือแผง A2'}
+];
+
+/* ============ state + views ============ */
+let mode='box', sel={t:'panel',k:'A1'}, rotX=-20, rotY=32, explode=0, showSeam=true, showInner=true;
+let userRot=false;                        // ผู้ใช้หมุนเองแล้วหรือยัง (ถ้ายัง ให้เอียงกล้องอัตโนมัติตอนแยกชั้น)
+const stage=document.getElementById('stage'), detail=document.getElementById('detail');
+let boxCtx=null;
+
+function mountNode(node, w, h, scale){
+  const holder = el('div', `position:relative;width:${w*scale}px;height:${h*scale}px;overflow:hidden`);
+  node.style.transformOrigin='0 0';
+  node.style.transform=`scale(${scale})`;
+  node.style.position='absolute'; node.style.left='0'; node.style.top='0';
+  holder.appendChild(node);
+  return holder;
+}
+const mount = (key, scale) => mountNode(P[key](), PARTS[key].w, PARTS[key].h, scale);
+
+function markSel(){
+  document.querySelectorAll('[data-part]').forEach(n=>
+    n.classList.toggle('sel', sel.t==='panel' && n.dataset.part===sel.k));
+  document.querySelectorAll('[data-item]').forEach(n=>
+    n.classList.toggle('sel', sel.t==='comp' && n.dataset.item===sel.k));
+}
+function selectPart(k){ sel={t:'panel',k}; renderDetail(); markSel(); }
+function selectComp(k){ sel={t:'comp',k}; renderDetail(); markSel(); }
+
+const ITEM = id => CONTENTS.find(x=>x.id===id);
+const ST = {ok:['พร้อมพิมพ์','#4ADE80'], warn:['ต้องแก้','#FBBF24'], todo:['ยังไม่มีไฟล์','#ff9d9d']};
+/* ความกว้างที่พรีวิวในรางขวาใช้ได้จริง = ราง 400 − ขอบการ์ด 32 − เส้นกรอบ 2 − ช่องไฟ 20 */
+const PVW = 344;
+
+/* ============ ดูเต็มจอ ============ */
+const lightbox = el('div'); lightbox.id = 'lightbox';
+document.body.appendChild(lightbox);
+let bigView = null;          // () => {node, w, h, title, sub} — ตั้งค่าใหม่ทุกครั้งที่เปลี่ยนชิ้นที่เลือก
+
+function openBig(){
+  if(!bigView) return;
+  const v = bigView();
+  lightbox.innerHTML = '';
+  const head = el('div', null,
+    `<span class="lbname">${v.title}</span><span class="lbdim">${v.sub||''}</span>
+     <span class="lbtip">คลิกที่ใดก็ได้ หรือกด Esc เพื่อปิด</span>`);
+  head.className = 'lbhead';
+  lightbox.appendChild(head);
+  // เพดาน 14 px/มม. กันของชิ้นจิ๋วอย่างลูกเต๋า 16 มม. ถูกขยายเต็มจอจนดูพิลึก
+  const sc = Math.min((innerWidth-70)/v.w, (innerHeight-130)/v.h, 14);
+  lightbox.appendChild(mountNode(v.node, v.w, v.h, sc));
+  lightbox.style.display = 'flex';
+}
+const closeBig = () => { lightbox.style.display='none'; lightbox.innerHTML=''; };
+lightbox.addEventListener('click', closeBig);
+addEventListener('keydown', e => { if(e.key === 'Escape') closeBig(); });
+addEventListener('resize', () => { if(lightbox.style.display === 'flex') openBig(); });
+
+/* วางหลายชิ้นเรียงกันในกรอบเดียว เพื่อส่งให้ openBig ย่อ-ขยายทีเดียว (เช่น การ์ดหน้า-หลัง) */
+const rowNode = (nodes, w, h, gap) => {
+  const total = nodes.length*w + (nodes.length-1)*gap;
+  const r = el('div', `position:relative;width:${total}px;height:${h}px`);
+  nodes.forEach((n,i) => {
+    n.style.position='absolute'; n.style.left=(i*(w+gap))+'px'; n.style.top='0';
+    r.appendChild(n);
+  });
+  return {node:r, w:total, h};
+};
+
+function renderDetail(){
+  detail.innerHTML='';
+  if(sel.t==='panel'){
+    const p=PARTS[sel.k];
+    detail.appendChild(el('h3',null,`${p.n}<span class="dim">${p.trim.replace(' mm','')}</span>`));
+    const pv=el('div'); pv.className='preview';
+    pv.appendChild(mount(sel.k, Math.min(PVW/p.w, PVW/p.h, 1.6)));
+    bigView = () => ({node:P[sel.k](), w:p.w, h:p.h, title:p.n, sub:p.trim});
+    pv.addEventListener('click', ev => { ev.stopPropagation(); openBig(); });
+    detail.appendChild(pv);
+    detail.appendChild(el('p',null,p.d));
+    const t=el('table'); t.className='kv';
+    t.innerHTML=`<tr><td class="k">ไฟล์ต้นทาง</td><td>${p.src}</td></tr>
+                 <tr><td class="k">trim</td><td>${p.trim}</td></tr>
+                 <tr><td class="k">bleed</td><td>${p.bleed}</td></tr>`;
+    detail.appendChild(t);
+    if(p.f.length){
+      detail.appendChild(el('div',`margin-top:11px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:1px;color:#7FD9A8`,'รายละเอียด'));
+      const ul=el('ul','margin-top:5px'); ul.className='el';
+      p.f.forEach(x=>ul.appendChild(el('li',null,x))); detail.appendChild(ul);
+    }
+    if(p.issues.length){
+      detail.appendChild(el('div',`margin-top:11px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:1px;color:#ff9d9d`,'ต้องแก้'));
+      const ul=el('ul','margin-top:5px;color:#e6c2c2'); ul.className='el';
+      p.issues.forEach(x=>ul.appendChild(el('li',null,x))); detail.appendChild(ul);
+    }
+  } else {
+    const it=ITEM(sel.k); if(!it){ selectPart('A1'); return; }
+    const [stTxt,stCol]=ST[it.st];
+    detail.appendChild(el('h3',null,`${it.n}<span class="dim" style="color:${stCol}">${stTxt}</span>`));
+    const pv=el('div'); pv.className='preview';
+    const dims={board:[250,250],card:[63,88],note:[95,45],token:[22,22],die:[16,16],
+                clip:[12,20],book:[148,210],tray:[150,100]};
+    const [cw,ch]=dims[it.comp];
+    const sc=Math.min(PVW/cw, PVW/ch, 4);
+    let bigMake;                                 // สร้างของใหม่ทุกครั้งที่กดดูเต็มจอ
+    if(it.comp==='note'){
+      const row=el('div','display:flex;flex-direction:column;gap:5px');
+      [4,2,0].forEach(i=>row.appendChild(mountNode(C.note(i),95,45,Math.min(PVW/95,2.3))));
+      pv.appendChild(row);
+      bigMake = () => rowNode([0,1,2,3,4].map(i=>C.note(i)),95,45,7);   // เต็มจอโชว์ครบ 5 ราคา
+    } else if(it.comp==='token'){
+      const row=el('div','display:flex;gap:8px');
+      [0,1,2,3].forEach(i=>row.appendChild(mountNode(C.token(i),22,22,(PVW-24)/88)));
+      pv.appendChild(row);
+      bigMake = () => rowNode([0,1,2,3].map(i=>C.token(i)),22,22,6);
+    } else if(it.comp==='clip'){
+      const row=el('div','display:flex;gap:14px');
+      [1,2,3].forEach(i=>row.appendChild(mountNode(C.clip(i),12,20,5)));
+      pv.appendChild(row);
+      bigMake = () => rowNode([1,2,3].map(i=>C.clip(i)),12,20,5);
+    } else if(it.comp==='die'){
+      const row=el('div','display:flex;gap:14px');
+      [0,1].forEach(()=>row.appendChild(mountNode(C.die(),16,16,5.5)));
+      pv.appendChild(row);
+      bigMake = () => rowNode([0,1].map(()=>C.die()),16,16,5);
+    } else if(it.comp==='card'){
+      const row=el('div','display:flex;gap:8px');            // หน้า-หลังของจริงคู่กัน
+      ['f','b'].forEach(s=>row.appendChild(mountNode(C.card(0,s),63,88,(PVW-8)/126)));
+      pv.appendChild(row);
+      bigMake = () => rowNode(['f','b'].map(s=>C.card(0,s)),63,88,4);
+    } else {
+      pv.appendChild(mountNode(C[it.comp](),cw,ch,sc));
+      bigMake = () => ({node:C[it.comp](), w:cw, h:ch});
+    }
+    bigView = () => Object.assign(bigMake(), {title:it.n, sub:it.size});
+    pv.addEventListener('click', ev => { ev.stopPropagation(); openBig(); });
+    detail.appendChild(pv);
+    const t=el('table'); t.className='kv';
+    t.innerHTML=`<tr><td class="k">จำนวน</td><td>${it.qty}</td></tr>
+                 <tr><td class="k">ขนาด</td><td>${it.size}</td></tr>
+                 <tr><td class="k">ต้นทาง</td><td>${it.src}</td></tr>`;
+    detail.appendChild(t);
+    detail.appendChild(el('p','margin-top:10px',it.note));
+  }
+}
+
+/* ---- view 1 : กล่องประกอบ → แยกชั้น 3 มิติ → กางเป็นแผ่นเต็มหน้า ----
+   สไลเดอร์ 0–100 ทำงาน 2 เฟส
+     เฟส 1 (0–35)  e1 : ยกแต่ละชั้นแยกออกจากกันในแนวตั้ง + เอียงกล้องลงมาให้เห็นหน้าชั้น
+     เฟส 2 (40–100) e2 : หมุนทุกชั้นให้ "หันหน้าเข้ากล้องเต็มหน้า" แล้วคลี่ไปเรียงเป็นกริด 3 × 2
+   ที่ e2 = 1 การหมุนของแต่ละชั้นคือ inverse ของกล้องพอดี → ทุกชั้นแบนราบ ไม่มีการบิด อ่านของข้างในได้ชัดเต็มขนาด */
+const GAP   = 150;  // ระยะยกแยกชั้นเฟส 1 (มม.)
+const CELLX = 292;  // ระยะห่างกึ่งกลางเซลล์กริดแนวนอน (มม.)
+const CELLY = 326;  // แนวตั้งเผื่อไว้มากกว่า เพราะต้องมีที่วางป้ายชื่อชั้นเหนือแต่ละแผง
+const GSCMAX = 0.85; // เพดานสเกลตอนกางเต็มหน้า (ค่าจริงย่อลงอัตโนมัติถ้าเวทีแคบ)
+const GRID = { lid:[0,0], board:[1,0], book:[2,0], insert:[0,1], base:[1,1] };
+const LINFO = {
+  lid:   ['1','ฝากล่อง',         '268 × 268 × 34 มม.','แผง A1 + สัน 4 ด้าน',                 ()=>selectPart('A1')],
+  board: ['2','กระดานพับ',       '250 × 250 × 8 มม.', 'กระดาน 50 × 50 ซม. พับ 4 ส่วน',        ()=>selectComp('board')],
+  book:  ['3','คู่มือกติกา',      '148 × 210 × 3 มม.', 'A5 · 13 หน้า',                        ()=>selectComp('book')],
+  insert:['4','อินเสิร์ตช่องเก็บ','258 × 258 × 30 มม.','การ์ด · ธนบัตร · เต๋า · โทเค็น · คลิป', ()=>selectComp('card')],
+  base:  ['5','ก้นถาดฐาน',       '264 × 264 × 52 มม.','แผง A2 (พิมพ์ด้านนอก)',                ()=>selectPart('A2')]
+};
+
+function buildBox(){
+  stage.className='stage'; stage.innerHTML='';
+  const S=1.12;
+  const scene=el('div'); scene.className='scene';
+  const rig=el('div'); rig.className='rig'; rig.id='rig';
+  scene.appendChild(rig); stage.appendChild(scene);
+
+  const face=(key,w,h,tf)=>{
+    const f=el('div', `width:${w*S}px;height:${h*S}px;left:${-w*S/2}px;top:${-h*S/2}px;transform:${tf}`);
+    f.className='face'; f.dataset.part=key;
+    const inner=P[key](); inner.className='inner'; inner.style.transform=`scale(${S})`;
+    f.appendChild(inner);
+    f.addEventListener('click',()=>selectPart(key));
+    return f;
+  };
+  /* แผ่นชั้น : ชั้นนอกรับ transform (ไม่ crop) · ชั้นในทำหน้าที่ crop เนื้อหา */
+  const plate=(node,w,h,itemId)=>{
+    const outer=el('div', `position:absolute;left:${-w*S/2}px;top:${-h*S/2}px;width:${w*S}px;height:${h*S}px;
+      transform-style:preserve-3d`);
+    const clip=el('div', `position:absolute;left:0;top:0;width:${w*S}px;height:${h*S}px;overflow:hidden`);
+    clip.className='layer';
+    if(itemId){ clip.dataset.item=itemId; clip.style.cursor='pointer';
+      clip.addEventListener('click',ev=>{ev.stopPropagation();selectComp(itemId);}); }
+    node.className='inner'; node.style.transform=`scale(${S})`;
+    clip.appendChild(node); outer.appendChild(clip);
+    return outer;
+  };
+
+  /* ฐาน */
+  const base=el('div'); base.className='grp';
+  const bd=132*S;
+  base.appendChild(face('A2',264,264,`rotateX(-90deg) translateZ(${26*S}px)`));
+  base.appendChild(face('B1',264,52,`translateZ(${bd}px)`));
+  base.appendChild(face('B2',264,52,`rotateY(180deg) translateZ(${bd}px)`));
+  base.appendChild(face('B4',264,52,`rotateY(-90deg) translateZ(${bd}px)`));
+  base.appendChild(face('B3',264,52,`rotateY(90deg) translateZ(${bd}px)`));
+  rig.appendChild(base);
+
+  /* ชั้นของข้างใน */
+  const insertNode=C.insert();
+  const pInsert=plate(insertNode,258,258,null);
+  const pBook  =plate(C.book(),148,210,'book');
+  const pBoard =plate(C.board(),250,250,'board');
+  [pInsert,pBook,pBoard].forEach(p=>rig.appendChild(p));
+  insertNode.querySelectorAll('[data-bay]').forEach(n=>{
+    const bay=BAYS.find(x=>x.id===n.dataset.bay);
+    if(bay&&bay.comp) n.addEventListener('click',ev=>{ev.stopPropagation();selectComp(bay.comp);});
+  });
+
+  /* ฝา */
+  const lid=el('div'); lid.className='grp'; lid.id='lidgrp';
+  const ld=134*S;
+  lid.appendChild(face('A1',268,268,`rotateX(90deg) translateZ(${17*S}px)`));
+  lid.appendChild(face('LF',268,34,`translateZ(${ld}px)`));
+  lid.appendChild(face('LB',268,34,`rotateY(180deg) translateZ(${ld}px)`));
+  lid.appendChild(face('LR',268,34,`rotateY(-90deg) translateZ(${ld}px)`));
+  lid.appendChild(face('LL',268,34,`rotateY(90deg) translateZ(${ld}px)`));
+  rig.appendChild(lid);
+
+  const sh=el('div'); sh.className='shadow';
+  sh.style.width=(300*S)+'px'; sh.style.height=(300*S)+'px';
+  sh.style.transform=`translate(-50%,-50%) rotateX(90deg) translateZ(${-30*S}px)`;
+  rig.appendChild(sh);
+
+  const seamLine=el('div',`position:absolute;left:50%;top:50%;width:${290*S}px;height:${290*S}px;
+    margin-left:${-145*S}px;margin-top:${-145*S}px;border:1px solid #FBBF24;opacity:.55;
+    transform:rotateX(90deg) translateZ(${-6.5*S}px);pointer-events:none`);
+  rig.appendChild(seamLine);
+
+  /* ty0 = ตำแหน่งแนวตั้งตอนประกอบ (มม. จากกึ่งกลางกล่อง) · lift = ลำดับการยกตอนแยกชั้น
+     rxT = องศาที่ต้องหมุนกลุ่ม 3 มิติ ให้แผงหลักหันหน้าเข้ากล้องตอนกางเต็มหน้า */
+  const NODES=[
+    {k:'lid',    node:lid,     kind:'group', ty0:-10.5, lift:3, rxT:-90},
+    {k:'board',  node:pBoard,  kind:'plate', ty0:-13.5, lift:2},
+    {k:'book',   node:pBook,   kind:'plate', ty0:-5.5,  lift:1},
+    {k:'insert', node:pInsert, kind:'plate', ty0:-2.5,  lift:0},
+    {k:'base',   node:base,    kind:'group', ty0:1.5,   lift:0, rxT: 90}
+  ];
+
+  /* ป้ายชื่อชั้น — overlay 2 มิติ วางด้วยพิกัดกริดที่คำนวณเอง จึงคมและอ่านง่ายเสมอ */
+  const lblw=el('div'); lblw.className='lay3d'; stage.appendChild(lblw);
+  const chips={};
+  Object.keys(LINFO).forEach(k=>{
+    const [no,nm,dm,ct,act]=LINFO[k];
+    const c2=el('div',null,
+      `<div><span class="no">${no}</span><span class="nm2">${nm}</span><span class="dm2">${dm}</span></div>
+       <div class="ct2">${ct}</div>`);
+    c2.className='laychip';
+    c2.addEventListener('click',act);
+    lblw.appendChild(c2); chips[k]=c2;
+  });
+
+  stage.insertAdjacentHTML('beforeend', `<div class="hintbar" id="hint"></div>`);
+  const hint=document.getElementById('hint');
+
+  const c=el('div'); c.className='ctrls';
+  c.innerHTML=`
+    <span class="ctrl pill">แยกชั้น <input type="range" id="ex" min="0" max="100" value="${explode}"></span>
+    <span class="ctrl pill" style="gap:3px">
+      <button class="vbtn" data-ex="0">ประกอบ</button>
+      <button class="vbtn" data-ex="35">แยกชั้น 3D</button>
+      <button class="vbtn" data-ex="100">กางเต็มหน้า</button>
+    </span>
+    <span class="ctrl pill"><input type="checkbox" id="inner" ${showInner?'checked':''}> ของข้างใน</span>
+    <span class="ctrl pill"><input type="checkbox" id="seam" ${showSeam?'checked':''}> รอยต่อ 34 mm</span>
+    <span class="ctrl pill" style="gap:3px">มุมมอง
+      <button class="vbtn" data-v="iso">ไอโซ</button>
+      <button class="vbtn" data-v="top">บน</button>
+      <button class="vbtn" data-v="front">หน้า</button>
+      <button class="vbtn" data-v="bottom">ล่าง</button>
+    </span>`;
+  stage.appendChild(c);
+
+  const apply=()=>{
+    const e  = explode/100;
+    const e1 = Math.min(1, e/0.35);
+    const e2 = Math.max(0, (e-0.4)/0.6);
+    if(!userRot) rotX = -20 - 14*e1;               // เอียงกล้องลงตอนแยกชั้น ถ้าผู้ใช้ยังไม่หมุนเอง
+    // สเกลตอนกางเต็มหน้า : ย่อให้กริด 3 × 2 + ป้ายชื่อ + แถบควบคุม อยู่ในเวทีพอดีทุกความกว้างจอ
+    // วัดความสูงแถบควบคุมสด ๆ เพราะจอแคบมันขึ้น 2 บรรทัด (ถ้าเผื่อตายตัวจะทับแผงแถวล่าง)
+    // ครึ่งความสูงที่แผงยืดลงได้ = กันแถบควบคุมด้านล่าง / กันป้ายชื่อทะลุขอบบน แล้วเอาอันที่คับกว่า
+    const ctrlH = c.offsetHeight || 28;
+    const halfH = Math.min(stage.clientHeight/2 - 30 - ctrlH, stage.clientHeight/2 - 54);
+    const gsc = Math.max(0.42, Math.min(GSCMAX,
+      (stage.clientWidth-56)/(3*CELLX*S),
+      halfH/((CELLY/2+134)*S)));
+    const sc    = (1-0.20*e1)*(1-e2) + gsc*e2;     // ย่อให้ทั้งกองอยู่ในเฟรม
+    const rise  = 3*GAP*e1*(1-e2);
+    // ดันลงครึ่งหนึ่งของระยะที่กองลอยขึ้น + ชดเชยที่ว่างของป้ายชื่อแถวบนตอนกางเต็มหน้า
+    const shift = rise*0.5*Math.cos(rotX*Math.PI/180)*S*sc + 10*e2;
+    rig.style.transform=
+      `translateY(${shift}px) scale(${sc}) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+
+    NODES.forEach(n=>{
+      const g  = GRID[n.k];
+      const gx = (g[0]-1)*CELLX*e2*S, gy = (g[1]-0.5)*CELLY*e2*S;
+      const ty = (n.ty0 - n.lift*GAP*e1)*(1-e2)*S;
+      const rl = (n.kind==='plate') ? 90*(1-e2) : n.rxT*e2;
+      if(n.kind==='plate') n.node.style.display = showInner ? '' : 'none';
+      // rotateY/rotateX ชุดแรก = หักล้างการหมุนของกล้อง → translate ชุดถัดมาจึงเป็นพิกัดจอจริง
+      n.node.style.transform =
+        `translateY(${ty}px) rotateY(${-rotY*e2}deg) rotateX(${-rotX*e2}deg) `+
+        `translate(${gx}px,${gy}px) rotateX(${rl}deg)`;
+    });
+
+    const op = Math.max(0, Math.min(1, (e2-0.35)/0.3));
+    lblw.style.opacity = op;
+    // ห้ามแตะ pointer-events ของ .lay3d เด็ดขาด — มันคลุมเต็มเวที ถ้าเปิดรับคลิกจะบังสไลเดอร์/ปุ่ม/แผงทั้งหมด
+    // ต้องเปิด-ปิดที่ตัวป้ายแต่ละอันแทน
+    Object.keys(LINFO).forEach(k=>{
+      const g=GRID[k];
+      chips[k].style.pointerEvents = op>0.5 ? 'auto' : 'none';
+      chips[k].style.left = `calc(50% + ${(g[0]-1)*CELLX*e2*S*sc}px)`;
+      chips[k].style.top  = `calc(50% + ${shift + (g[1]-0.5)*CELLY*e2*S*sc - 136*S*sc - 7}px)`;
+    });
+
+    seamLine.style.display = (showSeam && e<0.05) ? 'block' : 'none';
+    sh.style.opacity = (rotX > -2 ? 0 : Math.min(1,(-rotX-2)/14)) * (1-e2);
+    hint.style.opacity = 1-op;                     // ป้ายชื่อชั้นขึ้นแล้ว ไม่ต้องมีคำใบ้บนหัวอีก
+    hint.textContent = e>0.02
+      ? 'เลื่อนต่อจนสุดเพื่อกางทุกชั้นออกมาดูเต็มหน้า'
+      : 'ลากเพื่อหมุนกล่อง · เลื่อน "แยกชั้น" จนสุดเพื่อกางทุกชั้นออกมาดูเต็มหน้า';
+  };
+  boxCtx={rig,apply};
+  apply(); markSel();
+
+  /* ไล่ค่าสไลเดอร์แบบนุ่ม ๆ เวลากดปุ่มลัด */
+  let tw=null;
+  const goTo=v=>{
+    if(tw) cancelAnimationFrame(tw);
+    const from=explode, t0=performance.now(), dur=680, sl=document.getElementById('ex');
+    const step=t=>{
+      if(!boxCtx||boxCtx.rig!==rig) return;
+      const k=Math.min(1,(t-t0)/dur), s=k<.5 ? 2*k*k : 1-Math.pow(-2*k+2,2)/2;
+      explode=from+(v-from)*s; sl.value=explode; apply();
+      if(k<1) tw=requestAnimationFrame(step);
+    };
+    tw=requestAnimationFrame(step);
+  };
+
+  document.getElementById('ex').addEventListener('input',e=>{
+    if(tw) cancelAnimationFrame(tw); explode=+e.target.value; apply(); });
+  document.getElementById('inner').addEventListener('change',e=>{showInner=e.target.checked;apply();});
+  document.getElementById('seam').addEventListener('change',e=>{showSeam=e.target.checked;apply();});
+  c.querySelectorAll('[data-ex]').forEach(b=>b.addEventListener('click',()=>{
+    goTo(+b.dataset.ex);
+    c.querySelectorAll('[data-ex]').forEach(o=>o.classList.toggle('on',o===b));
+  }));
+  const VIEWS={iso:[-20,32],top:[-89,0],front:[0,0],bottom:[89,0]};
+  c.querySelectorAll('[data-v]').forEach(b=>b.addEventListener('click',()=>{
+    const [x,y]=VIEWS[b.dataset.v]; rotX=x; rotY=y; userRot=true;
+    if(explode<20){                                   // ทวีนกล้องเฉพาะตอนยังไม่กาง (กันชั้นกับกล้องวิ่งคนละจังหวะ)
+      rig.style.transition='transform .5s cubic-bezier(.4,0,.2,1)';
+      setTimeout(()=>{ if(boxCtx&&boxCtx.rig===rig) rig.style.transition=''; },520);
+    }
+    apply();
+    c.querySelectorAll('[data-v]').forEach(o=>o.classList.toggle('on',o===b));
+    if(b.dataset.v==='bottom') selectPart('A2');
+    if(b.dataset.v==='top') selectPart('A1');
+  }));
+}
+
+/* drag — registered ONCE, guarded by mode (fixes duplicated-listener rotation bug) */
+(function(){
+  let drag=false,lx=0,ly=0;
+  const dn=(x,y)=>{drag=true;lx=x;ly=y;};
+  const mv=(x,y)=>{ if(!drag||mode!=='box'||!boxCtx) return;
+    userRot=true;
+    rotY+=(x-lx)*.4; rotX=Math.max(-89,Math.min(89,rotX-(y-ly)*.4)); lx=x;ly=y; boxCtx.apply(); };
+  const up=()=>drag=false;
+  stage.addEventListener('mousedown',e=>{ if(mode!=='box'||e.target.closest('.ctrls')) return; dn(e.clientX,e.clientY); });
+  window.addEventListener('mousemove',e=>mv(e.clientX,e.clientY));
+  window.addEventListener('mouseup',up);
+  stage.addEventListener('touchstart',e=>{ if(mode!=='box'||e.target.closest('.ctrls')) return;
+    const t=e.touches[0]; dn(t.clientX,t.clientY); },{passive:true});
+  window.addEventListener('touchmove',e=>{const t=e.touches[0];mv(t.clientX,t.clientY);},{passive:true});
+  window.addEventListener('touchend',up);
+  window.addEventListener('resize',()=>{ if(mode==='box'&&boxCtx) boxCtx.apply(); });
+})();
+
+/* ---- view 2 : panels grid ---- */
+function buildParts(){
+  stage.className='stage flat'; stage.innerHTML=''; boxCtx=null;
+  const g=el('div'); g.className='grid';
+  Object.keys(PARTS).forEach(k=>{
+    const p=PARTS[k];
+    const card=el('div'); card.className='thumb'; card.dataset.part=k;
+    const h=el('div'); h.className='holder';
+    h.appendChild(mount(k, Math.min(150/p.w, 110/p.h)));
+    card.appendChild(h);
+    card.appendChild(el('div','',`<div class="nm">${p.n}</div><div class="dm">${p.trim}</div>`));
+    card.addEventListener('click',()=>selectPart(k));
+    g.appendChild(card);
+  });
+  stage.appendChild(g); markSel();
+}
+
+/* ---- view 3 : dieline ---- */
+function buildDie(){
+  stage.className='stage flat'; stage.innerHTML=''; boxCtx=null;
+  const s=0.62;
+  const wrap=el('div'); wrap.className='die';
+  const cross=(title, cw, sw, keys, labels)=>{
+    const box=el('div'); box.className='diewrap';
+    box.appendChild(el('div','',`<div class="dietitle">${title}</div>`));
+    const c=el('div'); c.className='diecross';
+    c.style.width=((cw+sw*2)*s)+'px'; c.style.height=((cw+sw*2)*s)+'px';
+    const place=(key,l,t,w,h,rot)=>{
+      const d=el('div', `left:${l*s}px;top:${t*s}px;width:${w*s}px;height:${h*s}px;`);
+      d.className='dieslot'; d.dataset.part=key;
+      const inner=P[key](); inner.className='inner';
+      let tf=`scale(${s})`;
+      if(rot===90) tf=`translate(${w*s}px,0) rotate(90deg) scale(${s})`;
+      if(rot===-90) tf=`translate(0,${h*s}px) rotate(-90deg) scale(${s})`;
+      if(rot===180) tf=`translate(${w*s}px,${h*s}px) rotate(180deg) scale(${s})`;
+      inner.style.transform=tf;
+      d.appendChild(inner);
+      d.addEventListener('click',()=>selectPart(key));
+      c.appendChild(d);
+    };
+    place(keys.top, sw, 0, cw, sw, 180);
+    place(keys.centre, sw, sw, cw, cw, 0);
+    place(keys.bottom, sw, sw+cw, cw, sw, 0);
+    place(keys.left, 0, sw, sw, cw, -90);
+    place(keys.right, sw+cw, sw, sw, cw, 90);
+    Object.entries(labels).forEach(([pos,txt])=>{
+      const l=el('div','',txt); l.className='dielbl';
+      if(pos==='top'){ l.style.left=(sw+3)*s+'px'; l.style.top='2px'; }
+      if(pos==='bottom'){ l.style.left=(sw+3)*s+'px'; l.style.top=(sw+cw+3)*s+'px'; }
+      if(pos==='left'){ l.style.left='2px'; l.style.top=(sw+4)*s+'px'; }
+      if(pos==='right'){ l.style.left=(sw+cw+3)*s+'px'; l.style.top=(sw+4)*s+'px'; }
+      c.appendChild(l);
+    });
+    box.appendChild(c); return box;
+  };
+  wrap.appendChild(cross('LID · แผ่นคลี่ 398 × 398 mm', 268, 34,
+    {top:'LB',centre:'A1',bottom:'LF',left:'LL',right:'LR'},
+    {top:'BACK 180°',bottom:'FRONT 0°',left:'LEFT +90°',right:'RIGHT −90°'}));
+  wrap.appendChild(cross('BASE · แผ่นคลี่ 418 × 418 mm (พลิกกลับ)', 264, 52,
+    {top:'B2',centre:'A2',bottom:'B1',left:'B4',right:'B3'},
+    {top:'BASE 2 · 0°',bottom:'BASE 1 · 180°',left:'BASE 4 · −90°',right:'BASE 3 · +90°'}));
+  stage.appendChild(wrap);
+  stage.insertAdjacentHTML('beforeend',
+    `<div style="margin-top:22px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10px;
+      color:#5f7269;letter-spacing:.5px;line-height:1.8">
+      เส้นประฟ้า = trim · ยังไม่รวมลิ้นกาวมุม 4 จุด และลิ้นพับขอบเข้าใน 25 mm<br>
+      มุมของฐานกลับด้านกับฝา เพราะต้องพลิกชิ้นงานให้ปากถาดหงายขึ้น</div>`);
+  markSel();
+}
+
+/* ---- view 4 : contents ---- */
+function buildContents(){
+  stage.className='stage flat'; stage.innerHTML=''; boxCtx=null;
+  const wrap=el('div','display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start');
+
+  /* left : insert plan + layer stack */
+  const left=el('div','flex:0 0 auto');
+  left.appendChild(el('div','',`<div class="dietitle">ผังจัดวางในถาดฐาน · มองจากด้านบน</div>`));
+  const planScale=1.32;
+  const plan=mountNode(C.insert(),258,258,planScale);
+  plan.style.border='1px solid #2c322d'; plan.style.borderRadius='6px';
+  plan.querySelectorAll('[data-bay]').forEach(b=>{
+    const bay=BAYS.find(x=>x.id===b.dataset.bay);
+    if(bay && bay.comp) b.addEventListener('click',()=>selectComp(bay.comp));
+  });
+  left.appendChild(plan);
+
+  left.appendChild(el('div','margin-top:22px',`<div class="dietitle">ลำดับชั้นการเก็บ · มองจากด้านข้าง</div>`));
+  const st=el('div','position:relative;width:'+(258*planScale)+'px');
+  LAYERS.forEach(L=>{
+    const row=el('div',`display:flex;align-items:center;gap:10px;margin-bottom:5px`);
+    row.appendChild(el('div',`width:${Math.max(4,L.h*2.4)}px;height:16px;background:${L.col};
+      border-radius:2px;flex:0 0 auto;opacity:.85`));
+    row.appendChild(el('div','',
+      `<div style="font-family:'Kanit',sans-serif;font-weight:600;font-size:12px;color:${L.col}">${L.n}${L.h?` · ${L.h} มม.`:''}</div>
+       <div style="font-family:'Sarabun',sans-serif;font-size:11px;color:#8fae9f">${L.d}</div>`));
+    st.appendChild(row);
+  });
+  st.appendChild(el('div',`margin-top:8px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#5f7269`,
+    'รวม 30 + 3 + 8 = 41 มม. · ความลึกถาดใช้งานได้ 50 มม. → เหลือช่องว่าง 9 มม.'));
+  left.appendChild(st);
+  wrap.appendChild(left);
+
+  /* right : contents list */
+  const right=el('div','flex:1 1 340px;min-width:320px');
+  right.appendChild(el('div','',`<div class="dietitle">รายการของในกล่อง · ${CONTENTS.length} รายการ</div>`));
+  const list=el('div','display:flex;flex-direction:column;gap:8px');
+  CONTENTS.forEach(it=>{
+    const [stTxt,stCol]=ST[it.st];
+    const row=el('div'); row.className='item'; row.dataset.item=it.id;
+    const dims={board:[250,250],card:[63,88],note:[95,45],token:[22,22],die:[16,16],
+                clip:[12,20],book:[148,210],tray:[150,100]}[it.comp];
+    const th=el('div','flex:0 0 54px;height:54px;display:flex;align-items:center;justify-content:center;overflow:hidden');
+    th.appendChild(mountNode(C[it.comp](),dims[0],dims[1],Math.min(50/dims[0],50/dims[1])));
+    row.appendChild(th);
+    row.appendChild(el('div','flex:1 1 auto;min-width:0',
+      `<div style="font-family:'Kanit',sans-serif;font-weight:600;font-size:13px;color:#DCF5E6">${it.n}</div>
+       <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#7FD9A8;margin-top:2px">${it.qty} · ${it.size}</div>`));
+    row.appendChild(el('div',`flex:0 0 auto;font-family:'IBM Plex Mono',monospace;font-size:9px;
+      letter-spacing:.4px;color:${stCol};border:1px solid ${stCol};border-radius:10px;padding:3px 8px;opacity:.9`,stTxt));
+    row.addEventListener('click',()=>selectComp(it.id));
+    list.appendChild(row);
+  });
+  right.appendChild(list);
+
+  right.appendChild(el('div','margin-top:20px',`<div class="dietitle">ไม่รวมในกล่อง</div>`));
+  const ex=el('div','display:flex;flex-direction:column;gap:7px');
+  EXCLUDED.forEach(([n,d])=>{
+    ex.appendChild(el('div',`background:#0f1210;border:1px solid #2c322d;border-radius:9px;padding:9px 12px`,
+      `<div style="font-family:'Kanit',sans-serif;font-weight:600;font-size:12.5px;color:#8fae9f">${n}</div>
+       <div style="font-family:'Sarabun',sans-serif;font-size:11.5px;line-height:1.55;color:#6f8579;margin-top:2px">${d}</div>`));
+  });
+  right.appendChild(ex);
+  wrap.appendChild(right);
+
+  stage.appendChild(wrap);
+  markSel();
+}
+
+const views={box:buildBox,parts:buildParts,die:buildDie,contents:buildContents};
+document.getElementById('tabs').addEventListener('click',e=>{
+  const b=e.target.closest('.tab'); if(!b) return;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t===b));
+  mode=b.dataset.mode; views[mode]();
+});
+buildBox(); renderDetail();
+</script>
+</body>
+</html>

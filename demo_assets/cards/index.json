@@ -1,0 +1,130 @@
+[
+ {
+  "id": "coding_01",
+  "zone": "coding",
+  "zoneLabel": "CODING AVENUE",
+  "title": "HTML & CSS เบื้องต้น",
+  "price": "1,000",
+  "back": true
+ },
+ {
+  "id": "coding_02",
+  "zone": "coding",
+  "zoneLabel": "CODING AVENUE",
+  "title": "Python พื้นฐาน",
+  "price": "1,200",
+  "back": true
+ },
+ {
+  "id": "coding_03",
+  "zone": "coding",
+  "zoneLabel": "CODING AVENUE",
+  "title": "JavaScript เชิงโต้ตอบ",
+  "price": "1,400",
+  "back": true
+ },
+ {
+  "id": "coding_04",
+  "zone": "coding",
+  "zoneLabel": "CODING AVENUE",
+  "title": "ฐานข้อมูล SQL เบื้องต้น",
+  "price": "1,600",
+  "back": true
+ },
+ {
+  "id": "office_01",
+  "zone": "office",
+  "zoneLabel": "OFFICE STREET",
+  "title": "Word จัดหน้าเอกสาร",
+  "price": "800",
+  "back": true
+ },
+ {
+  "id": "office_02",
+  "zone": "office",
+  "zoneLabel": "OFFICE STREET",
+  "title": "Excel สูตรคำนวณ",
+  "price": "1,000",
+  "back": true
+ },
+ {
+  "id": "office_03",
+  "zone": "office",
+  "zoneLabel": "OFFICE STREET",
+  "title": "Excel Pivot Table & กราฟ",
+  "price": "1,200",
+  "back": true
+ },
+ {
+  "id": "office_04",
+  "zone": "office",
+  "zoneLabel": "OFFICE STREET",
+  "title": "PowerPoint นำเสนองาน",
+  "price": "1,400",
+  "back": true
+ },
+ {
+  "id": "design_01",
+  "zone": "design",
+  "zoneLabel": "DESIGN DISTRICT",
+  "title": "ทฤษฎีสีและองค์ประกอบศิลป์",
+  "price": "1,200",
+  "back": true
+ },
+ {
+  "id": "design_02",
+  "zone": "design",
+  "zoneLabel": "DESIGN DISTRICT",
+  "title": "Photoshop ตกแต่งภาพ",
+  "price": "1,400",
+  "back": true
+ },
+ {
+  "id": "design_03",
+  "zone": "design",
+  "zoneLabel": "DESIGN DISTRICT",
+  "title": "Illustrator วาดเวกเตอร์",
+  "price": "1,600",
+  "back": true
+ },
+ {
+  "id": "design_04",
+  "zone": "design",
+  "zoneLabel": "DESIGN DISTRICT",
+  "title": "Canva ออกแบบสื่อโซเชียล",
+  "price": "1,800",
+  "back": true
+ },
+ {
+  "id": "hardware_01",
+  "zone": "hardware",
+  "zoneLabel": "HARDWARE TOWN",
+  "title": "CPU และเมนบอร์ด",
+  "price": "1,800",
+  "back": true
+ },
+ {
+  "id": "hardware_02",
+  "zone": "hardware",
+  "zoneLabel": "HARDWARE TOWN",
+  "title": "RAM และหน่วยเก็บข้อมูล",
+  "price": "2,000",
+  "back": true
+ },
+ {
+  "id": "hardware_03",
+  "zone": "hardware",
+  "zoneLabel": "HARDWARE TOWN",
+  "title": "Power Supply และการต่อสายไฟ",
+  "price": "2,200",
+  "back": true
+ },
+ {
+  "id": "hardware_04",
+  "zone": "hardware",
+  "zoneLabel": "HARDWARE TOWN",
+  "title": "ประกอบเครื่อง & ลงวินโดวส์",
+  "price": "2,500",
+  "back": true
+ }
+]
