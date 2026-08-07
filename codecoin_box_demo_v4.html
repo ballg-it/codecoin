@@ -525,7 +525,17 @@ const artwork = (src,w,h,extra='') => {
   // ห้ามใส่ loading="lazy" — รูปอยู่ในเลเยอร์ที่ถูก transform 3 มิติ
   // เบราว์เซอร์คำนวณว่าอยู่นอกจอแล้วไม่ยอมโหลดเลย
   const i = el('img', `position:absolute;left:0;top:0;width:${w}px;height:${h}px;display:block;${extra}`);
-  i.src = src;
+  // ไฟล์รุ่น standalone จะมี window.EMBED ที่ฝังรูปเป็น data URI ไว้ในตัว
+  // ไฟล์ปกติไม่มี ก็อ่านจากโฟลเดอร์ demo_assets/ ข้าง ๆ ตามเดิม
+  i.src = (window.EMBED && EMBED[src]) || src;
+  i.onerror = () => {
+    const f = el('div', `position:absolute;left:0;top:0;width:${w}px;height:${h}px;
+      background:#160f0f;border:.5px dashed #ff9d9d;display:flex;align-items:center;justify-content:center;
+      text-align:center;padding:4px;font-family:'Sarabun',sans-serif;font-size:${Math.max(3,w/22)}px;color:#ff9d9d`,
+      `ไม่พบรูป<br>${src}<br>ต้องมีโฟลเดอร์ demo_assets/ อยู่ข้างไฟล์ HTML`);
+    f.dataset.imgfail = src;
+    i.replaceWith(f);
+  };
   return i;
 };
 

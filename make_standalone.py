@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+make_standalone.py — ทำไฟล์เดโมรุ่น "ไฟล์เดียวจบ" เอาไปส่งต่อได้เลย
+
+ปกติ codecoin_box_demo_v4.html อ่านรูปจากโฟลเดอร์ demo_assets/ ที่อยู่ข้าง ๆ
+ถ้าก๊อปไปแต่ไฟล์ HTML เฉย ๆ รูปกระดานกับการ์ดจะไม่ขึ้น
+สคริปต์นี้ฝังรูปทั้งหมดเป็น data URI ลงในไฟล์เลย จะเหลือไฟล์เดียวที่เปิดที่ไหนก็ได้
+
+    python make_standalone.py
+
+ผลลัพธ์: codecoin_box_demo_standalone.html
+(ต้องรัน gen_demo_assets.py ให้มี demo_assets/ ก่อน)
+"""
+import base64
+import json
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+SRC = ROOT / "codecoin_box_demo_v4.html"
+ASSETS = ROOT / "demo_assets"
+DST = ROOT / "codecoin_box_demo_standalone.html"
+
+# ฝังทุกไฟล์รูปใน demo_assets/ ไม่ใช่เฉพาะที่ตอนนี้เรียกใช้
+# เผื่อวันหลังแก้เดโมให้โชว์การ์ดใบอื่น ไฟล์ standalone จะได้ไม่พังเงียบ ๆ
+# กำหนด mime เองแทน mimetypes.guess_type เพราะบางเครื่องไม่รู้จัก .webp
+# แล้วจะได้ application/octet-stream ซึ่งเบราว์เซอร์บางตัวไม่ยอมแสดงผล
+MIME = {".webp": "image/webp", ".png": "image/png", ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg", ".svg": "image/svg+xml"}
+
+
+def main():
+    if not SRC.exists():
+        raise SystemExit(f"ไม่พบไฟล์ต้นทาง: {SRC}")
+    if not ASSETS.exists():
+        raise SystemExit(f"ไม่พบ {ASSETS} — รัน gen_demo_assets.py ก่อน")
+
+    html = SRC.read_text(encoding="utf-8")
+    if "window.EMBED" not in html:
+        raise SystemExit("ไฟล์ต้นทางไม่มีตัวอ่าน window.EMBED ใน artwork() — อัปเดต HTML ก่อน")
+
+    embed, total = {}, 0
+    for f in sorted(ASSETS.rglob("*")):
+        mime = MIME.get(f.suffix.lower())
+        if not f.is_file() or not mime:
+            continue
+        key = f.relative_to(ROOT).as_posix()          # เช่น demo_assets/cards/coding_01_f.webp
+        data = base64.b64encode(f.read_bytes()).decode("ascii")
+        embed[key] = f"data:{mime};base64,{data}"
+        total += f.stat().st_size
+
+    tag = ("<script>window.EMBED=" +
+           json.dumps(embed, ensure_ascii=False, separators=(",", ":")) +
+           ";</script>")
+    out = html.replace("<body>", "<body>\n" + tag, 1)
+    if out == html:
+        raise SystemExit("หาแท็ก <body> ไม่เจอ ฝังรูปไม่ได้")
+
+    DST.write_text(out, encoding="utf-8")
+    print(f"ฝังรูป {len(embed)} ไฟล์ ({total/1024:.0f} KB)")
+    print(f"{DST.name}  {DST.stat().st_size/1024/1024:.2f} MB  (ต้นฉบับ {SRC.stat().st_size/1024:.0f} KB)")
+
+
+if __name__ == "__main__":
+    main()
