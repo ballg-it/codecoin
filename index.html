@@ -260,6 +260,23 @@
   .big-num { font-family:'Kanit',sans-serif; font-size:56px; color:var(--gold); text-align:center; line-height:1.15; }
   .countdown-big { font-family:'Kanit',sans-serif; font-size:74px; color:var(--gold); text-align:center; margin:6px 0; animation:resultPop .4s ease-out; }
 
+  /* ---------- ปุ่มเลขผู้เล่น (มุมขวาล่าง เหนือปุ่ม mute) ----------
+     ต้องเล็กและจาง — เห็นได้ทุกหน้าแต่ห้ามแย่งสายตาจากคำถาม/ปุ่มตอบ
+     วางชิดขวาเหนือ mute (bottom 66 = 14 + สูงปุ่ม 44 + ช่องไฟ 8) เลี่ยงป้ายออฟไลน์ที่อยู่ซ้าย */
+  .player-btn {
+    position:fixed; right:14px; bottom:66px; z-index:70;
+    background:#111827; border:1px solid var(--line); border-radius:20px;
+    color:var(--muted); font-family:'Kanit',sans-serif; font-size:11.5px;
+    padding:5px 11px; cursor:pointer; opacity:.85; line-height:1;
+  }
+  .player-btn.set { border-color:var(--gold); color:var(--gold); }
+
+  /* ---------- กล่องตั้งเลขผู้เล่นแบบลอย (เปิดกลางคำถามได้ ไม่แตะหน้าที่เล่นอยู่) ---------- */
+  .pl-modal { position:fixed; inset:0; z-index:80; background:rgba(3,12,9,.86);
+    display:flex; align-items:center; justify-content:center; padding:18px; }
+  .pl-card { background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:16px; width:100%; max-width:380px; }
+
   /* ---------- ปุ่ม mute ลอยมุมขวาล่าง ---------- */
   .mute-btn {
     position:fixed; right:14px; bottom:14px; z-index:70;
@@ -308,6 +325,7 @@
   <div id="screen"><div class="card"><p class="content">⏳ กำลังโหลดข้อมูล...</p></div></div>
   <div class="footer-note">ต้นแบบระบบ QR — เปิดผ่าน ?space=รหัสช่อง</div>
 </div>
+<button class="player-btn" id="playerBtn" title="ตั้ง/แก้เลขผู้เล่นของคุณ">ตั้งเลข</button>
 <button class="mute-btn" id="muteBtn" title="เปิด/ปิดเสียง">🔊</button>
 <div class="net-badge" id="netBadge">⚡ โหมดออฟไลน์</div>
 
@@ -383,7 +401,8 @@ const FALLBACK = {
    ===================================================================== */
 const CONFIG = {
   data_url: "data.json",  // แหล่งข้อมูลจริง — เปลี่ยนเป็น URL Apps Script/opensheet ได้เลย
-  log_url: "",            // (optional) URL Apps Script สำหรับเก็บสถิติการตอบ — เว้นว่าง = ไม่เก็บ
+  log_url: "",            // (optional) URL Apps Script (/exec) สำหรับเก็บสถิติการตอบ — เว้นว่าง = ไม่เก็บ
+  log_enabled: true,      // สวิตช์ปิดการเก็บสถิติชั่วคราว โดยไม่ต้องลบ log_url ทิ้ง (false = ไม่แตะ localStorage ไม่ยิงเน็ต)
   discount_percent: 20,   // ส่วนลดเมื่อตอบถูก (%) — โหมดตอบธรรมดา
   bet_confident: {        // โหมด "ตอบมั่นใจ 💎" (เดิมพันในหน้าซื้อทรัพย์สิน)
     discount_percent: 40, // ตอบถูก: ส่วนลดเพิ่มเป็น 40% — ตอบผิด: บังคับหมุน fail_roulette
@@ -511,13 +530,131 @@ async function loadData() {
   route();
 }
 
-// ---------- (optional) ส่งสถิติการตอบไป Google Sheet ผ่าน Apps Script ----------
+/* ---------- (optional) ส่งสถิติการตอบไป Google Sheet ผ่าน Apps Script ----------
+   ทุกแถวเข้าคิวใน localStorage ก่อนเสมอ แล้วค่อยพยายามยิง — เน็ตโรงเรียนหลุดกลางคาบ
+   แล้วกลับมา แถวที่ค้างจะถูกส่งตามเองทีหลัง (ยิงซ้ำตอน online / กลับมาเปิดแท็บ / โหลดหน้าใหม่)
+
+   ทำไมเลิกใช้ navigator.sendBeacon: beacon คืน false เฉย ๆ เมื่อคิวไม่สำเร็จ ไม่ throw
+   โค้ดเดิมจึงไม่เคยรู้ว่าส่งออกจริงไหม (fallback fetch ไม่เคยทำงานสักครั้ง) — ระบบคิว
+   ต้องรู้ผลลัพธ์จริงถึงจะตัดแถวออกจากคิวได้ถูกต้อง
+
+   ⚠️ Content-Type ต้องเป็น text/plain เท่านั้น — ปลายทางเป็น Apps Script ซึ่งไม่รองรับ
+   CORS preflight ถ้าใส่ application/json เบราว์เซอร์จะยิง OPTIONS ก่อน โดนตอบ 405
+   แล้ว log หายทั้งหมดโดยเกมไม่ error เลย (ฝั่ง Apps Script อ่านเองจาก e.postData.contents
+   แล้ว JSON.parse — body เป็น array ของแถว ส่งทีละไม่เกิน 50)
+
+   ทุก storage ใช้ localStorage ไม่ใช่ sessionStorage: สแกน QR แต่ละครั้งเบราว์เซอร์มักเปิด
+   แท็บใหม่ ถ้าใช้ sessionStorage ทุกแถวจะได้ session ไม่ซ้ำกัน จับกลุ่มรายคาบไม่ได้เลย     */
+const Logger = (() => {
+  const QK = "cc_log_queue", SK = "cc_session", PK = "cc_player";
+  const MAX_QUEUE = 500;                    // เกินนี้ทิ้งแถวเก่าสุด (กัน localStorage เต็ม)
+  const BATCH = 50;                         // ยิงทีละกี่แถว (keepalive จำกัด body ~64KB)
+  const SESSION_GAP_MS = 3 * 60 * 60 * 1000;  // ห่างเกิน 3 ชม. = คนละคาบ ออก id ใหม่
+  let flushing = false;                     // flag กันยิงซ้อน
+
+  // ทุกอย่างที่แตะ localStorage ต้องกลืน error ให้หมด — โหมดส่วนตัว/พื้นที่เต็ม ห้ามทำเกมพัง
+  const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } };
+
+  const readQueue = () => {
+    try { const a = JSON.parse(lsGet(QK) || "[]"); return Array.isArray(a) ? a : []; }
+    catch (e) { return []; }   // คิวพัง (JSON เสีย) = เริ่มนับใหม่ ดีกว่าค้างถาวร
+  };
+  const writeQueue = rows => lsSet(QK, JSON.stringify(rows.slice(-MAX_QUEUE)));
+
+  const two = n => String(n).padStart(2, "0");
+  const rand4 = () => Math.random().toString(36).slice(2, 6).padEnd(4, "0");
+  const stamp = d => `${d.getFullYear()}${two(d.getMonth() + 1)}${two(d.getDate())}${two(d.getHours())}${two(d.getMinutes())}`;
+
+  const enabled = () => !!(CONFIG.log_url && CONFIG.log_enabled);
+
+  // id ประจำคาบ: YYYYMMDDHHmm-xxxx — ต่ออายุทุกครั้งที่ log, ขาดช่วงเกิน 3 ชม. ค่อยขึ้นตัวใหม่
+  const session = () => {
+    const now = Date.now();
+    let rec = null;
+    try { rec = JSON.parse(lsGet(SK) || "null"); } catch (e) { rec = null; }
+    if (!rec || !rec.id || !rec.last || now - rec.last > SESSION_GAP_MS)
+      rec = { id: stamp(new Date(now)) + "-" + rand4(), last: now };
+    rec.last = now;
+    lsSet(SK, JSON.stringify(rec));
+    return rec.id;
+  };
+
+  // เลขผู้เล่น — UI ให้กรอกยังไม่มีในเวอร์ชันนี้ ไม่มีค่า = null (รับได้ทั้งเลขดิบและ JSON)
+  const player = () => {
+    const raw = lsGet(PK);
+    if (raw === null || raw === "") return null;
+    try { const v = JSON.parse(raw); return v === "" ? null : v; } catch (e) { return raw; }
+  };
+
+  // ยิงคิวออกทีละชุด — ok เท่านั้นถึงตัดแถวออก ไม่ ok/reject = คงไว้ทั้งคิว รอรอบหน้า
+  const flush = async () => {
+    if (flushing || !enabled()) return;
+    if (navigator.onLine === false) return;   // ออฟไลน์ชัด ๆ ไม่ต้องเสียเวลายิง
+    if (!readQueue().length) return;
+    flushing = true;
+    try {
+      for (let guard = 0; guard < 20; guard++) {   // guard กันวนไม่รู้จบถ้าเขียนคิวกลับไม่ได้
+        const cur = readQueue();
+        if (!cur.length) break;
+        const batch = cur.slice(0, BATCH);
+        const res = await fetch(CONFIG.log_url, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(batch),
+          keepalive: true,
+        });
+        if (!res || !res.ok) break;
+        // อ่านคิวใหม่อีกรอบก่อนตัด — ระหว่างรอ fetch อาจมีแถวใหม่เข้ามา ห้ามตัดทิ้ง
+        // เทียบด้วย row_id ไม่ใช่ตำแหน่ง เพราะการตัดแถวเก่าตอนคิวเต็มทำให้ index เลื่อนได้
+        const sent = new Set(batch.map(r => r && r.row_id));
+        const left = readQueue().filter(r => !(r && sent.has(r.row_id)));
+        if (!writeQueue(left)) break;   // เขียนกลับไม่ได้ = หยุด ไม่งั้นจะยิงชุดเดิมซ้ำ
+        if (!left.length) break;
+      }
+    } catch (e) {
+      /* เน็ตหลุด/CORS/timeout — เงียบไว้ แถวยังอยู่ในคิวครบ */
+    } finally {
+      flushing = false;
+    }
+  };
+
+  const push = row => {
+    const q = readQueue();
+    q.push(row);
+    writeQueue(q);   // writeQueue ตัดหัวให้เองเมื่อเกิน MAX_QUEUE
+  };
+
+  // ยิงคิวค้างเมื่อ: เน็ตกลับมา / กลับมาเปิดแท็บนี้ / โหลดหน้าใหม่
+  try {
+    addEventListener("online", () => { flush(); });
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") flush();
+    });
+  } catch (e) {}
+
+  return { enabled, session, player, push, flush,
+           newRowId: () => Date.now().toString(36) + rand4() };
+})();
+
 function logAnswer(kind, id, level, correct, extra) {
-  if (!CONFIG.log_url) return;
-  const body = JSON.stringify({ kind, space_id: id, level, correct, ts: new Date().toISOString(), ...extra });
-  try { navigator.sendBeacon(CONFIG.log_url, body); }
-  catch (e) { fetch(CONFIG.log_url, { method:"POST", body, keepalive:true }).catch(() => {}); }
+  if (!CONFIG.log_url || !CONFIG.log_enabled) return;
+  try {
+    Logger.push({
+      kind, space_id: id, level, correct,
+      ts: new Date().toISOString(),
+      session: Logger.session(),
+      player: Logger.player(),
+      // consume-once เสมอ แม้จุดเรียกจะ override เป็น null (fail_roulette) — กันค่าค้างไปติดใบถัดไป
+      elapsed_ms: (typeof Session === "undefined") ? null : Session.takeElapsed(),
+      ...extra,
+      row_id: Logger.newRowId(),   // กันแถวซ้ำตอนยิงซ้ำ + ใช้ตัดแถวออกจากคิวให้ตรงตัว
+    });
+  } catch (e) { return; }   // จดคิวไม่ได้ก็ช่างมัน เกมต้องเล่นต่อได้
+  Logger.flush();           // async ล้วน ไม่มี await — ไม่หน่วงจังหวะเกม
 }
+
+Logger.flush();   // เปิดหน้ามาก็เก็บกวาดแถวที่ค้างจากคาบก่อน/ตอนเน็ตหลุดก่อน
 
 /* =====================================================================
    ส่วนที่ 3.5: ความทนต่อเหตุไม่คาดฝัน (refresh / เน็ตล่ม / จอดับ / สแกนซ้ำ)
@@ -534,12 +671,28 @@ const qKey = q => q.question_id || `${q.space_id}#${q.level}#${String(q.question
 const bugKey = b => b.bug_id || String(b.question_th).slice(0, 60);
 const findQuestion = key => QUESTIONS.find(q => qKey(q) === key);
 
+/* ชุด field วิเคราะห์ผลการเรียนรู้ที่แนบไปกับ log ทุกใบที่มี "ตัวคำถาม" อยู่ในมือ
+   info = ค่าที่ผู้เล่นแตะ ส่งมาจากตัวเรนเดอร์คำถาม (null ได้ เช่นตอนหมดเวลา = ไม่ได้แตะอะไร)
+   ชื่อ field ของ picked แยกตาม qtype ตั้งใจให้ไม่ปนกัน — index ของ MCQ กับพิกัดบนภาพ
+   เอามาหาค่าเฉลี่ยร่วมกันไม่ได้ ถ้าใช้ชื่อเดียวกันจะเผลอรวมกันตอนทำ pivot            */
+function answerMeta(q, timedOut, info) {
+  const m = {
+    question_id: q ? qKey(q) : null,
+    qtype: (info && info.qtype) || String((q && q.qtype) || "").trim().toLowerCase() || "mcq",
+    timed_out: !!timedOut,
+  };
+  if (info) for (const k in info) if (k !== "qtype") m[k] = info[k];
+  return m;
+}
+
 /* ---------- สถานะข้ามการ refresh (sessionStorage — ปิดแท็บแล้วหายเอง) ----------
    cc_active = คำถามที่กำลังจับเวลาอยู่ (มี deadline สัมบูรณ์ → refresh แล้วเวลาเดินต่อ)
    cc_done   = ช่องที่เพิ่งเล่นจบ (กันเผลอสแกนซ้ำในเทิร์นเดียว)                     */
 const Session = (() => {
   const AK = "cc_active", DK = "cc_done";
   const RESCAN_MS = 90000;   // สแกนช่องเดิมซ้ำภายในกี่มิลลิวินาที = ขึ้นหน้าเตือน
+  const MAX_ELAPSED_MS = 10 * 60 * 1000;   // เกินนี้ = จับคู่ผิด record/นาฬิกาเครื่องเพี้ยน → ทิ้ง
+  let lastStartedAt = 0;     // startedAt ของ record ที่ done() เพิ่งลบ — ให้ logAnswer หยิบไปคิด elapsed_ms
   const read = k => { try { return JSON.parse(sessionStorage.getItem(k) || "null"); } catch (e) { return null; } };
   const write = (k, v) => { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
 
@@ -558,7 +711,36 @@ const Session = (() => {
     patch(o) { const a = read(AK); if (a) write(AK, { ...a, ...o }); },
     clear() { try { sessionStorage.removeItem(AK); } catch (e) {} },
     // จบ flow ของหน้านี้: เลิกจับเวลา + จดเวลาไว้กันสแกนซ้ำ
-    done(key) { this.clear(); this.markDone(key); },
+    // จำ startedAt ไว้ก่อนลบ เพราะ 6 ใน 9 จุดเรียก logAnswer อยู่ "หลัง" บรรทัดนี้
+    done(key) {
+      const a = read(AK);
+      lastStartedAt = (a && a.startedAt) || 0;
+      /* ⛔ ข้อบังคับสำหรับคนที่จะแก้โค้ดนี้ต่อ — อ่านก่อนย้าย/แทรกโค้ดตรงจุดเรียก:
+         จุดเรียกทุกจุดต้องเรียก logAnswer() **ต่อทันทีใน tick เดียวกันกับ done()**
+         ห้ามมี await / setTimeout / รอ animation / รอ transition คั่นกลางเด็ดขาด
+         ถ้าคั่น elapsed_ms ของแถวนั้นจะกลายเป็น null เงียบ ๆ ไม่มี error ไม่มี warning
+         และจะรู้ตัวอีกทีตอนเปิดชีตดูข้อมูลหลังเก็บจริงไปแล้วทั้งคาบ
+
+         ทำไมต้องล้างใน tick ถัดไป (ไม่ใช่ปล่อยให้ค้างจนกว่าจะมีคนอ่าน):
+         done() ที่ไม่มี logAnswer ตามมามีจริงหลายทาง — ผู้เล่นกดออกกลางคัน / refresh /
+         ปิดแท็บ ถ้าไม่ล้าง ค่าเก่าจะไปติดกับ log ใบถัดไปที่คนละข้อคนละเวลา ได้ตัวเลขที่ดู
+         สมเหตุสมผลแต่ผิดคนผิดข้อ ซึ่งจับไม่ได้ตอนวิเคราะห์ — อันตรายกว่า null            */
+      setTimeout(() => { lastStartedAt = 0; }, 0);
+      this.clear(); this.markDone(key);
+    },
+    /* เวลาที่ใช้ตอบ (ms) สำหรับ logAnswer — **consume-once** อ่านแล้วเคลียร์ทิ้งทันที
+       ทำไมต้อง consume-once: Session.done() ที่ไม่มี logAnswer ตามมามีจริง (กดออกกลางคัน /
+       refresh / ปิดแท็บ) ถ้าไม่เคลียร์ ค่าเก่าจะไปติดกับ log ใบถัดไปที่คนละข้อคนละเวลา
+       ได้ตัวเลขที่ดูสมเหตุสมผลแต่ผิดคนผิดข้อ — จับไม่ได้ตอนวิเคราะห์ อันตรายกว่า null
+       อ่านจาก record ที่ยัง active ได้ด้วย เพราะจุดเรียกฝั่ง buy log ก่อน done()          */
+    takeElapsed() {
+      const a = read(AK);
+      const started = (a && a.startedAt) || lastStartedAt;
+      lastStartedAt = 0;                       // เคลียร์เสมอ ไม่ว่าจะได้ค่าหรือไม่
+      if (!started) return null;
+      const ms = Date.now() - started;
+      return (ms < 0 || ms > MAX_ELAPSED_MS) ? null : ms;
+    },
     markDone(key) { const d = read(DK) || {}; d[key] = Date.now(); write(DK, d); },
     // คืนจำนวนวินาทีที่ยังเหลือของช่วงกันสแกนซ้ำ (0 = เข้าได้เลย)
     doneRecently(key) {
@@ -571,6 +753,99 @@ const Session = (() => {
     reset() { try { sessionStorage.clear(); } catch (e) {} },
   };
 })();
+
+/* ---------- เลขผู้เล่นประจำเครื่อง (1-4) — ตัวที่ logAnswer เอาไปใส่ field player ----------
+   ใช้ localStorage ไม่ใช่ sessionStorage: สแกน QR แต่ละครั้งเบราว์เซอร์มักเปิดแท็บใหม่
+   ถ้าใช้ sessionStorage เลขจะหายทุกครั้งที่สแกน = ต้องถามใหม่ทุกช่อง
+
+   ไม่มีหน้าแรกที่ทุกคนต้องผ่าน (สแกน QR เข้า ?space=xxx ตรง ๆ เสมอ) UI จึงต้องมี 2 ทาง:
+     1) กล่องถามคร่อมหน้าแรกที่เปิด ไม่ว่าจะเปิดหน้าไหน — ถามครั้งเดียวจบ
+     2) ปุ่มเล็กมุมจอที่อยู่ทุกหน้า — เด็กกดผิด/สลับที่นั่ง/ยืมเครื่องเพื่อน เกิดขึ้นจริงในห้อง
+   ทั้งสองทางข้ามได้เสมอ ไม่มีเลขก็เล่นได้ครบทุกอย่าง (field player เป็น null)          */
+const Player = (() => {
+  const PK = "cc_player", AK2 = "cc_player_asked";
+  const MAX = 4;        // จำนวนปุ่มในกล่องเลือก — ขนาดโต๊ะปกติ (ตรงกับ CONFIG.speed_players)
+  // เก็บได้ถึง 6 เพราะบอสไฟต์เปิดโต๊ะได้ถึง CONFIG.cooling_boss.max_players (6)
+  // ถ้าจำกัดที่ 4 แล้วเด็กเลือก slot 5 ในบอสไฟต์ cc_player จะค้างค่าเก่า → แถวเดียวกันจะมี
+  // player:3 คู่กับ player_slot:5 ซึ่งขัดกันเองและจับไม่ได้ตอนวิเคราะห์
+  const MAX_STORE = 6;
+  const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+
+  const get = () => {
+    const n = parseInt(lsGet(PK), 10);
+    return (n >= 1 && n <= MAX_STORE) ? n : null;
+  };
+  const paintBtn = () => {
+    const b = document.getElementById("playerBtn");
+    if (!b) return;
+    const n = get();
+    b.textContent = n ? `👤 ผู้เล่น ${n}` : "ตั้งเลข";
+    b.classList.toggle("set", !!n);
+  };
+  const set = n => { lsSet(PK, String(n)); lsSet(AK2, "1"); paintBtn(); };
+  const skip = () => lsSet(AK2, "1");            // เคยถามแล้ว — อย่าถามซ้ำทุกหน้า จะรำคาญกลางเกม
+  const shouldAsk = () => get() === null && lsGet(AK2) !== "1";
+
+  // แถวปุ่มเลข ใช้ร่วมกันทั้งกล่องถามครั้งแรกและกล่องแก้ทีหลัง
+  const chipsHtml = () => {
+    let s = "";
+    const cur = get();
+    for (let i = 1; i <= MAX; i++)
+      s += `<button class="pick${cur === i ? " on" : ""}" data-plnum="${i}">${i}</button>`;
+    return s;
+  };
+  // หมายเหตุเลขซ้ำเป็น "ข้อความเตือน" เท่านั้น — เว็บไม่มี backend เช็คข้ามเครื่องไม่ได้จริง
+  const NOTE = `<p class="content" style="font-size:12px;color:var(--muted);margin-top:2px;">
+      ⚠️ เลขต้องไม่ซ้ำกับเพื่อนในโต๊ะ (ตกลงกันเองก่อนเริ่มเล่น)</p>`;
+
+  const bind = (root, onPicked) => root.querySelectorAll("[data-plnum]").forEach(b =>
+    b.onclick = () => { set(+b.dataset.plnum); SFX.tick(false); onPicked(+b.dataset.plnum); });
+
+  return {
+    get, set, skip, shouldAsk, paintBtn, chipsHtml, NOTE, bind, MAX, MAX_STORE,
+  };
+})();
+
+// กล่องถามครั้งแรก — คร่อมหน้าที่กำลังจะเปิด แล้วเข้าหน้าเดิมที่สแกนมาตามปกติ
+function renderPlayerGate(done) {
+  screen.innerHTML = `
+    <div class="card">
+      <span class="zone-tag" style="background:var(--gold);color:#05100C">เริ่มต้นใช้งาน</span>
+      <h2>👤 คุณคือผู้เล่นคนที่?</h2>
+      <p class="content">ตั้งครั้งเดียว เครื่องนี้จะจำไว้ทั้งคาบ — ใช้แยกว่าใครตอบข้อไหน
+        (เปลี่ยนทีหลังได้ที่ปุ่มมุมขวาล่าง)</p>
+      <div class="pick-row" id="plGateRow">${Player.chipsHtml()}</div>
+      ${Player.NOTE}
+      <button class="btn ghost" id="plSkip">ข้ามไปก่อน — เล่นได้ปกติ</button>
+    </div>`;
+  Player.bind(document.getElementById("plGateRow"), () => done());
+  document.getElementById("plSkip").onclick = () => { Player.skip(); done(); };
+}
+
+// กล่องแก้ทีหลัง — ลอยทับหน้าจอ ไม่แตะ #screen เลย จึงเปิดกลางคำถามได้โดยไม่ล้างสถานะ/ตัวจับเวลา
+function openPlayerPicker() {
+  const old = document.getElementById("plModal");
+  if (old) old.remove();
+  const wrap = document.createElement("div");
+  wrap.className = "pl-modal";
+  wrap.id = "plModal";
+  wrap.innerHTML = `
+    <div class="pl-card">
+      <p class="q">👤 คุณคือผู้เล่นคนที่?</p>
+      <div class="pick-row" id="plModalRow">${Player.chipsHtml()}</div>
+      ${Player.NOTE}
+      <button class="btn ghost" id="plClose">ปิด</button>
+    </div>`;
+  document.body.appendChild(wrap);
+  const close = () => wrap.remove();
+  Player.bind(document.getElementById("plModalRow"), close);
+  document.getElementById("plClose").onclick = close;
+  wrap.onclick = e => { if (e.target === wrap) close(); };   // แตะนอกกล่อง = ปิด
+}
+
+Player.paintBtn();
+document.getElementById("playerBtn").onclick = openPlayerPicker;
 
 /* ---------- Wake Lock — กันจอดับระหว่างจับเวลา (ไม่รองรับก็ไม่พัง) ---------- */
 const Wake = (() => {
@@ -895,8 +1170,9 @@ function renderSpace(id, resume) {
       </div>`;
     document.getElementById("qText").textContent = "Q: " + q.question_th;
 
-    renderQuiz(q, (ok, timedOut) => {
-      logAnswer(mode === "confident" ? "buy_confident" : "buy", id, level, ok, { question_level: level });
+    renderQuiz(q, (ok, timedOut, info) => {
+      logAnswer(mode === "confident" ? "buy_confident" : "buy", id, level, ok,
+        { question_level: level, ...answerMeta(q, timedOut, info) });
 
       if (ok && mode === "confident") { SFX.fanfare(); flash("gold"); }
       else if (ok) { SFX.correct(); flash("green"); }
@@ -970,7 +1246,11 @@ function spinFailRoulette(sp, spaceId) {
 
     if (final.mult < 1)      { SFX.correct(); flash("green"); }   // รอดถูกกว่าราคาเต็ม
     else if (final.mult > 1 || final.skip) { SFX.wrong(); flash("red"); }
-    logAnswer("fail_roulette", spaceId, 1, false, { roulette_label: final.label, pay });
+    // elapsed_ms = null ตั้งใจ: kind นี้ไม่ใช่การตอบคำถาม เป็นผลพวงจากตอบผิดไปแล้ว
+    // เวลาที่วัดได้จะรวมเวลาหมุนวงล้อ+อ่านผล → ดูเหมือนใช้ได้แต่ใช้ไม่ได้ แย่กว่าค่าว่าง
+    // (Session.done() บรรทัดถัดไปปิดเทิร์นนี้ทั้งใบ — ไม่มี log ใบอื่นตามมาในเทิร์นเดียวกัน)
+    logAnswer("fail_roulette", spaceId, 1, false,
+      { roulette_label: final.label, pay, question_id: null, elapsed_ms: null });
     Session.done(routeKey());   // วงล้อหยุดแล้ว = จบเทิร์นของช่องนี้จริง ๆ
   })();
 }
@@ -1017,9 +1297,9 @@ function renderUpgrade(id, level, resume) {
     </div>`;
   document.getElementById("qText").textContent = "Q: " + q.question_th;
 
-  renderQuiz(q, (ok, timedOut) => {
+  renderQuiz(q, (ok, timedOut, info) => {
     Session.done(routeKey());
-    logAnswer("upgrade", id, level, ok);
+    logAnswer("upgrade", id, level, ok, answerMeta(q, timedOut, info));
     document.getElementById("result").innerHTML = ok
       ? `<div class="result win pop">🎉 ตอบถูก! จ่าย <b>${sp.upgrade_cost.toLocaleString()}</b> เพื่ออัปเกรดเป็น "${name}" — ค่าเช่าใหม่ <b>${sp.rent[level].toLocaleString()}</b> TechCoin</div>`
       : `<div class="result lose">ตอบผิด — อัปเกรดไม่สำเร็จ ลองใหม่ได้ในเทิร์นถัดไป</div>`;
@@ -1134,12 +1414,18 @@ function renderSpeedEvent(ev, zone, resume) {
     Session.done(routeKey());
     [...wrap.children].forEach(b => b.disabled = true);
     box.children[q.answer].classList.add("correct");  // เฉลยให้วงเห็น
+    // ไม่มี picked — วงตอบด้วยปากเปล่า บนจอกดแค่ "ใครไวสุด" (ตัวเลือกถูก disable ไว้)
+    // winner = เลขผู้เล่นที่วงตัดสิน ไม่ใช่คนกดมือถือ จึงเป็นคนละความหมายกับ field player
     if (winner) {
       SFX.correct(); flash("green");
-      logAnswer("speed", ev.event_id || "event_" + zone, 0, true);
+      logAnswer("speed", ev.event_id || "event_" + zone, 0, true,
+        { winner, ...answerMeta(q, false, null) });
       document.getElementById("result").innerHTML =
         `<div class="result win">⚡ ผู้เล่น ${winner} ตอบไวสุด! ${effectText(ev.effect)}</div>`;
     } else {
+      // ทั้งวงตอบไม่ได้ = ข้อยากที่สุด ข้อมูลมีค่าที่สุด — เดิมกิ่งนี้ไม่ log อะไรเลย
+      logAnswer("speed", ev.event_id || "event_" + zone, 0, false,
+        { winner: null, ...answerMeta(q, true, null) });
       document.getElementById("result").innerHTML =
         `<div class="result lose">⏱ หมดเวลา — รอบนี้ไม่มีใครได้รางวัล</div>`;
     }
@@ -1268,10 +1554,12 @@ function renderBugQuestion(diff, resume) {
     if (hintUsed) showHint();   // refresh หลังกด hint → ยังเห็น hint เดิม ปุ่มยังล็อก
   }
 
-  renderQuiz(bug, (ok, timedOut) => {
+  renderQuiz(bug, (ok, timedOut, info) => {
     Session.done(routeKey());
     if (hintBtn) hintBtn.disabled = true;
-    logAnswer(isHard ? "bugjam_hard" : "bugjam", bug.bug_id || "bugjam", 0, ok, { difficulty: diff, hinted: hintUsed });
+    // question_id ใช้ bugKey(raw) — ต้องเป็นตัวก่อนสลับตัวเลือก ถึงจะเป็นข้อเดียวกันทุกเครื่อง
+    logAnswer(isHard ? "bugjam_hard" : "bugjam", bug.bug_id || "bugjam", 0, ok,
+      { difficulty: diff, hinted: hintUsed, ...answerMeta(bug, timedOut, info), question_id: bugKey(raw) });
     let msg;
     if (ok && isHard) {
       const bonus = hintUsed ? CONFIG.bugjam_bonus_hint : CONFIG.bugjam_bonus_hard;
@@ -1459,7 +1747,7 @@ function renderMCQ(q, onAnswer) {
     const b = document.createElement("button");
     b.className = "btn ghost";
     b.textContent = "ข้ามข้อนี้ (นับว่าตอบผิด)";
-    b.onclick = () => { b.disabled = true; onAnswer(false); };
+    b.onclick = () => { b.disabled = true; onAnswer(false, { qtype: "mcq", picked: null, skipped: true }); };
     box.appendChild(b);
     return { lock: () => { b.disabled = true; } };
   }
@@ -1473,7 +1761,12 @@ function renderMCQ(q, onAnswer) {
         if (j === q.answer) el.classList.add("correct");
         else if (j === i) el.classList.add("wrong");
       });
-      onAnswer(i === q.answer);
+      // picked = ตำแหน่งบนจอเครื่องนี้ ซึ่งสลับที่รายเครื่อง (bugjam/บอสไฟต์) จึงต้องมี
+      // picked_label คู่กันเสมอ — ตัวที่เอาไปนับ distractor ยอดฮิตข้ามเครื่องได้จริงคือ label
+      onAnswer(i === q.answer, {
+        qtype: "mcq", picked: i,
+        picked_label: String(c).slice(0, 80),
+      });
     };
     box.appendChild(b);
   });
@@ -1535,10 +1828,17 @@ function renderHotspot(q, onAnswer) {
       fill: "#FBBF24", stroke: "#05100C", "stroke-width": 1.5,
     }));
     if (!hit) reveal();
-    onAnswer(hit);
+    onAnswer(hit, {           // พิกัดเป็น % ของภาพ → เอาไป plot heatmap ว่าเด็กแตะผิดตรงไหนบ่อย
+      qtype: "hotspot",
+      picked_xy: `${Math.round(px * 10) / 10},${Math.round(py * 10) / 10}`,
+    });
   });
 
-  skip.onclick = () => { if (locked) return; lock(); reveal(); onAnswer(false); };
+  skip.onclick = () => {
+    if (locked) return;
+    lock(); reveal();
+    onAnswer(false, { qtype: "hotspot", picked_xy: null, skipped: true });
+  };
   return { lock };
 }
 
@@ -1601,7 +1901,8 @@ function renderColorWheel(q, onAnswer) {
       d: wedge(deg - 15, deg + 15), fill: "none",
       stroke: "#4ADE80", "stroke-width": 4, "stroke-dasharray": "8 5",
     }));
-    onAnswer(hit);
+    // องศาที่แตะ (0-359) — เทียบกับ q.answer แล้วรู้ว่าพลาดไปทางไหน กี่องศา
+    onAnswer(hit, { qtype: "colorwheel", picked_deg: Math.round(ang) });
   });
   return { lock: () => { locked = true; } };
 }
@@ -1635,7 +1936,7 @@ function renderLinePick(q, onAnswer) {
         row.classList.add("picked");                       // บรรทัดที่แตะ = แดง
         rows[ansLine - 1] && rows[ansLine - 1].classList.add("answer");   // บรรทัดเฉลย = เขียว
       }
-      onAnswer(ok);
+      onAnswer(ok, { qtype: "linepick", picked_line: i + 1 });   // เลขบรรทัดฐาน 1 ตรงกับที่โชว์บนจอ
     };
     rows.push(row);
     wrap.appendChild(row);
@@ -1650,11 +1951,12 @@ function renderQuiz(q, onDone, timeout_fail, sess) {
   const stop = () => { clearInterval(timer); Wake.off(); };
 
   // คำถามทุกแบบผ่านทางเดียวกันหมด — ตัวจับเวลา/เสียง/เอฟเฟกต์อยู่ที่นี่ที่เดียว
-  const view = renderQuestion(q, ok => {
+  // info = ค่าที่ผู้เล่นแตะ (ตัวเลือก/พิกัด/บรรทัด) ส่งต่อให้จุดเรียกเอาไปเข้า log
+  const view = renderQuestion(q, (ok, info) => {
     if (done) return;
     done = true;
     stop();
-    onDone(ok, false);
+    onDone(ok, false, info);
   });
 
   if (q.time_limit > 0) {
@@ -1671,7 +1973,7 @@ function renderQuiz(q, onDone, timeout_fail, sess) {
       view.lock();
       SFX.buzzer();
       flash("red");
-      onDone(false, true);
+      onDone(false, true, null);   // หมดเวลา = ไม่ได้แตะอะไรเลย ไม่มี picked
     };
 
     if (left() <= 0) { timeUp(); return; }   // refresh กลับมาหลังหมดเวลา = เข้า flow หมดเวลาทันที
@@ -1866,7 +2168,7 @@ function renderRescueSolver(code) {
     wrap.appendChild(row);
   });
 
-  const finish = ok => {
+  const finish = (ok, timedOut, cutIndex) => {
     if (done) return;
     done = true; timer.stop();
     wrap.querySelectorAll("button").forEach(b => b.disabled = true);
@@ -1877,7 +2179,13 @@ function renderRescueSolver(code) {
     } else { SFX.wrong(); flash("red");
       document.getElementById("rResult").innerHTML = `<div class="result lose">💀 ระบบล่ม — ทั้งคู่เสีย ${pen.toLocaleString()} TechCoin</div>`;
     }
-    logAnswer("debug_rescue", "debug_rescue", 0, ok, { pattern: "wire_cut", variant: state.variant.id, hinted });
+    // มินิเกมตัดสายไฟ ไม่ใช่คำถามจากคลัง → ไม่มี question_id/picked
+    // และไม่ได้ใช้ Session → elapsed_ms จะเป็น null ถาวร (ตัวจับเวลาเป็น rescueTimer แยกของตัวเอง)
+    // cut_index = เลขเส้นที่กดตัดเป็นเส้นสุดท้าย ฐาน 1 ตรงกับตัวเลขที่โชว์ข้างเส้นบนจอ
+    // (ตอบผิด = เส้นที่พลาด, ตอบถูก = เส้นสุดท้ายที่ปิดจ๊อบ, หมดเวลา = null เพราะไม่ได้กด)
+    logAnswer("debug_rescue", "debug_rescue", 0, ok,
+      { pattern: "wire_cut", variant: state.variant.id, hinted, qtype: "wire_cut", timed_out: !!timedOut,
+        cut_index: (cutIndex === undefined || cutIndex === null) ? null : cutIndex + 1 });
     const back = document.createElement("button");
     back.className = "btn"; back.textContent = "กลับเมนู";
     back.onclick = renderMenu; document.getElementById("rResult").appendChild(back);
@@ -1887,8 +2195,8 @@ function renderRescueSolver(code) {
     if (done || row.classList.contains("cut")) return;
     row.classList.add("cut");
     row.querySelector("button").disabled = true;
-    if (i === state.answer[step]) { SFX.correct(); step++; if (step >= state.answer.length) finish(true); }
-    else finish(false);  // ตัดผิดเส้น = ล่มทันที
+    if (i === state.answer[step]) { SFX.correct(); step++; if (step >= state.answer.length) finish(true, false, i); }
+    else finish(false, false, i);  // ตัดผิดเส้น = ล่มทันที
   }
 
   document.getElementById("rHint").onclick = () => {
@@ -1899,7 +2207,7 @@ function renderRescueSolver(code) {
       `<div class="result info" style="margin-top:8px;">💡 กฎรอบนี้: ${state.variant.guide_text}</div>`;
   };
 
-  timer = rescueTimer(P.time_limit, "rTimer", finish);
+  timer = rescueTimer(P.time_limit, "rTimer", () => finish(false, true));   // onEnd ยิงเฉพาะตอนหมดเวลา
 }
 
 // หน้า guide (ผู้อ่านคู่มือ) — เห็นเฉพาะกฎ ไม่เห็นปริศนา
@@ -1983,7 +2291,10 @@ const meltdownQuestion = (deck, idx, seedStr) => {
 // ---- หน้า 1: เข้าร่วม (เลือกเลขรอบ / จำนวนคน / เลขผู้เล่นของตัวเอง) ----
 function renderMeltdownJoin(pre) {
   const C = CONFIG.cooling_boss;
-  let round = (pre && pre.round) || 0, count = (pre && pre.count) || 0, slot = (pre && pre.slot) || 0;
+  // slot: เติมค่าเริ่มต้นจากเลขผู้เล่นที่ตั้งไว้ในเครื่อง (เลือกไว้ให้ล่วงหน้าเฉย ๆ กดเปลี่ยนได้เสมอ)
+  // ถ้าเลขเกินจำนวนคนในโต๊ะ ตัว paint() ด้านล่างจะล้างให้เลือกใหม่เองอยู่แล้ว
+  let round = (pre && pre.round) || 0, count = (pre && pre.count) || 0,
+      slot = (pre && pre.slot) || Player.get() || 0;
 
   const chips = (a, b, cur, attr) => {
     let s = "";
@@ -2026,7 +2337,8 @@ function renderMeltdownJoin(pre) {
       b.onclick = () => { set(+b.dataset[attr]); SFX.tick(false); paint(); });
     pick("round", v => round = v);
     pick("count", v => count = v);
-    pick("slot", v => slot = v);
+    // เลือกที่นี่ = ตั้งเลขผู้เล่นประจำเครื่องไปด้วย (sync สองทาง — ทุก log หลังจากนี้ได้เลขเดียวกัน)
+    pick("slot", v => { slot = v; if (v >= 1 && v <= Player.MAX_STORE) Player.set(v); });
 
     document.getElementById("meltGo").onclick = () => {
       if (!round || !count || !slot) { paint("⚠️ ยังเลือกไม่ครบทั้ง 3 ข้อ"); return; }
@@ -2090,6 +2402,7 @@ function renderMeltdownFight(st) {
   let lockUntil = st.lockoutUntil || 0;
   const subjects = st.subjects || [];
   let tick = null, lastSec = -1, ended = false;
+  let qShownAt = Date.now();   // ใช้เฉพาะการ log เวลาตอบรายข้อ ไม่เกี่ยวกับกติกา/เวลาบอสไฟต์
 
   screen.innerHTML = `
     <div class="card">
@@ -2127,6 +2440,7 @@ function renderMeltdownFight(st) {
 
   const askNext = () => {
     if (ended) return;
+    qShownAt = Date.now();   // นาฬิกาเวลาตอบรายข้อ (เริ่มใหม่ทุกครั้งที่โจทย์ขึ้นจอ)
     const q = meltdownQuestion(deck, qIndex, seed);
     // คำถาม/ตัวเลือกอาจมีแท็ก HTML เป็นตัวอย่างบทเรียน — ใส่แบบ text ล้วนเสมอ
     document.getElementById("qText").textContent = "Q: " + q.question_th;
@@ -2150,6 +2464,10 @@ function renderMeltdownFight(st) {
 
   const answer = (q, i) => {
     if (ended || Date.now() < lockUntil) return;
+    // จดค่าสำหรับ log ให้ครบก่อนเข้าสองกิ่ง — กิ่งตอบถูกเรียก askNext() ซึ่งรีเซ็ต qShownAt ทันที
+    const okLog = i === q.answer;
+    const ansMs = Date.now() - qShownAt;
+    const subjLog = (SPACES[q.space_id] || {}).zone || null;
     qIndex++;
     if (i === q.answer) {
       damage++;
@@ -2161,6 +2479,21 @@ function renderMeltdownFight(st) {
       lockUntil = Date.now() + C.wrong_lockout_sec * 1000;   // ล็อกเวลาแทนตัดสิทธิ์ — ไม่ตกรอบกลางคัน
       save(); SFX.wrong(); flash("red"); paintLockout();
     }
+    /* 1 แถวต่อ 1 ข้อ — kind แยก "meltdown_q" ไม่ใช่ cooling_boss เด็ดขาด ไม่งั้นยอดรวม
+       รายบอสไฟต์ (damage/questions_seen) จะถูกนับเบิ้ลรวมกับแถวรายข้อ
+       ช่วงนี้ seed ต่างกันรายคน (รอบ+จำนวนคน+เลขผู้เล่น) → เด็กแต่ละคนเจอคนละชุด คนละลำดับ
+       ตัวเลือก จึงเป็นช่วงเดียวในเกมที่ทำ item analysis รายคนได้จริง และเป็นเหตุผลที่
+       picked_label สำคัญกว่าที่อื่น — picked เป็นตำแหน่งบนจอเครื่องนั้น เทียบข้ามเครื่องไม่ได้
+       elapsed_ms = เวลาตอบข้อนี้จริง (นับจากตอนโจทย์ขึ้นจอ) ต้อง override ค่าที่ logAnswer
+       ใส่มาเอง เพราะ cc_active ยัง active อยู่ ค่าที่ได้จะเป็นเวลาตั้งแต่เริ่มบอสไฟต์         */
+    logAnswer("meltdown_q", q.space_id || "cooling", q.level || 0, okLog, {
+      mode: "meltdown", round: st.round, player_slot: st.slot,
+      question_id: qKey(q), qtype: "mcq",
+      picked: i, picked_label: String(q.choices[i]).slice(0, 80),
+      subject: subjLog, q_index: qIndex,
+      elapsed_ms: (ansMs >= 0 && ansMs <= 600000) ? ansMs : null,
+      timed_out: false,   // หมดเวลากลางข้อ = ไม่ได้กด จึงไม่มีแถวรายข้อของข้อนั้นเลย
+    });
   };
 
   const timeLeft = () => Math.ceil((st.deadlineTs - Date.now() - 20) / 1000);
@@ -2171,9 +2504,21 @@ function renderMeltdownFight(st) {
     clearInterval(tick);
     Wake.off();
     Session.done(routeKey());
+    // mode แยกสอง schema ที่ใช้ kind เดียวกัน (ห้ามเปลี่ยนชื่อ kind — ข้อมูลเก่าจะเทียบไม่ได้)
+    // timed_out เป็น true เสมอ: บอสไฟต์จบด้วยหมดเวลาทางเดียว ฟันครบเป้าแล้วก็สู้ต่อจนหมดเวลา
+    //
+    // elapsed_ms = null บังคับ: ค่าที่ logAnswer คำนวณให้คือความยาวบอสไฟต์ (~75,000 ms คงที่)
+    // ไม่ใช่เวลาตอบคำถาม ถ้าปล่อยไว้ในคอลัมน์เดียวกับเวลาตอบจริง (1,000-3,000 ms) ค่าเฉลี่ย
+    // ตอน pivot จะพุ่งโดยไม่มีอะไรฟ้อง — ย้ายไปอยู่ fight_duration_ms ซึ่งเป็นคนละความหมาย
+    // (เวลาตอบรายข้อของช่วงนี้อยู่ในแถว kind "meltdown_q" แยกต่างหาก)
+    const fightMs = st.startedAt ? Date.now() - st.startedAt : null;
     logAnswer("cooling_boss", "cooling", 0, damage >= target, {
+      mode: "meltdown",
       round: st.round, player_slot: st.slot, player_count: st.count,
       damage, hp_target: target, questions_seen: qIndex, wrong_count: wrong, subjects_hit: subjects,
+      question_id: null, qtype: "meltdown_rush", timed_out: true,
+      elapsed_ms: null,
+      fight_duration_ms: (fightMs !== null && fightMs >= 0 && fightMs <= 600000) ? fightMs : null,
     });
     renderMeltdownSummary({ round: st.round, count: st.count, damage, qIndex, wrong }, target);
   };
@@ -2300,7 +2645,7 @@ function renderCoolingPlay(round) {
   });
 
   // จบ (ของเครื่องนี้เท่านั้น): ผ่าน/ไม่ผ่าน แล้วเปิดแผงสรุปสำหรับธนาคาร
-  const finish = (ok, timedOut) => {
+  const finish = (ok, timedOut, cutIndex) => {
     if (done) return;
     done = true; timer.stop();
     wrap.querySelectorAll("button").forEach(b => b.disabled = true);
@@ -2315,7 +2660,12 @@ function renderCoolingPlay(round) {
       document.getElementById("rResult").innerHTML =
         `<div class="result lose">${timedOut ? "⏱ หมดเวลา" : "❌ ตัดพลาด"} — รอบนี้อดส่วนแบ่ง</div>`;
     }
-    logAnswer("cooling_boss", "cooling", 0, ok, { round, variant: state.variant.id });
+    // โหมดสำรอง (ตัดสายไฟ) — คนละ schema กับ meltdown ทั้งที่ kind เดียวกัน แยกด้วย mode
+    // ไม่ได้ใช้ Session เช่นกัน → elapsed_ms null ถาวร
+    // cut_index ฐาน 1 ตรงกับเลขที่โชว์ข้างเส้น (หมดเวลา = null เพราะไม่ได้กด)
+    logAnswer("cooling_boss", "cooling", 0, ok,
+      { mode: "wirecut", round, variant: state.variant.id, qtype: "wire_cut", timed_out: !!timedOut,
+        cut_index: (cutIndex === undefined || cutIndex === null) ? null : cutIndex + 1 });
     renderBankPanel();
   };
 
@@ -2323,8 +2673,8 @@ function renderCoolingPlay(round) {
     if (done || row.classList.contains("cut")) return;
     row.classList.add("cut");
     row.querySelector("button").disabled = true;
-    if (i === state.answer[step]) { SFX.correct(); step++; if (step >= state.answer.length) finish(true, false); }
-    else finish(false, false);  // ตัดผิดเส้น = ล่มทันที
+    if (i === state.answer[step]) { SFX.correct(); step++; if (step >= state.answer.length) finish(true, false, i); }
+    else finish(false, false, i);  // ตัดผิดเส้น = ล่มทันที
   }
 
   timer = rescueTimer(CONFIG.bossfight_time, "rTimer", () => finish(false, true));
@@ -2362,6 +2712,13 @@ function route() {
     if (resumeFrom(act)) return;
     Session.clear();   // กู้ไม่ได้ (คำถามหายจากคลัง/ข้อมูลเปลี่ยน) — เริ่มปกติแทน
   }
+  // ถามเลขผู้เล่นครั้งแรกที่เปิดเว็บ ไม่ว่าจะสแกนเข้าหน้าไหน แล้วค่อยเข้าหน้าเดิมต่อ
+  // วางไว้หลังการกู้สถานะ เพราะถ้ามีคำถามค้างอยู่ เวลาเดินอยู่แล้ว ห้ามเอากล่องนี้ไปกินเวลาตอบ
+  if (Player.shouldAsk()) { renderPlayerGate(routeAfterPlayer); return; }
+  routeAfterPlayer();
+}
+
+function routeAfterPlayer() {
   const wait = param ? Session.doneRecently(routeKey()) : 0;
   if (wait) { renderRescanGate(wait); return; }
   dispatch();
