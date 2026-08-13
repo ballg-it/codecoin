@@ -60,6 +60,9 @@
     background-size:28px 28px;
   }
   .app { width:100%; max-width:430px; }
+  /* perspective ต้องอยู่ที่ "บรรพบุรุษ" ของ element ที่จะ rotateY ไม่ใช่ตัวมันเอง (Stage 4 — การ์ดพลิก)
+     ไม่มีผลอะไรกับ element อื่นที่ไม่มี 3D transform เลย ใส่ไว้ล่วงหน้าที่นี่ปลอดภัย */
+  #screen { perspective:900px; }
 
   /* ---------- ส่วนหัวแบบชิป ---------- */
   header {
@@ -146,9 +149,21 @@
   .btn.ghost { background:transparent; border:1px solid var(--gold); color:var(--gold); }
 
   .code-box {
+    position:relative;   /* ให้ ::after (เรืองขอบตอนเฉลย) วางอิงกรอบนี้ได้ */
     background:#05100C; border:1px solid var(--line); border-radius:10px;
     font-family:monospace; font-size:13px; color:#A7F3D0; padding:12px; white-space:pre; overflow-x:auto; margin-bottom:12px;
   }
+  /* ---------- Bug Jam เฉลย (Stage 4) — pulse ทั้งกล่อง ห้ามแตะ text node ข้างใน ----------
+     animate เฉพาะ transform (scale) + opacity (เรืองขอบผ่าน ::after) เท่านั้น ตามกฎ
+     ห้าม box-shadow/border-color เปลี่ยนสีตรง ๆ เพราะไม่ใช่ transform/opacity */
+  .code-box.fx-reveal { animation:codeBoxPulse var(--dur-cheer) var(--ease-out); }
+  .code-box.fx-reveal::after {
+    content:""; position:absolute; inset:-2px; border-radius:inherit;
+    border:2px solid var(--gold); opacity:0; pointer-events:none;
+    animation:codeBoxGlow var(--dur-cheer) var(--ease-out);
+  }
+  @keyframes codeBoxPulse { 0%{transform:scale(1)} 40%{transform:scale(1.01)} 100%{transform:scale(1)} }
+  @keyframes codeBoxGlow  { 0%{opacity:0} 40%{opacity:1} 100%{opacity:0} }
   .menu-item {
     display:flex; justify-content:space-between; align-items:center;
     background:#0B241B; border:1px solid var(--line); border-radius:10px;
@@ -200,19 +215,41 @@
   }
   .confirm-modal .btn { margin-top:12px; }
 
-  /* ---------- กรอบวงล้อสุ่มผลแก้บั๊ก (เลนมั่นใจ+ผิด) ---------- */
+  /* ---------- กรอบวงล้อสุ่มผลแก้บั๊ก (เลนมั่นใจ+ผิด) ----------
+     duration อ้าง token แทนตัวเลขดิบ (Stage 4) — ให้ reduced-motion ย่ออัตโนมัติแบบเดียวกับที่อื่น */
   .roulette-frame {
     background:#05100C; border:1px solid var(--line); border-radius:10px;
     padding:13px 12px; margin-top:10px; text-align:center;
     font-family:'Kanit',sans-serif; font-size:15px; color:#A7F3D0;
-    animation:roulettePulse .12s ease-out;
+    animation:roulettePulse var(--dur-press) ease-out;
   }
   .roulette-frame.final {
     border-color:var(--gold); color:#FDE68A;
-    animation:rouletteLand .45s cubic-bezier(.34,1.56,.64,1);
+    animation:rouletteLand var(--dur-cheer) cubic-bezier(.34,1.56,.64,1);
   }
   @keyframes roulettePulse { from { transform:scale(.97); opacity:.65; } to { transform:scale(1); opacity:1; } }
   @keyframes rouletteLand  { 0% { transform:scale(.9); } 60% { transform:scale(1.05); } 100% { transform:scale(1); } }
+
+  /* ---------- วงล้อ Fail Roulette แบบหมุนจริง (Stage 4) ----------
+     #rouletteWheelG คือกลุ่มที่หมุน (rAF ควบคุม transform ตรง ๆ) — ใช้ transform-box:fill-box
+     ให้หมุนรอบจุดกึ่งกลางภาพจริง ไม่ใช่มุม (0,0) ของ viewBox ตามค่าเริ่มต้นของ SVG */
+  .roulette-wheel-wrap { position:relative; width:168px; height:168px; margin:6px auto 4px; }
+  .roulette-wheel-svg { width:100%; height:100%; display:block; }
+  #rouletteWheelG { transform-box:fill-box; transform-origin:50% 50%; }
+  .roulette-pointer {
+    position:absolute; top:-6px; left:50%; transform:translateX(-50%);
+    width:0; height:0; border-left:9px solid transparent; border-right:9px solid transparent;
+    border-top:14px solid var(--gold); z-index:2; filter:none;
+  }
+
+  /* ---------- การ์ดพลิก (Stage 4 — เฉพาะ event mechanic simple/choice/chain ห้ามใช้กับ speed) ----------
+     perspective อยู่ที่ #screen (บรรพบุรุษ) ไม่ใช่ตัวการ์ดเอง — 3D rotateY ถึงจะดูมีมิติจริง */
+  .card-cover {
+    position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:5;
+    background:
+      repeating-linear-gradient(45deg, #0B2B22 0 6px, #0F3B2A 6px 12px);
+    border:1px solid var(--gold); backface-visibility:hidden;
+  }
 
   /* ---------- มินิเกมกู้บั๊กด่วน (Debug Rescue) ---------- */
   .rescue-code {
@@ -291,7 +328,13 @@
   .hp-row { display:flex; justify-content:space-between; align-items:baseline; font-size:12.5px; color:var(--muted); margin-bottom:7px; }
   .hp-row b { color:var(--gold); font-family:'Kanit',sans-serif; font-size:17px; }
   .hp-bar { height:12px; background:#0B241B; border-radius:8px; overflow:hidden; }
-  .hp-fill { height:100%; width:0; background:linear-gradient(90deg,#4ADE80,var(--gold)); transition:width .25s ease-out; }
+  /* Stage 4: width → transform:scaleX (ห้ามใช้ width ตามกฎ) — เลขดาเมจ (#dmgNum/#tgtNum) อยู่ใน
+     .hp-row แยกกันคนละ element อยู่แล้วตั้งแต่แรก (นอก .hp-fill เสมอ) ไม่ถูก scale ไปด้วยแน่นอน */
+  .hp-fill {
+    height:100%; width:100%; transform:scaleX(0); transform-origin:left;
+    background:linear-gradient(90deg,#4ADE80,var(--gold));
+    transition:transform var(--dur-state) var(--ease-out);
+  }
   .shout {
     text-align:center; font-size:12.5px; color:#FDE68A; background:#3A2A0A;
     border:1px solid var(--gold); border-radius:20px; padding:6px 10px; margin-bottom:11px;
@@ -704,6 +747,34 @@ function enterScreen() {
     { transform: "translateY(12px)", opacity: 0 },
     { transform: "translateY(0)", opacity: 1 },
   ], { id: SCREEN_ENTER_ID, duration: 180, easing: easeVar("--ease-out") });
+}
+
+/* ---------- พลิกการ์ดเหตุการณ์ (Stage 4) ----------
+   ใช้แทน enterScreen() เฉพาะการ์ดเหตุการณ์ mechanic simple/choice/chain เท่านั้น
+   ห้ามใช้กับ speed (จับเวลา 15 วิ ต้องโผล่ 0ms) — renderEvent() คัดกรองก่อนเรียกแล้ว
+   เนื้อการ์ดจริงเรนเดอร์ไว้ก่อนแล้วทั้งหมด (ปุ่ม/handler ผูกครบ) ฟังก์ชันนี้แค่ซ่อนไว้ชั่วคราว
+   ด้วย rotateY แล้วพลิกเผยออกมา — ไม่แตะเนื้อหาข้างในเลยสักบรรทัด
+   ลำดับ: cover (มองเห็น) rotateY 0→-90° 220ms → ลบทิ้งตอน onfinish →
+          การ์ดจริง (ซ่อนอยู่ที่ 90°) rotateY 90°→0° 260ms เริ่มหลัง delay 220ms (พอดีกับคิวคิวคอฟเวอร์) */
+function playEventCardFlip(cardEl) {
+  if (!cardEl) return;
+  renderToken++;   // นับเป็นหน้าใหม่เหมือน enterScreen() — invalidate rAF/onfinish ค้างจากหน้าก่อน
+  const myToken = renderToken;
+  if (getComputedStyle(cardEl).position === "static") cardEl.style.position = "relative";
+  cardEl.style.transform = "rotateY(90deg)";   // ซ่อนตัวเองตั้งแต่เฟรมแรก ก่อน animation จะเริ่มทำงานจริง
+
+  const cover = document.createElement("div");
+  cover.className = "card-cover";   // pointer-events:none มาจาก CSS อยู่แล้ว — กดทะลุได้เสมอ
+  cardEl.appendChild(cover);
+
+  const coverAnim = MOTION.run(cover,
+    [{ transform: "rotateY(0deg)" }, { transform: "rotateY(-90deg)" }],
+    { duration: 220, easing: easeVar("--ease-io") });
+  coverAnim.addEventListener("finish", () => { if (myToken === renderToken) cover.remove(); });
+
+  MOTION.run(cardEl,
+    [{ transform: "rotateY(90deg)" }, { transform: "rotateY(0deg)" }],
+    { duration: 260, delay: MOTION.d(220), fill: "forwards", easing: easeVar("--ease-out") });
 }
 
 /* =====================================================================
@@ -1245,7 +1316,9 @@ function flash(color) {
 
 function confetti() {
   const colors = ["#FBBF24", "#4ADE80", "#FB923C", "#38BDF8", "#F472B6", "#FFFFFF"];
-  for (let i = 0; i < 44; i++) {
+  // เครื่องแรงน้อย (มือถือราคาประหยัด ≤4 core) ลดจำนวนลง กันเฟรมตกตอน CPU ไม่พอ
+  const N = (navigator.hardwareConcurrency || 4) <= 4 ? 40 : 110;
+  for (let i = 0; i < N; i++) {
     const p = document.createElement("div");
     p.className = "confetti";
     p.style.left = Math.random() * 100 + "vw";
@@ -1381,8 +1454,21 @@ function renderSpace(id, resume) {
         <button class="btn" id="spinBtn">🎰 หมุนแก้บั๊ก</button>
         <div id="rouletteBox"></div>
       </div>`;
-    enterScreen();
     setContent();
+
+    /* Stage 4 ข้อ A: refresh กลางหมุน (หรือกลางลุ้นก่อนหมุน) ต้องเด้งไปผลเดิมทันที
+       ไม่หมุนใหม่ ไม่สุ่มใหม่ — รู้ได้จาก resume.rouletteFinalIdx ที่ spinFailRoulette()
+       persist ไว้ "ก่อน" เริ่มอนิเมชันเสมอ ห้าม log ซ้ำที่นี่ เพราะ log ไปแล้วตอนกดปุ่มครั้งแรก */
+    if (resume && resume.rouletteFinalIdx !== undefined) {
+      const final = CONFIG.fail_roulette[resume.rouletteFinalIdx];
+      if (final) {
+        cancelScreenEnter();   // ผลตัดสินไปแล้ว ต้องโผล่ทันที ไม่มี entrance fade มาถ่วงเวลา
+        playRouletteReveal(sp, id, final, resume.roulettePay, false);   // fresh=false = ข้ามหมุนเสมอ
+        return;
+      }
+      // final หาไม่เจอ (CONFIG เปลี่ยนหลัง deploy กลางคาบ) — ปล่อยให้กดหมุนใหม่ ดีกว่าค้างจอ
+    }
+    enterScreen();
     document.getElementById("spinBtn").onclick = () => spinFailRoulette(sp, id);
   }
 
@@ -1457,47 +1543,141 @@ function renderSpace(id, resume) {
 }
 
 // ---------- วงล้อสุ่มผลแก้บั๊ก (เฉพาะเลน มั่นใจ! + ตอบผิด) ----------
-// สุ่มผลด้วย weightedPick ตัวเดียวกับ event card / เสียงหมุนใช้ SFX.tick เดิม
+// Stage 4 ข้อ A — กฎเหล็ก: "ผลต้องเกิดก่อน animation เสมอ" ห้ามให้ animation เป็นตัวกำหนดผล
+// ลำดับบังคับ: 1) สุ่มผล 2) persist ลง session 3) log 4) คำนวณมุมเป้า 5) เริ่มหมุน (แค่ของประดับ)
 function spinFailRoulette(sp, spaceId) {
-  const btn = document.getElementById("spinBtn");
-  btn.disabled = true;
-  const box = document.getElementById("rouletteBox");
   const pool = CONFIG.fail_roulette;
-  const final = weightedPick(pool);   // ผลจริงถูกล็อกก่อน แอนิเมชันแค่โชว์
+  const final = weightedPick(pool);              // 1) สุ่มผล — ล็อกแล้ว จบตรงนี้ ห้ามสุ่มซ้ำที่ไหนอีก
+  const finalIdx = pool.indexOf(final);
+  const pay = Math.round(sp.price * final.mult);
 
-  const showFrame = (text, cls = "") => {
-    box.innerHTML = `<div class="roulette-frame ${cls}" id="rouletteFrame"></div>`;
-    document.getElementById("rouletteFrame").textContent = text;
-    return document.getElementById("rouletteFrame");
+  // 2) persist ก่อน animation เริ่มเสมอ — refresh กลางหมุนจะได้เจอผลเดิมเป๊ะผ่าน resume.rouletteFinalIdx
+  Session.patch({ phase: "roulette", rouletteFinalIdx: finalIdx, roulettePay: pay });
+  // 3) log ทันที — ไม่รอให้หมุนจบก่อนแบบเดิม (elapsed_ms=null ตั้งใจ: นี่ไม่ใช่การตอบคำถาม
+  // เป็นผลพวงจากตอบผิดไปแล้ว เวลาที่วัดได้จะปนเวลาหมุน+อ่านผล ดูเหมือนใช้ได้แต่ใช้ไม่ได้)
+  logAnswer("fail_roulette", spaceId, 1, false,
+    { roulette_label: final.label, pay, question_id: null, elapsed_ms: null });
+
+  playRouletteReveal(sp, spaceId, final, pay, true);   // 4-5) คำนวณมุม + เริ่มหมุน (fresh=true)
+}
+
+// สี wedge ตามความหนักเบาของผล — เขียว=ดีกว่าราคาเต็ม, ทอง=เท่าราคาเต็ม, แดง=แย่กว่า/โดน skip
+function rouletteColor(entry) {
+  if (entry.mult < 1) return "#4ADE80";
+  if (entry.mult > 1 || entry.skip) return "#F87171";
+  return "#FBBF24";
+}
+// เรขาคณิต wedge เดียวกับที่ renderColorWheel ใช้ (มุม 0° = 12 นาฬิกา ไล่ตามเข็ม)
+function rouletteWedgePath(cx, cy, rOut, rIn, a0, a1) {
+  const pt = (r, a) => { const t = (a - 90) * Math.PI / 180; return [cx + r * Math.cos(t), cy + r * Math.sin(t)]; };
+  const [x0, y0] = pt(rOut, a0), [x1, y1] = pt(rOut, a1);
+  const [x2, y2] = pt(rIn, a1), [x3, y3] = pt(rIn, a0);
+  const large = (a1 - a0) > 180 ? 1 : 0;
+  return `M${x0} ${y0}A${rOut} ${rOut} 0 ${large} 1 ${x1} ${y1}L${x2} ${y2}A${rIn} ${rIn} 0 ${large} 0 ${x3} ${y3}Z`;
+}
+// วาดวงล้อครั้งเดียว (static markup) — เฟรมต่อไปแค่หมุน transform บน #rouletteWheelG เท่านั้น
+// ห้ามวาด wedge ใหม่ทุกเฟรม ไม่งั้น CPU throttle 4x จะตกต่ำกว่า 50fps แน่นอน
+function buildRouletteWheelSvg(pool) {
+  const C = 84, R_OUT = 80, R_IN = 20, seg = 360 / pool.length;
+  let wedges = "";
+  pool.forEach((entry, i) => {
+    const a0 = i * seg, a1 = a0 + seg;
+    wedges += `<path d="${rouletteWedgePath(C, C, R_OUT, R_IN, a0, a1)}" fill="${rouletteColor(entry)}" fill-opacity=".82" stroke="#05100C" stroke-width="1.5"/>`;
+  });
+  return `<svg viewBox="0 0 ${C * 2} ${C * 2}" class="roulette-wheel-svg" aria-hidden="true">
+    <g id="rouletteWheelG">${wedges}<circle cx="${C}" cy="${C}" r="${R_IN}" fill="#0D3327" stroke="#1F4A3A" stroke-width="2"/></g>
+  </svg>`;
+}
+
+function easeOutQuart(t) { return 1 - Math.pow(1 - t, 4); }
+
+// rAF หมุนวงล้อจริง — ของประดับล้วน (ผลตัดสินไปแล้วตั้งแต่ spinFailRoulette) ต้องเช็ค renderToken
+// ทุกเฟรมก่อนแตะ DOM และหยุดทำงาน (ไม่คำนวณ/ไม่มีเสียง) เมื่อ document.hidden ตามสเปค
+function spinRouletteWheel(pool, finalIdx, wheelG, myToken, onDone) {
+  if (!wheelG || !wheelG.animate) { onDone(); return; }   // ไม่รองรับ WAAPI = ข้ามไปโชว์ผลเลย ไม่พัง
+  const seg = 360 / pool.length;
+  const mid = finalIdx * seg + seg / 2;
+  const baseTurns = 3 + Math.floor(Math.random() * 2);      // ≥3 รอบเต็มเสมอ ตามสเปค
+  const target = baseTurns * 360 + ((360 - mid) % 360);      // มุมเป้าที่คำนวณไว้ล่วงหน้า (ไม่สุ่มระหว่างหมุน)
+  const dur = 2200;
+  let start = null, lastSeg = -1, done = false, raf = null;
+
+  const paint = deg => { wheelG.style.transform = `rotate(${deg}deg)`; };
+
+  const bounce = () => {
+    if (myToken !== renderToken) return;
+    const a = wheelG.animate(
+      [{ transform: `rotate(${target}deg)` }, { transform: `rotate(${target + 4}deg)` }, { transform: `rotate(${target}deg)` }],
+      { duration: MOTION.d(180), easing: easeVar("--ease-pop") }
+    );
+    a.onfinish = () => { if (myToken === renderToken) onDone(); };
   };
 
-  let delay = 60;
-  (function step() {
-    delay *= 1.15;                    // หน่วงขึ้นเรื่อย ๆ เหมือนวงล้อผ่อนแรง (~1.7 วิ)
-    if (delay < 320) {
-      showFrame(pool[Math.floor(Math.random() * pool.length)].label);
-      SFX.tick(false);
-      setTimeout(step, delay);
-      return;
-    }
-    // เด้งผลจริง
-    const pay = Math.round(sp.price * final.mult);
-    const frame = showFrame("", "final");
-    frame.innerHTML = `
-      <div id="rouletteLabel" style="font-size:17px;"></div>
-      <div class="price" style="font-size:21px; margin-top:6px;">จ่าย ${pay.toLocaleString()} TechCoin</div>
-      ${final.skip ? `<div style="color:var(--bad); font-weight:700; margin-top:6px;">⏸ และผู้เล่นคนนี้ต้องข้ามตาถัดไป 1 รอบ</div>` : ""}`;
-    document.getElementById("rouletteLabel").textContent = final.label;
+  const finishNow = () => {
+    if (done) return;
+    done = true;
+    if (raf) cancelAnimationFrame(raf);
+    document.removeEventListener("pointerdown", onTap);
+    paint(target);
+    bounce();
+  };
 
-    if (final.mult < 1)      { SFX.correct(); flash("green"); }   // รอดถูกกว่าราคาเต็ม
+  function step(ts) {
+    if (myToken !== renderToken) return;   // เปลี่ยนหน้าไปแล้ว — หยุดทันที ห้ามแตะ DOM ต่อ
+    if (document.hidden) { raf = requestAnimationFrame(step); return; }   // แท็บถูกซ่อน — พักรอเฉย ๆ
+    if (start === null) start = ts;
+    const p = Math.min(1, (ts - start) / dur);
+    const deg = target * easeOutQuart(p);
+    paint(deg);
+    const curSeg = Math.floor((((deg % 360) + 360) % 360) / seg);
+    if (curSeg !== lastSeg) { lastSeg = curSeg; SFX.tick(false); }   // tick ตามช่องที่ข้ามจริง
+    if (p >= 1) { finishNow(); return; }
+    raf = requestAnimationFrame(step);
+  }
+  raf = requestAnimationFrame(step);
+
+  // แตะข้ามได้ "หลัง 1.0 วิ" เท่านั้น (ไม่ใช่ทันทีแบบ skippable() ทั่วไปที่ใช้ที่อื่น)
+  const skipAt = Date.now() + 1000;
+  function onTap() { if (!done && Date.now() >= skipAt) finishNow(); }
+  document.addEventListener("pointerdown", onTap, { passive: true });
+}
+
+// เรียกทั้งตอนหมุนสด (fresh=true) และตอน resume/reduced-motion (fresh=false → เด้งผลทันที ข้ามหมุนเสมอ)
+function playRouletteReveal(sp, spaceId, final, pay, fresh) {
+  const btn = document.getElementById("spinBtn");
+  if (btn) btn.disabled = true;
+  const box = document.getElementById("rouletteBox");
+  const pool = CONFIG.fail_roulette;
+  const finalIdx = pool.indexOf(final);
+  const myToken = renderToken;
+
+  const wheelMarkup = `
+    <div class="roulette-wheel-wrap"><div class="roulette-pointer"></div>${buildRouletteWheelSvg(pool)}</div>`;
+
+  const showFinal = () => {
+    if (myToken !== renderToken) return;   // เผื่อ onDone มาจากอนิเมชันที่ยังไม่ทันถูกยกเลิก
+    box.innerHTML = wheelMarkup + `
+      <div class="roulette-frame final" id="rouletteFrame">
+        <div id="rouletteLabel" style="font-size:17px;"></div>
+        <div class="price" style="font-size:21px; margin-top:6px;">จ่าย ${pay.toLocaleString()} TechCoin</div>
+        ${final.skip ? `<div style="color:var(--bad); font-weight:700; margin-top:6px;">⏸ และผู้เล่นคนนี้ต้องข้ามตาถัดไป 1 รอบ</div>` : ""}
+      </div>`;
+    document.getElementById("rouletteLabel").textContent = final.label;
+    // วางวงล้อนิ่ง ๆ ให้ตรงกับผลจริงเลย (resume/reduced-motion ไม่ได้หมุนมาก่อน)
+    const wheelG = document.getElementById("rouletteWheelG");
+    const seg = 360 / pool.length, mid = finalIdx * seg + seg / 2;
+    if (wheelG) wheelG.style.transform = `rotate(${(360 - mid) % 360}deg)`;
+
+    if (final.mult < 1) { SFX.correct(); flash("green"); }               // รอดถูกกว่าราคาเต็ม
     else if (final.mult > 1 || final.skip) { SFX.wrong(); flash("red"); }
-    // elapsed_ms = null ตั้งใจ: kind นี้ไม่ใช่การตอบคำถาม เป็นผลพวงจากตอบผิดไปแล้ว
-    // เวลาที่วัดได้จะรวมเวลาหมุนวงล้อ+อ่านผล → ดูเหมือนใช้ได้แต่ใช้ไม่ได้ แย่กว่าค่าว่าง
-    // (Session.done() บรรทัดถัดไปปิดเทิร์นนี้ทั้งใบ — ไม่มี log ใบอื่นตามมาในเทิร์นเดียวกัน)
-    logAnswer("fail_roulette", spaceId, 1, false,
-      { roulette_label: final.label, pay, question_id: null, elapsed_ms: null });
-    Session.done(routeKey());   // วงล้อหยุดแล้ว = จบเทิร์นของช่องนี้จริง ๆ
-  })();
+    Session.done(routeKey());   // อนิเมชันจบ (หรือถูกข้าม) แล้ว = ปิดเทิร์นของช่องนี้จริง ๆ ตอนนี้
+  };
+
+  // resume กลางหมุน หรือ reduced-motion = ข้ามการหมุนไปเลย แสดงผลทันที ตามสเปค
+  if (!fresh || MOTION.reduced) { showFinal(); return; }
+
+  box.innerHTML = wheelMarkup + `<div class="roulette-frame" id="rouletteFrame">กำลังหมุน...</div>`;
+  spinRouletteWheel(pool, finalIdx, document.getElementById("rouletteWheelG"), myToken, showFinal);
 }
 
 // ---------- หน้าอัปเกรดทรัพย์สิน (?space={id}&upgrade={level}) ----------
@@ -1590,7 +1770,10 @@ function renderEvent(zone, resume) {
       <button class="btn ghost" onclick="Session.allowAgain(routeKey());location.search='?space=event_${zone}'">สุ่มใหม่ (ทดสอบ)</button>
       <button class="btn" onclick="renderMenu()">กลับเมนู</button>
     </div>`;
-  enterScreen();
+  // การ์ดเหตุการณ์ (simple/choice/chain เท่านั้น — speed คืนไปแล้วด้านบน) ใช้ "พลิกการ์ด" แทน
+  // enterScreen() ทั่วไป — ต้อง cancelScreenEnter() เองเพราะไม่ได้เรียก enterScreen() ที่นี่
+  cancelScreenEnter();
+  playEventCardFlip(screen.querySelector(".card"));
 
   if (ev.description_th) document.getElementById("evDesc").textContent = ev.description_th;
 
@@ -1814,6 +1997,8 @@ function renderBugQuestion(diff, resume) {
     logAnswer(isHard ? "bugjam_hard" : "bugjam", bug.bug_id || "bugjam", 0, ok,
       { difficulty: diff, hinted: hintUsed, ...answerMeta(bug, timedOut, info), question_id: bugKey(raw) });
     playAnswerFx(ok, chosenEl);   // ต้องอยู่ต่อจาก logAnswer() เท่านั้น
+    // เฉลย Bug Jam (Stage 4) — pulse ทั้งกล่องด้วย CSS class เดียว ไม่แตะ text node ของโค้ดเลย
+    document.getElementById("bugCode").classList.add("fx-reveal");
     let msg;
     if (ok && isHard) {
       const bonus = hintUsed ? CONFIG.bugjam_bonus_hint : CONFIG.bugjam_bonus_hard;
@@ -2855,13 +3040,25 @@ function renderMeltdownFight(st) {
 
   const save = () => Session.patch({ damage, qIndex, wrong, lockoutUntil: lockUntil, subjects });
   const paintHp = () => {
-    document.getElementById("dmgNum").textContent = damage;
-    document.getElementById("hpFill").style.width = Math.min(100, damage / target * 100) + "%";
+    document.getElementById("dmgNum").textContent = damage;   // อยู่นอก .hp-fill เสมอ — ไม่โดน scaleX ตามไปด้วย
+    document.getElementById("hpFill").style.transform = `scaleX(${Math.min(1, damage / target)})`;
+  };
+
+  // จอสั่นตอนฟันโดน — id ต้องคนละตัวกับ SCREEN_ENTER_ID เด็ดขาด (Stage 4 ข้อ B)
+  // ไม่งั้น cancelScreenEnter() ที่หน้าถัดไปเรียกจะไปยกเลิกตัวนี้ทิ้งโดยไม่ตั้งใจ (หรือกลับกัน
+  // ตัวนี้ไปโดนยกเลิกก่อนเล่นจบ) เก็บ reference ไว้ยกเลิกเองตอน finish() กันค้างข้ามหน้าแน่นอน
+  let shakeAnim = null;
+  const screenShake = () => {
+    if (shakeAnim) { try { shakeAnim.cancel(); } catch (e) {} }
+    shakeAnim = MOTION.run(screen, [
+      { transform: "translateX(0)" }, { transform: "translateX(-3px)" },
+      { transform: "translateX(3px)" }, { transform: "translateX(0)" },
+    ], { id: "screen-shake", duration: 150, easing: easeVar("--ease-io") });
   };
 
   // เอฟเฟกต์ฟันโดน — เสียง + แฟลช + สั่น + ตัวใหญ่กลางจอ (ความรู้สึก "สู้ร่วมกัน" มาจากเสียงในห้อง)
   const hitFx = () => {
-    SFX.correct(); flash("green");
+    SFX.correct(); flash("green"); screenShake();
     try { if (navigator.vibrate) navigator.vibrate(60); } catch (e) {}
     const el = document.createElement("div");
     el.className = "hit-fx";
@@ -2935,6 +3132,8 @@ function renderMeltdownFight(st) {
     ended = true;
     clearInterval(tick);
     Wake.off();
+    // ยกเลิกจอสั่นที่อาจค้างอยู่ก่อนออกจากหน้านี้เสมอ — กันสั่นเลยไปโผล่หน้าสรุปผล (Stage 4 ข้อ B)
+    if (shakeAnim) { try { shakeAnim.cancel(); } catch (e) {} shakeAnim = null; }
     Session.done(routeKey());
     // mode แยกสอง schema ที่ใช้ kind เดียวกัน (ห้ามเปลี่ยนชื่อ kind — ข้อมูลเก่าจะเทียบไม่ได้)
     // timed_out เป็น true เสมอ: บอสไฟต์จบด้วยหมดเวลาทางเดียว ฟันครบเป้าแล้วก็สู้ต่อจนหมดเวลา
