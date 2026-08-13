@@ -22,6 +22,32 @@
     --bad:#F87171;
     /* สีประจำโซน */
     --coding:#4ADE80; --design:#FB923C; --office:#38BDF8; --hardware:#F472B6;
+
+    /* ---------- Motion tokens (Stage 1) ----------
+       ประกาศที่เดียวจบ — ทุก animation ในเกมต้องอ้างค่าจากตรงนี้ ห้ามใส่ตัวเลขดิบ
+       งบเวลา: animation ที่ข้ามไม่ได้ ต่อการสแกน 1 ครั้ง รวมกันต้อง ≤ 1.2 วินาที */
+    --dur-press: 120ms;   /* T1 กดปุ่ม */
+    --dur-enter: 180ms;   /* T1 เข้าหน้าใหม่ */
+    --dur-state: 300ms;   /* T2 เฉลยถูก/ผิด, เงินเปลี่ยน */
+    --dur-cheer: 600ms;   /* T3 อัปเกรดสำเร็จ, บอสตาย */
+    --ease-out: cubic-bezier(.22,1,.36,1);
+    --ease-io:  cubic-bezier(.65,0,.35,1);
+    --ease-pop: cubic-bezier(.34,1.56,.64,1); /* เด้งเกิน — ใช้เฉพาะจังหวะรางวัล */
+  }
+  /* ค่าตั้งต้นเมื่อ "ยังไม่เคยกดปุ่มในเว็บ" — เดินตามการตั้งค่าของเครื่อง
+     ย่อทุก duration ให้เหลือแค่พอรู้ว่าเปลี่ยนสถานะ */
+  @media (prefers-reduced-motion: reduce) {
+    :root { --dur-press:1ms; --dur-enter:1ms; --dur-state:120ms; --dur-cheer:120ms; }
+  }
+  /* ---------- ปุ่มในเว็บชนะมีเดียควีรี ----------
+     JS เขียน data-motion ที่ <html> ตั้งแต่ตอนบูต (on = เคลื่อนไหวเต็ม / off = ลดการเคลื่อนไหว)
+     attribute selector มี specificity (0,1,1) สูงกว่า :root (0,1,0) จึงทับค่าในมีเดียควีรีได้
+     โดยไม่ต้องใช้ !important — เด็กที่เปิด reduce-motion ไว้ในเครื่องจึงกดเปิดกลับเองได้จริง */
+  html[data-motion="on"] {
+    --dur-press:120ms; --dur-enter:180ms; --dur-state:300ms; --dur-cheer:600ms;
+  }
+  html[data-motion="off"] {
+    --dur-press:1ms; --dur-enter:1ms; --dur-state:120ms; --dur-cheer:120ms;
   }
   * { box-sizing:border-box; margin:0; padding:0; }
   body {
@@ -72,6 +98,21 @@
 
   .timer { text-align:center; font-family:'Kanit',sans-serif; font-size:18px; color:var(--gold); margin-bottom:10px; }
   .timer.danger { color:var(--bad); }
+
+  /* ---------- วงแหวนนาฬิกา (Stage 2) ----------
+     ตัวจับเวลาแสดงผลจริง ไม่ใช่ของประดับ — สร้าง/คุมด้วย WAAPI ตรง ๆ ใน renderQuiz()
+     ห้ามผ่าน MOTION.run()/MOTION.d() เด็ดขาด (เหตุผลอยู่ที่จุดสร้าง animation ใน JS) */
+  .clock-wrap { display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:10px; }
+  .clock-wrap .timer { margin-bottom:0; }
+  .clock-ring { width:34px; height:34px; flex:0 0 auto; transform:rotate(-90deg); }
+  .clock-ring-track { fill:none; stroke:var(--line); stroke-width:3; }
+  .clock-ring-fill { fill:none; stroke:var(--gold); stroke-width:3; stroke-linecap:round; }
+  .clock-wrap.danger .clock-ring-fill { stroke:var(--bad); }
+
+  /* ---------- กดปุ่มตัวเลือก (Stage 2) ----------
+     #choices คือ id เดียวที่ renderer ทั้ง 4 แบบ (MCQ/hotspot/colorwheel/linepick) ใช้ร่วมกัน
+     ทำ press feedback ที่นี่ที่เดียวจึงครอบคลุมทุกแบบคำถามโดยไม่ต้องแก้ renderer เลยสักจุด */
+  #choices button:active { transform:scale(.97); transition:transform var(--dur-press) var(--ease-out); }
 
   .result { text-align:center; border-radius:12px; padding:14px; font-size:15px; margin-top:6px; }
   .result.win { background:#0F3B2A; border:1px solid var(--ok); color:var(--ok); }
@@ -277,14 +318,17 @@
   .pl-card { background:var(--card); border:1px solid var(--line); border-radius:14px;
     padding:16px; width:100%; max-width:380px; }
 
-  /* ---------- ปุ่ม mute ลอยมุมขวาล่าง ---------- */
-  .mute-btn {
+  /* ---------- ปุ่มลอยมุมขวาล่าง: mute + ลดการเคลื่อนไหว ----------
+     ปุ่มลดการเคลื่อนไหวอยู่ "ซ้ายของ mute" (right 66 = 14 + กว้างปุ่ม 44 + ช่องไฟ 8)
+     ไม่วางซ้อนขึ้นข้างบน เพราะ .player-btn จองที่ bottom:66px ไว้แล้ว */
+  .mute-btn, .motion-btn {
     position:fixed; right:14px; bottom:14px; z-index:70;
     width:44px; height:44px; border-radius:50%; cursor:pointer;
     background:#111827; border:1.5px solid var(--gold); color:var(--gold);
     font-size:19px; line-height:1; opacity:.92;
   }
-  .mute-btn.off { border-color:var(--line); color:var(--muted); }
+  .motion-btn { right:66px; }
+  .mute-btn.off, .motion-btn.off { border-color:var(--line); color:var(--muted); }
 
   /* ---------- ป้ายบอกสถานะออฟไลน์ (มุมซ้ายล่าง — ไม่ชนปุ่ม mute) ---------- */
   .net-badge {
@@ -326,6 +370,7 @@
   <div class="footer-note">ต้นแบบระบบ QR — เปิดผ่าน ?space=รหัสช่อง</div>
 </div>
 <button class="player-btn" id="playerBtn" title="ตั้ง/แก้เลขผู้เล่นของคุณ">ตั้งเลข</button>
+<button class="motion-btn" id="motionBtn" title="ลดการเคลื่อนไหว">🐇</button>
 <button class="mute-btn" id="muteBtn" title="เปิด/ปิดเสียง">🔊</button>
 <div class="net-badge" id="netBadge">⚡ โหมดออฟไลน์</div>
 
@@ -492,6 +537,145 @@ const CONFIG = {
     ],
   },
 };
+
+/* =====================================================================
+   ⚙️ ส่วนที่ 2.5: ระบบการเคลื่อนไหว (Motion) — สวิตช์กลางของ animation ทั้งเกม
+   ---------------------------------------------------------------------
+   วางไว้ตรงนี้เพราะ const ไม่ถูก hoist — ทุกส่วนที่เรียกใช้อยู่ใต้บรรทัดนี้ทั้งหมด
+
+   กติกาที่ทุกคนที่แก้ต่อต้องรู้:
+   - animate ได้เฉพาะ transform / opacity (ยกเว้น stroke-dashoffset ที่วงแหวนนาฬิกา
+     และเครื่องหมายถูก) ห้ามแตะ width/height/top/left/margin/box-shadow/filter
+   - ห้าม await ผลของ animation ในเส้นทางตอบคำถาม — MOTION.run() จึงคืน Animation
+     object เปล่า ๆ ไว้ผูก onfinish เท่านั้น ไม่คืน promise โดยตั้งใจ
+   - animation ใดยาวเกิน 400ms ต้องห่อด้วย skippable() ให้แตะข้ามได้
+   ===================================================================== */
+
+// การตั้งค่าระดับระบบปฏิบัติการ (เครื่องเก่าไม่มี matchMedia = ถือว่าไม่ลด)
+function prefersReduce() {
+  try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; }
+}
+// ค่าที่ผู้ใช้กดเองในเว็บ — localStorage ทุกจุดต้องกลืน error (โหมดส่วนตัว/พื้นที่เต็ม ห้ามทำเกมพัง)
+function motionPref() { try { return localStorage.getItem("cc_motion"); } catch (e) { return null; } }
+function setMotionPref(v) { try { localStorage.setItem("cc_motion", v); } catch (e) {} }
+
+/* 3 สถานะ ไม่ใช่ 2: 'on' = ผู้ใช้สั่งเปิด / 'off' = ผู้ใช้สั่งปิด / null = ยังไม่เคยกด ให้เดินตามเครื่อง
+   ปุ่มในเว็บจึงชนะการตั้งค่าเครื่องได้ทั้งสองทาง — เด็กที่เปิด reduce-motion ไว้ (หรือครูเปิดให้)
+   ต้องกดกลับมาดูอนิเมชันเองได้ ไม่ใช่ค้างที่โหมดลดตลอดคาบโดยแก้ในเว็บไม่ได้
+   ห้ามเขียนค่า null ลง localStorage — ต้องเป็น 'on'/'off' ชัดเจนเสมอ */
+function motionReduced() {
+  const p = motionPref();   // 'on' | 'off' | null
+  return p ? p === "off" : prefersReduce();
+}
+
+/* เบราว์เซอร์ที่ไม่มี WAAPI — run() ต้องคืนตัวนี้ ห้ามคืน null เด็ดขาด
+   เพราะ Stage 3-4 ผูก a.onfinish ต่อกันเป็นลูกโซ่ ถ้าได้ null จะ TypeError → จอขาวกลางคาบสอน
+   พฤติกรรม: ถือว่า "จบไปแล้ว" — assign onfinish เมื่อไรก็เรียก callback ทันที ลำดับงานจึงเดินต่อครบ */
+function animShim() {
+  let cb = null;
+  const fire = f => { if (typeof f === "function") { try { f(); } catch (e) {} } };
+  return {
+    playState: "finished", currentTime: 0, oncancel: null,
+    get onfinish() { return cb; },
+    set onfinish(f) { cb = f; fire(f); },
+    // รองรับทั้งสองหน้าตา API — ฝั่งที่ผูกด้วย addEventListener จะได้ไม่ต้องเขียนโค้ดแยกเคส
+    addEventListener(type, f) { if (type === "finish") fire(f); },
+    removeEventListener() {},
+    finish() {}, cancel() {},
+  };
+}
+
+const MOTION = {
+  reduced: motionReduced(),
+  // ย่อเวลาเมื่ออยู่โหมดลดการเคลื่อนไหว — ไม่ตัดเป็น 0 เพราะยังต้องเห็นว่า "สถานะเปลี่ยนแล้ว"
+  d(ms) { return this.reduced ? Math.min(ms, 120) : ms; },
+  // สะพานไป CSS: <html data-motion="on|off"> คือตัวที่ทับ token ในมีเดียควีรี
+  apply() {
+    try { document.documentElement.dataset.motion = this.reduced ? "off" : "on"; } catch (e) {}
+  },
+  /* helper กลาง: animate แล้วเก็บกวาด will-change ให้เอง
+     will-change ที่ค้างไว้ = เลเยอร์ GPU ค้างทั้งหน้า กินแรมมือถือราคาประหยัดฟรี ๆ
+     จึงล้างทั้งตอน finish และตอน cancel (หมดเวลา/ออกจากหน้ากลางคัน) */
+  run(el, frames, opt) {
+    if (!el || !el.animate) return animShim();   // ไม่รองรับ WAAPI = ข้ามอนิเมชัน แต่ลำดับงานต้องเดินต่อ
+    el.style.willChange = "transform, opacity";
+    const a = el.animate(frames, { ...opt, duration: this.d(opt.duration) });
+    /* ใช้ addEventListener ไม่ใช่ a.onfinish= โดยตั้งใจ:
+       ช่อง onfinish/oncancel เป็นของ "ผู้เรียก" (Stage 3-4 ผูกลำดับงานต่อกันตรงนั้น)
+       ถ้าตัวล้าง will-change ไปนั่งช่องเดียวกัน มันจะถูกเขียนทับหายเงียบ ๆ แล้วเลเยอร์ GPU
+       จะค้างทั้งหน้าโดยไม่มี error อะไรฟ้องเลย */
+    const clean = () => { el.style.willChange = ""; };
+    a.addEventListener("finish", clean, { once: true });
+    a.addEventListener("cancel", clean, { once: true });
+    return a;
+  },
+};
+MOTION.apply();   // ต้องเซ็ตตั้งแต่บูต ก่อนหน้าแรกวาด ไม่งั้นเฟรมแรกใช้ค่าจากมีเดียควีรีผิดตัว
+
+/* ยังไม่เคยกดปุ่มในเว็บ (pref = null) แล้วผู้ใช้ไปสลับค่าในเครื่องกลางคัน — ต้องตามให้ทัน
+   จำเป็นเพราะ data-motion ทับมีเดียควีรีถาวรแล้ว ถ้าไม่ตามค่าจะค้างของเก่าทั้งหน้า */
+try {
+  matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", () => {
+    if (motionPref()) return;   // ผู้ใช้เลือกเองไว้แล้ว = ไม่ต้องยุ่ง
+    MOTION.reduced = prefersReduce();
+    MOTION.apply();
+    if (typeof paintMotionBtn === "function") paintMotionBtn();
+  });
+} catch (e) {}
+
+/* แตะที่ไหนบนจอก็ได้ = กระโดดไปสถานะจบทันที (ใช้กับ animation ที่ยาวเกิน 400ms)
+   ผูก pointerdown ครั้งเดียวแล้วถอดทิ้งเสมอ ไม่ว่าจะจบเพราะถูกแตะหรือจบเอง —
+   ถ้าลืมถอด การแตะครั้งถัดไปจะไปสั่ง finish() ให้ animation ที่ตายไปแล้ว
+   หมายเหตุ: ต่อ onfinish/oncancel ของเดิมไว้เสมอ เพราะ MOTION.run ใช้ช่องนั้นล้าง will-change */
+function skippable(anim) {
+  if (!anim) return anim;
+  // จบไปแล้ว = ไม่มีอะไรให้ข้าม (เคสจริงคือ shim ของเบราว์เซอร์ที่ไม่มี WAAPI)
+  // ถ้าไม่กันไว้ การต่อ onfinish ทับจะไปกระตุ้น callback เดิมซ้ำอีกรอบ = งานปลายทางทำสองครั้ง
+  if (anim.playState === "finished") return anim;
+  const prevFinish = anim.onfinish, prevCancel = anim.oncancel;
+  const off = () => document.removeEventListener("pointerdown", onDown);
+  function onDown() { try { anim.finish(); } catch (e) {} }
+  document.addEventListener("pointerdown", onDown, { once: true, passive: true });
+  anim.onfinish = e => { off(); if (prevFinish) prevFinish.call(anim, e); };
+  anim.oncancel = e => { off(); if (prevCancel) prevCancel.call(anim, e); };
+  return anim;
+}
+
+// อ่านค่า easing จาก token จริงใน :root — WAAPI ไม่รู้จัก var() ต้องส่งเป็นสตริง cubic-bezier ดิบ
+function easeVar(name) {
+  try { return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "ease"; }
+  catch (e) { return "ease"; }
+}
+
+// id เฉพาะของ animation ขาเข้า — ต้องคานี้เดียวกันทั้งฝั่งสร้าง (enterScreen) และฝั่งยกเลิก
+// (cancelScreenEnter) เพื่อกรองเฉพาะตัวเอง ไม่แตะ animation อื่นที่ยิงบน #screen เหมือนกัน
+// เช่นจอสั่นบอสไฟต์ / roulette ใน Stage 4 — ห้ามใช้ getAnimations() ทั้งชุดแบบไม่กรอง
+const SCREEN_ENTER_ID = "screen-enter";
+
+/* #screen เป็น element ถาวรที่ไม่เคยถูกทำลาย (เปลี่ยนแค่ innerHTML ข้างในไปเรื่อย ๆ) — animation
+   ที่ยิงไว้บน #screen เองจึงมีสิทธิ์ "ค้างข้ามหน้า" ได้ ถ้าเรนเดอร์หน้าถัดไปเร็วกว่า 180ms
+   (เช่นกดปุ่มโหมดแล้วเข้าคำถามทันที) ต้องเรียกตัวนี้ก่อนวาดหน้าที่มีนาฬิกาเริ่มทันทีเสมอ
+   ไม่งั้นคำถามจะ "โผล่พร้อม fade ค้าง" จากหน้าก่อน ซึ่งผิดกฎ 0ms */
+function cancelScreenEnter() {
+  if (!screen.getAnimations) return;
+  screen.getAnimations().forEach(a => { if (a.id === SCREEN_ENTER_ID) { try { a.cancel(); } catch (e) {} } });
+}
+
+/* ---------- เข้าหน้าใหม่ (Stage 2) ----------
+   translateY(12px)+opacity 180ms ขาเข้าอย่างเดียว — เรียกเฉพาะหน้าที่ "ไม่มีนาฬิกาเริ่มเดินทันที"
+   ห้ามเรียกจากหน้าคำถาม/หน้าที่ผสมนาฬิกามาด้วย (renderUpgrade, startQuiz, renderSpeedEvent,
+   renderBugQuestion, renderRescueSolver/Guide, renderCoolingPlay) — คำถาม+ตัวเลือกต้องโผล่ทันที
+   0ms เพราะนาฬิกาเริ่มเดินไปแล้วตั้งแต่ก่อนเฟรมแรกวาด ห้ามเสียเวลาไปกับ entrance animation
+   ไม่ใส่ fill:'forwards'/'both' โดยตั้งใจ — ต้องคืนค่า opacity/transform ปกติทันทีที่ถูก cancel
+   ไม่งั้น #screen จะค้างจอเปล่า (opacity:0) ถ้าโดนยกเลิกกลางคัน */
+function enterScreen() {
+  if (!screen.firstElementChild) return;
+  cancelScreenEnter();   // กันซ้อนกับ animation ค้างจากการเรียก enterScreen() ถี่ ๆ ก่อนหน้านี้
+  MOTION.run(screen, [
+    { transform: "translateY(12px)", opacity: 0 },
+    { transform: "translateY(0)", opacity: 1 },
+  ], { id: SCREEN_ENTER_ID, duration: 180, easing: easeVar("--ease-out") });
+}
 
 /* =====================================================================
    ส่วนที่ 3: ตัวระบบ (ปกติไม่ต้องแก้ส่วนนี้)
@@ -819,6 +1003,7 @@ function renderPlayerGate(done) {
       ${Player.NOTE}
       <button class="btn ghost" id="plSkip">ข้ามไปก่อน — เล่นได้ปกติ</button>
     </div>`;
+  enterScreen();
   Player.bind(document.getElementById("plGateRow"), () => done());
   document.getElementById("plSkip").onclick = () => { Player.skip(); done(); };
 }
@@ -897,6 +1082,7 @@ function showNotFound() {
       <button class="btn" id="errRescan">📷 สแกนใหม่</button>
       <button class="btn ghost" id="errHome">🏠 หน้าแรก</button>
     </div>`;
+  enterScreen();
   document.getElementById("badId").textContent = param || "(ไม่มีรหัส)";
   document.getElementById("errRescan").onclick = () => {
     if (history.length > 1) history.back(); else window.close();
@@ -917,6 +1103,7 @@ function showFatal(detail) {
       <button class="btn" id="fatalReset">🔄 เริ่มใหม่</button>
       <button class="btn ghost" id="fatalHome">🏠 หน้าแรก</button>
     </div>`;
+  enterScreen();
   document.getElementById("fatalDetail").textContent = String(detail || "").slice(0, 200);
   document.getElementById("fatalReset").onclick = () => { Session.reset(); location.reload(); };
   document.getElementById("fatalHome").onclick = () => { Session.reset(); location.search = ""; };
@@ -1001,6 +1188,23 @@ muteBtn.onclick = () => {
   muteBtn.textContent = m ? "🔇" : "🔊";
   muteBtn.classList.toggle("off", m);
 };
+
+/* ปุ่ม "ลดการเคลื่อนไหว" — คนละสวิตช์กับเสียง (เด็กบางคนเมารถกับภาพเคลื่อนไหว แต่ยังอยากได้ยินเสียง)
+   กดแล้วเขียน 'on'/'off' ลง localStorage ชัดเจนเสมอ = ปุ่มในเว็บชนะการตั้งค่าเครื่องทั้งสองทาง
+   🐇 = เคลื่อนไหวเต็ม · 🐢 = ลดการเคลื่อนไหว */
+const motionBtn = document.getElementById("motionBtn");
+const paintMotionBtn = () => {
+  motionBtn.textContent = MOTION.reduced ? "🐢" : "🐇";
+  motionBtn.classList.toggle("off", MOTION.reduced);
+};
+motionBtn.onclick = () => {
+  const want = !MOTION.reduced;              // true = อยากลดการเคลื่อนไหว
+  setMotionPref(want ? "off" : "on");
+  MOTION.reduced = want;                     // ไม่ต้อง OR กับค่าเครื่องแล้ว — ผู้ใช้เลือกเองชนะ
+  MOTION.apply();                            // อัปเดต <html data-motion> ให้ token ฝั่ง CSS ตามทันที
+  paintMotionBtn();
+};
+paintMotionBtn();
 
 /* ---------- visual feedback (fixed overlay + transform ล้วน ไม่หน่วง timer) ---------- */
 function flash(color) {
@@ -1099,6 +1303,7 @@ function renderSpace(id, resume) {
       : `<div class="card"><div class="result info">ยังไม่มีคำถามสำหรับช่องนี้ — ซื้อได้ในราคาเต็ม</div></div>`;
 
     screen.innerHTML = headerCard + modeCard + upgradeBtns;
+    enterScreen();
     setContent();
     if (!l1pool.length) return;
     document.getElementById("modeNormal").onclick = () =>
@@ -1147,6 +1352,7 @@ function renderSpace(id, resume) {
         <button class="btn" id="spinBtn">🎰 หมุนแก้บั๊ก</button>
         <div id="rouletteBox"></div>
       </div>`;
+    enterScreen();
     setContent();
     document.getElementById("spinBtn").onclick = () => spinFailRoulette(sp, id);
   }
@@ -1155,6 +1361,7 @@ function renderSpace(id, resume) {
   function startQuiz(mode, q, level, toast, sess) {
     // จดสถานะไว้ก่อนเริ่มจับเวลา — refresh แล้วกลับมาได้ข้อเดิม เวลาที่เหลือเท่าเดิม
     sess = sess || Session.begin({ route: "space", key: routeKey(), mode, level, qkey: qKey(q) }, q.time_limit);
+    cancelScreenEnter();   // คำถามต้องโผล่ 0ms — กัน fade ค้างจากหน้าเลือกโหมดก่อนหน้า
     screen.innerHTML = `
       <div class="card">
         ${zoneTag(sp.zone)}
@@ -1263,6 +1470,7 @@ function renderUpgrade(id, level, resume) {
   if (!name) {
     screen.innerHTML = `<div class="card"><h2>ระดับอัปเกรด "${level}" ไม่ถูกต้อง (ใช้ 1-3)</h2>
       <button class="btn" onclick="location.search='?space=${id}'">กลับหน้าช่อง</button></div>`;
+    enterScreen();
     return;
   }
 
@@ -1281,12 +1489,14 @@ function renderUpgrade(id, level, resume) {
         <div class="result info">ยังไม่มีคำถามระดับ ${name} (L${level}) สำหรับช่องนี้ในคลัง</div>
         <button class="btn" onclick="location.search='?space=${id}'">กลับหน้าช่อง</button>
       </div>`;
+    enterScreen();
     return;
   }
 
   // refresh กลางคัน → ใช้คำถามข้อเดิม (ไม่ใช่สุ่มใหม่) แล้วนับเวลาต่อจาก deadline เดิม
   const q = (resume && findQuestion(resume.qkey)) || pool[Math.floor(Math.random() * pool.length)];
   const sess = resume || Session.begin({ route: "upgrade", key: routeKey(), level, qkey: qKey(q) }, q.time_limit);
+  cancelScreenEnter();   // คำถามต้องโผล่ 0ms — กัน fade ค้างจากกล่องตั้งเลขผู้เล่นที่อาจเพิ่งปิดไป
   screen.innerHTML = infoCard + `
     <div class="card">
       <div id="timerBox"></div>
@@ -1341,6 +1551,7 @@ function renderEvent(zone, resume) {
       <button class="btn ghost" onclick="Session.allowAgain(routeKey());location.search='?space=event_${zone}'">สุ่มใหม่ (ทดสอบ)</button>
       <button class="btn" onclick="renderMenu()">กลับเมนู</button>
     </div>`;
+  enterScreen();
 
   if (ev.description_th) document.getElementById("evDesc").textContent = ev.description_th;
 
@@ -1370,6 +1581,7 @@ function renderSpeedEvent(ev, zone, resume) {
   const sess = resume || Session.begin(
     { route: "speed", key: routeKey(), evId: ev.event_id, qkey: qKey(q) }, CONFIG.speed_time_limit);
 
+  cancelScreenEnter();   // คำถามต้องโผล่ 0ms — กัน fade ค้างจากหน้าก่อนเข้าเทิร์นนี้
   screen.innerHTML = `
     <div class="card">
       ${zoneTag(zone)}
@@ -1478,6 +1690,7 @@ function renderBugjam() {
             : "ยังไม่มีโจทย์ระดับนี้"}</small></button>
       </div>
     </div>`;
+  enterScreen();
 
   document.getElementById("diffEasy").onclick = () => renderBugQuestion("easy");
   if (hardPool.length)
@@ -1524,6 +1737,7 @@ function renderBugQuestion(diff, resume) {
   const fine = isHard ? CONFIG.bugjam_fine_hard : CONFIG.bugjam_fine;
   let hintUsed = !!(resume && resume.hintUsed);   // เคยกด hint ไปแล้วก็ยังนับว่ากดแล้ว
 
+  cancelScreenEnter();   // คำถามต้องโผล่ 0ms — กัน fade ค้างจากหน้าเลือกระดับก่อนหน้า
   screen.innerHTML = `
     <div class="card">
       <span class="zone-tag" style="background:var(--bad)">ติดบั๊ก (Bug Jam) · ระดับ${isHard ? "ยาก 💎" : "ง่าย"}</span>
@@ -1947,8 +2161,11 @@ function renderLinePick(q, onAnswer) {
 // sess = record จาก Session.begin (ถ้ามี) — เวลานับจาก deadlineTs สัมบูรณ์
 // จึงกัน "refresh หนีเวลา" ได้: โหลดใหม่แล้วเวลาเดินต่อ ไม่ได้เริ่มนับหนึ่ง
 function renderQuiz(q, onDone, timeout_fail, sess) {
-  let timer = null, done = false;
-  const stop = () => { clearInterval(timer); Wake.off(); };
+  let timer = null, done = false, ringAnim = null;
+  // ต้อง .cancel() วงแหวนทุกครั้งก่อนเข้าเส้นทาง log — ไม่งั้นมันเดินต่อเป็น animation ค้าง
+  // อยู่บน element ที่ไม่มีใครมองแล้ว (หน้าเปลี่ยนไปแล้วแต่ WAAPI ยังทำงานอยู่เบื้องหลัง)
+  const stopRing = () => { if (ringAnim) { try { ringAnim.cancel(); } catch (e) {} ringAnim = null; } };
+  const stop = () => { clearInterval(timer); Wake.off(); stopRing(); };
 
   // คำถามทุกแบบผ่านทางเดียวกันหมด — ตัวจับเวลา/เสียง/เอฟเฟกต์อยู่ที่นี่ที่เดียว
   // info = ค่าที่ผู้เล่นแตะ (ตัวเลือก/พิกัด/บรรทัด) ส่งต่อให้จุดเรียกเอาไปเข้า log
@@ -1961,14 +2178,52 @@ function renderQuiz(q, onDone, timeout_fail, sess) {
 
   if (q.time_limit > 0) {
     const tb = document.getElementById("timerBox");
-    const deadline = (sess && sess.deadlineTs) || (Date.now() + q.time_limit * 1000);
+    const totalMs = q.time_limit * 1000;
+    const deadline = (sess && sess.deadlineTs) || (Date.now() + totalMs);
+    const startedAt = deadline - totalMs;   // จุดเริ่มจริง (ทั้งเริ่มใหม่และ resume คำนวณด้วยสูตรเดียวกัน)
     // -20ms กันเคส setInterval เด้งเร็วกว่ากำหนดนิดหน่อยแล้วเลขค้างซ้ำวินาที
     const left = () => Math.ceil((deadline - Date.now() - 20) / 1000);
-    const paint = t => tb.innerHTML = `<div class="timer ${t <= 5 ? "danger" : ""}">⏱ ${Math.max(0, t)} วินาที</div>`;
+
+    const RING_R = 15.5, RING_C = Math.round(2 * Math.PI * RING_R * 100) / 100;
+    tb.innerHTML = `
+      <div class="clock-wrap" id="clockWrap">
+        <svg viewBox="0 0 36 36" class="clock-ring" id="clockRingSvg" aria-hidden="true">
+          <circle class="clock-ring-track" cx="18" cy="18" r="${RING_R}"></circle>
+          <circle class="clock-ring-fill" id="clockRingFill" cx="18" cy="18" r="${RING_R}" stroke-dasharray="${RING_C}"></circle>
+        </svg>
+        <div class="timer" id="timerNum"></div>
+      </div>`;
+    const wrapEl = document.getElementById("clockWrap");
+    const ringSvgEl = document.getElementById("clockRingSvg");
+    const ringEl = document.getElementById("clockRingFill");
+    const numEl = document.getElementById("timerNum");
+    // paint() อัปเดตแค่ตัวเลข/สี ไม่แตะ innerHTML ของ tb ทั้งก้อนอีกต่อไป — ถ้าเขียนทับทุกวินาที
+    // เหมือนเดิม จะฆ่า <svg> ที่ ringAnim กำลังคุมอยู่ทิ้งทุกวินาทีจนวงแหวนไม่ขยับ
+    const paint = t => {
+      numEl.textContent = `⏱ ${Math.max(0, t)} วินาที`;
+      const danger = t <= 5;
+      numEl.classList.toggle("danger", danger);
+      wrapEl.classList.toggle("danger", danger);
+    };
+
+    /* วงแหวนคือนาฬิกาจริง ไม่ใช่ของประดับ — ห้ามผ่าน MOTION.run()/MOTION.d() เด็ดขาด
+       MOTION.d() ย่อทุก duration เหลือ ≤120ms ตอน reduced-motion แต่ time_limit จริงยาวกว่า
+       นั้นมาก (15-45 วิ) ถ้าย่อไปด้วย วงแหวนจะวิ่งครบรอบใน 120ms ทั้งที่ตัวเลขวินาทียังนับต่อ
+       อีกหลายสิบวิ — นาฬิกาสองตัวไม่ตรงกัน จึงเรียก el.animate() ตรง ๆ ด้วย duration จริงเสมอ
+       ทุกโหมด (reduced หรือไม่ก็ตาม) — สิ่งเดียวที่ปิดตอน reduced คือ pulse ประดับด้านล่าง */
+    if (ringEl && ringEl.animate) {
+      ringAnim = ringEl.animate(
+        [{ strokeDashoffset: 0 }, { strokeDashoffset: RING_C }],
+        { duration: totalMs, easing: "linear", fill: "forwards" }
+      );
+      // resume กลางคำถาม (refresh) → เซ็ต currentTime ตรงตามเวลาที่ผ่านไปจริง ไม่ใช่เริ่มนับหนึ่ง
+      ringAnim.currentTime = Math.max(0, Math.min(totalMs, Date.now() - startedAt));
+    }
+
     const timeUp = () => {
       if (done) return;
       done = true;
-      stop();
+      stop();   // .cancel() วงแหวน + เคลียร์ interval/wake lock ก่อนเข้าเส้นทาง log เสมอ
       paint(0);
       view.lock();
       SFX.buzzer();
@@ -1984,6 +2239,15 @@ function renderQuiz(q, onDone, timeout_fail, sess) {
       if (t <= 0) { timeUp(); return; }
       paint(t);
       SFX.tick(t <= 5);
+      // จังหวะเต้นเตือน 5 วิสุดท้าย — ของประดับล้วน (ไม่ใช่ตัวจับเวลา) ปิดทั้งหมดตอนลดการเคลื่อนไหว
+      // ไม่ใช่แค่ย่อเวลาแบบวงแหวนหลัก เพราะนี่ไม่ใช่ข้อมูลที่ต้องถูกต้อง แค่ของประดับเสริมความรู้สึก
+      if (t <= 5 && !MOTION.reduced) {
+        MOTION.run(ringSvgEl, [
+          { transform: "rotate(-90deg) scale(1)" },
+          { transform: "rotate(-90deg) scale(1.05)" },
+          { transform: "rotate(-90deg) scale(1)" },
+        ], { duration: 260, easing: easeVar("--ease-pop") });
+      }
     }, 1000);
   }
 }
@@ -2014,6 +2278,7 @@ function renderMenu() {
       <p class="content">หน้านี้แสดงเมื่อเปิดโดยไม่ผ่าน QR — ใช้ทดสอบทุกช่องได้โดยไม่ต้องสแกน (หน้าอัปเกรดเข้าจากปุ่มในหน้าช่องทรัพย์สิน)</p>
       ${items}
     </div>`;
+  enterScreen();
 }
 
 /* =====================================================================
@@ -2111,6 +2376,7 @@ function renderRescueLanding() {
         <button class="btn ghost" id="asGuide">📖 ผู้อ่านคู่มือ (เห็นกฎ)</button>
       </div>
     </div>`;
+  enterScreen();
   const go = role => {
     const code = document.getElementById("rescueCode").value.trim().toUpperCase();
     if (code.length < 3) { document.getElementById("rescueCode").focus(); return; }
@@ -2145,6 +2411,7 @@ function renderRescueSolver(code) {
   const state = buildWireCut(seededRng(code));
   let step = 0, done = false, timer = null, hinted = false;
 
+  cancelScreenEnter();   // นาฬิกาเริ่มทันที — กัน fade ค้างจากหน้าก่อน
   screen.innerHTML = `
     <div class="card">
       <span class="zone-tag" style="background:var(--bad)">🖥 ผู้กด · รหัส ${code}</span>
@@ -2214,6 +2481,7 @@ function renderRescueSolver(code) {
 function renderRescueGuide(code) {
   const P = CONFIG.debug_rescue.patterns.find(p => p.id === "wire_cut");
   const state = buildWireCut(seededRng(code));  // seed เดียวกัน → กฎตรงกับ solver
+  cancelScreenEnter();   // นาฬิกาเริ่มทันที — กัน fade ค้างจากหน้าก่อน
   screen.innerHTML = `
     <div class="card">
       <span class="zone-tag" style="background:var(--gold);color:#05100C">📖 ผู้อ่านคู่มือ · รหัส ${code}</span>
@@ -2254,6 +2522,7 @@ function renderCoolingBoss() {
         <div class="result info">รับเงินกองกลางทั้งหมดจากกลางกระดาน (กติกาดั้งเดิม — บอสไฟต์ปิดอยู่)</div>
         <button class="btn" onclick="renderMenu()">กลับเมนู</button>
       </div>`;
+    enterScreen();
     return;
   }
   CONFIG.cooling_boss.mode === "wirecut" ? renderCoolingWirecut() : renderMeltdownJoin();
@@ -2295,6 +2564,9 @@ function renderMeltdownJoin(pre) {
   // ถ้าเลขเกินจำนวนคนในโต๊ะ ตัว paint() ด้านล่างจะล้างให้เลือกใหม่เองอยู่แล้ว
   let round = (pre && pre.round) || 0, count = (pre && pre.count) || 0,
       slot = (pre && pre.slot) || Player.get() || 0;
+  // paint() ถูกเรียกซ้ำทุกครั้งที่กดชิปเลือกตัวเลข (วาดทั้งหน้าใหม่) — เข้าหน้าใหม่ครั้งแรกครั้งเดียวพอ
+  // ไม่งั้นทุกคลิกเลือกตัวเลขจะเห็นหน้าเลื่อนเข้าซ้ำ ๆ ทั้งที่ยังอยู่หน้าเดิม
+  let entered = false;
 
   const chips = (a, b, cur, attr) => {
     let s = "";
@@ -2332,6 +2604,7 @@ function renderMeltdownJoin(pre) {
         <button class="btn" id="meltGo">เข้าร่วมบอสไฟต์</button>
         <button class="btn ghost" onclick="renderMenu()">กลับเมนู</button>
       </div>`;
+    if (!entered) { entered = true; enterScreen(); }
 
     const pick = (attr, set) => screen.querySelectorAll(`[data-${attr}]`).forEach(b =>
       b.onclick = () => { set(+b.dataset[attr]); SFX.tick(false); paint(); });
@@ -2366,6 +2639,7 @@ function renderMeltdownReady(cfg) {
       <button class="btn" id="meltStart">🚀 เริ่ม!</button>
       <button class="btn ghost" id="meltBack">ย้อนกลับ</button>
     </div>`;
+  enterScreen();
 
   document.getElementById("meltBack").onclick = () => renderMeltdownJoin(cfg);
   document.getElementById("meltStart").onclick = () => {
@@ -2404,6 +2678,11 @@ function renderMeltdownFight(st) {
   let tick = null, lastSec = -1, ended = false;
   let qShownAt = Date.now();   // ใช้เฉพาะการ log เวลาตอบรายข้อ ไม่เกี่ยวกับกติกา/เวลาบอสไฟต์
 
+  // ต้องมี แม้ทางเข้าปกติจะมีดีเลย์นับ 3-2-1 ≥3000ms ก็ตาม — animation ที่ยัง "running" ไม่ได้แปลว่า
+  // จะจบเองภายใน 180ms เสมอ ถ้าแท็บถูกพักกลางคัน (จอดับ/สลับแอประหว่างนับ) เบราว์เซอร์จะหยุด
+  // timeline ค้างไว้ที่ currentTime เดิม (พิสูจน์แล้วจากการทดสอบจริง: ค้างที่ 0 นานนับวินาที
+  // opacity เป็น 0 ทั้งจอบอสไฟต์) ไม่มี "ดีเลย์นานพอ" ที่ปลอดภัยจริงในทุกกรณี ต้องยกเลิกเสมอ
+  cancelScreenEnter();
   screen.innerHTML = `
     <div class="card">
       <span class="zone-tag" style="background:#38BDF8">🔥 SERVER MELTDOWN · รอบ ${st.round}</span>
@@ -2575,6 +2854,7 @@ function renderMeltdownSummary(r, target) {
         สถิติรอบนี้: ตอบไป ${r.qIndex} ข้อ · พลาด ${r.wrong} ครั้ง</p>
       <button class="btn" onclick="renderMenu()">กลับหน้าแรก</button>
     </div>`;
+  enterScreen();
   if (r.damage >= share) confetti();   // ทำครบส่วนของตัวเองแล้ว (เสียงหมดเวลาเล่นไปแล้ว ไม่ซ้อนอีก)
 }
 
@@ -2600,6 +2880,7 @@ function renderCoolingWirecut() {
       <p class="q" style="margin-top:10px;">เลขรอบ (ตามที่คนหยุดประกาศ):</p>
       <div class="speed-players" style="flex-wrap:wrap;">${roundBtns}</div>
     </div>`;
+  enterScreen();
   document.querySelectorAll("[data-round]").forEach(b =>
     b.onclick = () => renderCoolingReady(+b.dataset.round));
 }
@@ -2614,6 +2895,7 @@ function renderCoolingReady(round) {
       <button class="btn" id="bossStart">🚀 เริ่ม!</button>
       <button class="btn ghost" id="bossBack">เปลี่ยนเลขรอบ</button>
     </div>`;
+  enterScreen();
   document.getElementById("bossStart").onclick = () => renderCoolingPlay(round);
   document.getElementById("bossBack").onclick = renderCoolingBoss;
 }
@@ -2623,6 +2905,7 @@ function renderCoolingPlay(round) {
   const state = buildWireCut(seededRng("cooling-" + round));
   let step = 0, done = false, timer = null;
 
+  cancelScreenEnter();   // นาฬิกาเริ่มทันที — กัน fade ค้างจากหน้าพร้อมยัง? ก่อนหน้า
   screen.innerHTML = `
     <div class="card">
       <span class="zone-tag" style="background:#38BDF8">บอสไฟต์ · รอบ ${round}</span>
@@ -2749,6 +3032,7 @@ function renderRescanGate(sec) {
       <button class="btn" id="gateAgain">🔓 ทำอีกครั้ง (ครูอนุญาต)</button>
       <button class="btn ghost" onclick="renderMenu()">กลับเมนู</button>
     </div>`;
+  enterScreen();
   document.getElementById("gateAgain").onclick = () => { Session.allowAgain(routeKey()); dispatch(); };
 }
 
