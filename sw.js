@@ -10,7 +10,7 @@
      - data.json                                = network-first → เนื้อหาอัปเดตบ่อย
    ทุก path เป็น relative ล้วน เพราะ deploy บน GitHub Pages แบบ subpath (/codecoin/)
    ===================================================================== */
-const CACHE = 'codecoin-v10-1';
+const CACHE = 'codecoin-v11';
 
 const SHELL = [
   './',

@@ -109,6 +109,25 @@
   .clock-ring-fill { fill:none; stroke:var(--gold); stroke-width:3; stroke-linecap:round; }
   .clock-wrap.danger .clock-ring-fill { stroke:var(--bad); }
 
+  /* ---------- จังหวะเฉลย (Stage 3) ----------
+     ทุกตัวที่นี่ appended โดย playAnswerFx()/floatBadge() เข้าไปใน element ที่ renderer สร้างไว้
+     ไม่ใช่ตัว renderer เองที่สร้าง — position:relative ถูกเซ็ตแบบ inline เฉพาะ element ที่ยังเป็น
+     static เท่านั้น (กันพังโครงที่ตั้งใจ position ไว้แล้ว เช่น svg wrap) */
+  .fx-check { position:absolute; top:-7px; right:-7px; width:20px; height:20px; pointer-events:none; z-index:2; }
+  .fx-check svg { width:100%; height:100%; overflow:visible; }
+  .fx-check path { fill:none; stroke:var(--ok); stroke-width:3; stroke-linecap:round; stroke-linejoin:round; }
+  .fx-correct-glow {
+    position:absolute; inset:0; border-radius:inherit; background:rgba(74,222,128,.18);
+    pointer-events:none; opacity:0; z-index:1;
+  }
+  .fx-badge {
+    position:absolute; top:-2px; right:6px; font-family:'Kanit',sans-serif; font-size:12.5px;
+    font-weight:700; pointer-events:none; z-index:3; text-shadow:0 1px 3px rgba(0,0,0,.6);
+  }
+  .fx-badge.up { color:var(--ok); }
+  .fx-badge.down { color:var(--bad); }
+  .money-num { font-variant-numeric: tabular-nums; }   /* กันตัวเลขกระตุกความกว้างตอนนับ */
+
   /* ---------- กดปุ่มตัวเลือก (Stage 2) ----------
      #choices คือ id เดียวที่ renderer ทั้ง 4 แบบ (MCQ/hotspot/colorwheel/linepick) ใช้ร่วมกัน
      ทำ press feedback ที่นี่ที่เดียวจึงครอบคลุมทุกแบบคำถามโดยไม่ต้องแก้ renderer เลยสักจุด */
@@ -652,6 +671,15 @@ function easeVar(name) {
 // เช่นจอสั่นบอสไฟต์ / roulette ใน Stage 4 — ห้ามใช้ getAnimations() ทั้งชุดแบบไม่กรอง
 const SCREEN_ENTER_ID = "screen-enter";
 
+/* ---------- renderToken (Stage 3) ----------
+   เลข "รุ่นของหน้าปัจจุบัน" — +1 ทุกครั้งที่ enterScreen() ทำงาน (คือทุกครั้งที่เข้าหน้าใหม่แบบ
+   ไม่มีนาฬิกา ดู #screen bug ของ Stage 2: animation ที่เขียนทับ node ซึ่งถูกใช้ id ซ้ำข้ามหน้า
+   ทำให้จอทั้งบอสไฟต์ว่างเปล่ามาแล้ว) rAF loop / WAAPI onfinish chain ใด ๆ ที่แตะ DOM ผ่าน
+   document.getElementById(...) (ซึ่ง id อย่าง #result #choices #timerBox ถูกใช้ซ้ำทุกหน้า)
+   ต้องจับค่า token ไว้ตอนเริ่ม แล้วเทียบกับ renderToken ปัจจุบันก่อนแตะ DOM ทุกเฟรม/ทุก callback
+   ไม่ตรง = หน้าเปลี่ยนไปแล้ว ต้อง return ทันที ห้ามเขียนทับ node ของหน้าใหม่ */
+let renderToken = 0;
+
 /* #screen เป็น element ถาวรที่ไม่เคยถูกทำลาย (เปลี่ยนแค่ innerHTML ข้างในไปเรื่อย ๆ) — animation
    ที่ยิงไว้บน #screen เองจึงมีสิทธิ์ "ค้างข้ามหน้า" ได้ ถ้าเรนเดอร์หน้าถัดไปเร็วกว่า 180ms
    (เช่นกดปุ่มโหมดแล้วเข้าคำถามทันที) ต้องเรียกตัวนี้ก่อนวาดหน้าที่มีนาฬิกาเริ่มทันทีเสมอ
@@ -670,6 +698,7 @@ function cancelScreenEnter() {
    ไม่งั้น #screen จะค้างจอเปล่า (opacity:0) ถ้าโดนยกเลิกกลางคัน */
 function enterScreen() {
   if (!screen.firstElementChild) return;
+  renderToken++;   // ประกาศว่านี่คือหน้าใหม่ — ทำให้ rAF/onfinish ที่ค้างจากหน้าก่อนรู้ตัวว่าต้องหยุด
   cancelScreenEnter();   // กันซ้อนกับ animation ค้างจากการเรียก enterScreen() ถี่ ๆ ก่อนหน้านี้
   MOTION.run(screen, [
     { transform: "translateY(12px)", opacity: 0 },
@@ -1377,9 +1406,10 @@ function renderSpace(id, resume) {
       </div>`;
     document.getElementById("qText").textContent = "Q: " + q.question_th;
 
-    renderQuiz(q, (ok, timedOut, info) => {
+    renderQuiz(q, (ok, timedOut, info, chosenEl) => {
       logAnswer(mode === "confident" ? "buy_confident" : "buy", id, level, ok,
         { question_level: level, ...answerMeta(q, timedOut, info) });
+      playAnswerFx(ok, chosenEl);   // ต้องอยู่ต่อจาก logAnswer() เท่านั้น — fire-and-forget ล้วน
 
       if (ok && mode === "confident") { SFX.fanfare(); flash("gold"); }
       else if (ok) { SFX.correct(); flash("green"); }
@@ -1398,13 +1428,21 @@ function renderSpace(id, resume) {
       }
 
       Session.done(routeKey());   // จบ flow ของช่องนี้
-      const pay = payPrice(mode, ok).toLocaleString();
+      const payNum = payPrice(mode, ok);
       let msg;
       if (ok) msg = mode === "confident"
-        ? `<div class="result win pop">🔥🎉 มั่นใจแล้วถูกจริง! ซื้อได้ในราคา <b>${pay}</b> (ลด ${conf.discount_percent}%)</div>`
-        : `<div class="result win">🎉 ตอบถูก! ซื้อได้ในราคา <b>${pay}</b> (ลด ${CONFIG.discount_percent}%)</div>`;
+        ? `<div class="result win pop">🔥🎉 มั่นใจแล้วถูกจริง! ซื้อได้ในราคา <b><span id="payNum" class="money-num">${sp.price.toLocaleString()}</span></b> (ลด ${conf.discount_percent}%)</div>`
+        : `<div class="result win">🎉 ตอบถูก! ซื้อได้ในราคา <b><span id="payNum" class="money-num">${sp.price.toLocaleString()}</span></b> (ลด ${CONFIG.discount_percent}%)</div>`;
       else msg = `<div class="result lose">ตอบผิด — ซื้อได้ในราคาเต็ม ${sp.price.toLocaleString()} TechCoin</div>`;
       document.getElementById("result").innerHTML = msg;
+
+      // ตัวเลขนับ + ป้ายส่วนลดลอย — เฉพาะตอนตอบถูก (ตอบผิด/หมดเวลาราคาคงที่ ไม่มีอะไรให้นับ)
+      if (ok) {
+        const numEl = document.getElementById("payNum");
+        animateMoneyCount(numEl, sp.price, payNum);
+        const saved = sp.price - payNum;
+        if (saved > 0) floatBadge(numEl, "-" + saved.toLocaleString(), true);
+      }
     }, false, sess);
   }
 
@@ -1507,9 +1545,10 @@ function renderUpgrade(id, level, resume) {
     </div>`;
   document.getElementById("qText").textContent = "Q: " + q.question_th;
 
-  renderQuiz(q, (ok, timedOut, info) => {
+  renderQuiz(q, (ok, timedOut, info, chosenEl) => {
     Session.done(routeKey());
     logAnswer("upgrade", id, level, ok, answerMeta(q, timedOut, info));
+    playAnswerFx(ok, chosenEl);   // ต้องอยู่ต่อจาก logAnswer() เท่านั้น
     document.getElementById("result").innerHTML = ok
       ? `<div class="result win pop">🎉 ตอบถูก! จ่าย <b>${sp.upgrade_cost.toLocaleString()}</b> เพื่ออัปเกรดเป็น "${name}" — ค่าเช่าใหม่ <b>${sp.rent[level].toLocaleString()}</b> TechCoin</div>`
       : `<div class="result lose">ตอบผิด — อัปเกรดไม่สำเร็จ ลองใหม่ได้ในเทิร์นถัดไป</div>`;
@@ -1768,12 +1807,13 @@ function renderBugQuestion(diff, resume) {
     if (hintUsed) showHint();   // refresh หลังกด hint → ยังเห็น hint เดิม ปุ่มยังล็อก
   }
 
-  renderQuiz(bug, (ok, timedOut, info) => {
+  renderQuiz(bug, (ok, timedOut, info, chosenEl) => {
     Session.done(routeKey());
     if (hintBtn) hintBtn.disabled = true;
     // question_id ใช้ bugKey(raw) — ต้องเป็นตัวก่อนสลับตัวเลือก ถึงจะเป็นข้อเดียวกันทุกเครื่อง
     logAnswer(isHard ? "bugjam_hard" : "bugjam", bug.bug_id || "bugjam", 0, ok,
       { difficulty: diff, hinted: hintUsed, ...answerMeta(bug, timedOut, info), question_id: bugKey(raw) });
+    playAnswerFx(ok, chosenEl);   // ต้องอยู่ต่อจาก logAnswer() เท่านั้น
     let msg;
     if (ok && isHard) {
       const bonus = hintUsed ? CONFIG.bugjam_bonus_hint : CONFIG.bugjam_bonus_hard;
@@ -2167,13 +2207,25 @@ function renderQuiz(q, onDone, timeout_fail, sess) {
   const stopRing = () => { if (ringAnim) { try { ringAnim.cancel(); } catch (e) {} ringAnim = null; } };
   const stop = () => { clearInterval(timer); Wake.off(); stopRing(); };
 
+  /* จับ element ที่ผู้เล่น "แตะจริง" แบบไม่ต้องรู้จักโครงสร้างภายในของ renderer แต่ละแบบ (Stage 3)
+     capture:true = ทำงานตอน capturing phase ซึ่งมาก่อน onclick ของปุ่มเสมอ (onclick เป็น target/
+     bubbling phase) การันตีว่า chosenEl ถูกจับไว้แล้วก่อน onAnswer() ในทุก qtype:
+     MCQ→.choice, linepick→.lp-row, hotspot/colorwheel→svg — ครอบคลุมฟรีโดยไม่แตะ renderer เลย */
+  let chosenEl = null;
+  const choicesBox = document.getElementById("choices");
+  if (choicesBox) {
+    choicesBox.addEventListener("click", e => {
+      chosenEl = e.target.closest("button, .lp-row, svg") || e.target;
+    }, { capture: true });
+  }
+
   // คำถามทุกแบบผ่านทางเดียวกันหมด — ตัวจับเวลา/เสียง/เอฟเฟกต์อยู่ที่นี่ที่เดียว
   // info = ค่าที่ผู้เล่นแตะ (ตัวเลือก/พิกัด/บรรทัด) ส่งต่อให้จุดเรียกเอาไปเข้า log
   const view = renderQuestion(q, (ok, info) => {
     if (done) return;
     done = true;
     stop();
-    onDone(ok, false, info);
+    onDone(ok, false, info, chosenEl);
   });
 
   if (q.time_limit > 0) {
@@ -2228,7 +2280,7 @@ function renderQuiz(q, onDone, timeout_fail, sess) {
       view.lock();
       SFX.buzzer();
       flash("red");
-      onDone(false, true, null);   // หมดเวลา = ไม่ได้แตะอะไรเลย ไม่มี picked
+      onDone(false, true, null, null);   // หมดเวลา = ไม่ได้แตะอะไรเลย ไม่มี picked/chosenEl
     };
 
     if (left() <= 0) { timeUp(); return; }   // refresh กลับมาหลังหมดเวลา = เข้า flow หมดเวลาทันที
@@ -2250,6 +2302,107 @@ function renderQuiz(q, onDone, timeout_fail, sess) {
       }
     }, 1000);
   }
+}
+
+/* =====================================================================
+   Stage 3 — จังหวะเฉลย (ทำผ่าน delegation เท่านั้น — ไม่แตะ renderer ทั้ง 4 แบบเลย)
+   ---------------------------------------------------------------------
+   เรียก playAnswerFx() จากจุดที่มี logAnswer() ทุกจุด **ต่อจาก logAnswer() เท่านั้น**
+   ห้ามอยู่ระหว่าง Session.done() กับ logAnswer() เด็ดขาด (กฎเหล็กข้อ 8 / บรรทัด 718-728)
+   ทุกอย่างในนี้ fire-and-forget ผ่าน WAAPI ล้วน — ไม่มี await/setTimeout/.finished เลยสักจุด
+   ===================================================================== */
+
+// ---------- ✓ วาดเครื่องหมายถูก (stroke-dashoffset — ข้อยกเว้นเดียวกับวงแหวนนาฬิกา) ----------
+function drawCheckmark(anchorEl, myToken) {
+  if (!anchorEl || !anchorEl.getBoundingClientRect) return;
+  const wrap = document.createElement("div");
+  wrap.className = "fx-check";
+  wrap.innerHTML = `<svg viewBox="0 0 24 24"><path d="M4 12.5 L10 18 L20 6" /></svg>`;
+  const cs = getComputedStyle(anchorEl);
+  if (cs.position === "static") anchorEl.style.position = "relative";
+  anchorEl.appendChild(wrap);
+  const path = wrap.querySelector("path");
+  if (!path.getTotalLength) return;   // เบราว์เซอร์เก่ามาก — ข้ามไปเงียบ ๆ ไม่พัง
+  const len = path.getTotalLength();
+  path.style.strokeDasharray = String(len);
+  if (!path.animate) return;
+  const a = path.animate(
+    [{ strokeDashoffset: len }, { strokeDashoffset: 0 }],
+    { duration: MOTION.d(240), delay: 20, fill: "forwards", easing: easeVar("--ease-out") }
+  );
+  a.onfinish = () => { if (myToken !== renderToken) return; };   // เผื่ออนาคตต่อยอด — ตอนนี้แค่จบเฉย ๆ
+}
+
+// ---------- จังหวะเลือกตอบ: เด้ง/สั่น + เฉลยข้อถูก (เฉพาะ renderer ที่มี marker ให้หาแบบ generic) ----------
+// chosenEl มาจาก capture listener ใน renderQuiz — ครอบคลุมทุก qtype โดยไม่ต้องรู้จัก renderer
+function playAnswerFx(correct, chosenEl) {
+  const myToken = renderToken;   // จับ token ตอนเริ่ม — ใช้เทียบใน onfinish ทุกอันข้างล่าง
+  if (!chosenEl) return;         // หมดเวลา = ไม่ได้แตะอะไร ไม่มี element ให้ทำ fx
+
+  if (correct) {
+    MOTION.run(chosenEl, [
+      { transform: "scale(1)" }, { transform: "scale(1.04)" }, { transform: "scale(1)" },
+    ], { duration: 260, easing: easeVar("--ease-pop") });
+    drawCheckmark(chosenEl, myToken);
+  } else {
+    MOTION.run(chosenEl, [
+      { transform: "translateX(0)" }, { transform: "translateX(-5px)" },
+      { transform: "translateX(5px)" }, { transform: "translateX(-5px)" }, { transform: "translateX(0)" },
+    ], { duration: 280, easing: easeVar("--ease-io") });
+  }
+
+  // เฉลยข้อถูก: fade เขียวเข้ามาหน่วง 180ms — เฉพาะ renderer ที่มี marker แบบ class ให้หา
+  // (MCQ ใช้ .correct, linepick ใช้ .answer) hotspot/colorwheel เฉลยด้วยการวาด SVG อยู่แล้วในตัว
+  // renderer เอง (reveal()) จึงไม่มี node ให้หาแบบ generic ตรงนี้ — ข้ามไปเงียบ ๆ ไม่ใช่บั๊ก
+  const correctEl = document.querySelector("#choices .correct, #choices .answer");
+  if (correctEl && correctEl.animate) {
+    if (getComputedStyle(correctEl).position === "static") correctEl.style.position = "relative";
+    const glow = document.createElement("div");
+    glow.className = "fx-correct-glow";
+    correctEl.appendChild(glow);
+    glow.animate([{ opacity: 0 }, { opacity: 1 }], {
+      duration: MOTION.d(300), delay: MOTION.reduced ? 0 : 180, fill: "forwards", easing: easeVar("--ease-out"),
+    });
+  }
+}
+
+// ---------- ตัวเลขเงินนับขึ้น/ลง (rAF, 400ms) — ต้องเช็ค renderToken ทุกเฟรมก่อนแตะ DOM ----------
+// numEl ต้องเป็น reference ที่จับไว้ตอนเริ่ม ห้าม getElementById ซ้ำในลูป (กัน id ถูกใช้ซ้ำข้ามหน้า)
+function animateMoneyCount(numEl, from, to) {
+  if (!numEl) return;
+  const myToken = renderToken;
+  const dur = MOTION.d(400);
+  if (from === to || dur <= 0 || !window.requestAnimationFrame) {
+    numEl.textContent = to.toLocaleString();
+    return;
+  }
+  const t0 = performance.now();
+  const ease = t => 1 - Math.pow(1 - t, 3);   // เทียบเคียง --ease-out แบบไม่ต้องพึ่ง cubic-bezier ใน rAF
+  function step(now) {
+    if (myToken !== renderToken) return;      // หน้าเปลี่ยนไปแล้ว — หยุดทันที ห้ามแตะ DOM ต่อ
+    const p = Math.min(1, (now - t0) / dur);
+    numEl.textContent = Math.round(from + (to - from) * ease(p)).toLocaleString();
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+// ---------- ป้าย +/- ลอยขึ้นแล้วจาง (WAAPI, 600ms) ----------
+function floatBadge(anchorEl, text, positive) {
+  if (!anchorEl || !anchorEl.getBoundingClientRect) return;
+  const myToken = renderToken;
+  const badge = document.createElement("div");
+  badge.className = "fx-badge " + (positive ? "up" : "down");
+  badge.textContent = text;
+  const cs = getComputedStyle(anchorEl);
+  if (cs.position === "static") anchorEl.style.position = "relative";
+  anchorEl.appendChild(badge);
+  if (!badge.animate) { badge.remove(); return; }
+  const a = badge.animate(
+    [{ transform: "translateY(0)", opacity: 1 }, { transform: "translateY(-14px)", opacity: 0 }],
+    { duration: MOTION.d(600), easing: easeVar("--ease-out"), fill: "forwards" }
+  );
+  a.onfinish = () => { if (myToken !== renderToken) return; badge.remove(); };
 }
 
 // ---------- เมนูทดสอบ (แสดงเมื่อเปิดโดยไม่มี ?space=) ----------
