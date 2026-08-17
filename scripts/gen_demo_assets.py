@@ -17,15 +17,20 @@ gen_demo_assets.py — ตัดของจริงจาก PDF ส่งโ�
 import json
 import re
 import shutil
+import sys
 from pathlib import Path
 
 import fitz  # PyMuPDF
 import numpy as np
 from PIL import Image
 
-ROOT = Path(__file__).resolve().parent
-FINAL = ROOT / "Final"
-OUT = ROOT / "demo_assets"
+# console Windows บางเครื่องเป็น cp1252 — บังคับ UTF-8 ให้พิมพ์ภาษาไทยได้
+if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
+ROOT = Path(__file__).resolve().parent.parent   # สคริปต์อยู่ scripts/ ต้องถอยขึ้นมาที่รากโปรเจค
+FINAL = ROOT / "print" / "Final"
+OUT = ROOT / "box_demo" / "demo_assets"         # ต้องอยู่ข้างไฟล์เดโม เพราะ HTML อ่าน 'demo_assets/' แบบ relative
 CARDS_OUT = OUT / "cards"
 
 PT = 72.0 / 25.4  # มม. -> point

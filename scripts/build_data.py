@@ -2,8 +2,8 @@
 """
 build_data.py — แปลงฐานข้อมูล Excel ของทีม content เป็น data.json ให้เว็บใช้
 ติดตั้งก่อนใช้:  pip install pandas openpyxl
-รัน:            py build_data.py [path ไฟล์ .xlsx]
-ถ้าไม่ระบุ path จะใช้ codecoin_database.xlsx ในโฟลเดอร์เดียวกัน
+รัน:            py scripts/build_data.py [path ไฟล์ .xlsx]
+ถ้าไม่ระบุ path จะใช้ codecoin_database.xlsx ที่รากโปรเจค
 
 โครงสร้าง Excel (หัวตารางจริงอยู่แถวที่ 2 — แถวแรกเป็นหมายเหตุ):
   spaces:    space_id, zone, name_th, price, rent_L0..rent_L3, upgrade_cost, content_th
@@ -22,14 +22,18 @@ import json
 import math
 import re
 import sys
+from pathlib import Path
 
 import pandas as pd
 
 if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
     sys.stdout.reconfigure(encoding="utf-8")
 
-XLSX_FILE = sys.argv[1] if len(sys.argv) > 1 else "codecoin_database.xlsx"
-OUT_FILE = "data.json"
+# สคริปต์อยู่ใน scripts/ แต่ไฟล์ข้อมูลอยู่ที่รากโปรเจค — อ้างจาก __file__ เสมอ
+# จะได้รันจากโฟลเดอร์ไหนก็ได้ ไม่ต้องระวังว่า cwd อยู่ตรงไหน
+ROOT = Path(__file__).resolve().parent.parent
+XLSX_FILE = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "codecoin_database.xlsx"
+OUT_FILE = ROOT / "data.json"
 ANSWER_INDEX = {"a": 0, "b": 1, "c": 2, "d": 3}
 POINT_QTYPES = ("hotspot", "colorwheel", "linepick")   # กลุ่มคำถามที่ตอบด้วยการชี้ตำแหน่ง
 HOTSPOT_RE = re.compile(r"^\d{1,3},\d{1,3},\d{1,3}$")

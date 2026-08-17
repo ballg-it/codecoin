@@ -3,23 +3,29 @@
 """
 make_standalone.py — ทำไฟล์เดโมรุ่น "ไฟล์เดียวจบ" เอาไปส่งต่อได้เลย
 
-ปกติ codecoin_box_demo_v4.html อ่านรูปจากโฟลเดอร์ demo_assets/ ที่อยู่ข้าง ๆ
+ปกติ box_demo/codecoin_box_demo_v4.html อ่านรูปจากโฟลเดอร์ demo_assets/ ที่อยู่ข้าง ๆ
 ถ้าก๊อปไปแต่ไฟล์ HTML เฉย ๆ รูปกระดานกับการ์ดจะไม่ขึ้น
 สคริปต์นี้ฝังรูปทั้งหมดเป็น data URI ลงในไฟล์เลย จะเหลือไฟล์เดียวที่เปิดที่ไหนก็ได้
 
-    python make_standalone.py
+    py scripts/make_standalone.py
 
-ผลลัพธ์: codecoin_box_demo_standalone.html
-(ต้องรัน gen_demo_assets.py ให้มี demo_assets/ ก่อน)
+ผลลัพธ์: box_demo/codecoin_box_demo_standalone.html
+(ต้องรัน scripts/gen_demo_assets.py ให้มี box_demo/demo_assets/ ก่อน)
 """
 import base64
 import json
+import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent
-SRC = ROOT / "codecoin_box_demo_v4.html"
-ASSETS = ROOT / "demo_assets"
-DST = ROOT / "codecoin_box_demo_standalone.html"
+# console Windows บางเครื่องเป็น cp1252 — บังคับ UTF-8 ให้พิมพ์ภาษาไทยได้
+if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
+ROOT = Path(__file__).resolve().parent.parent   # สคริปต์อยู่ scripts/ ไฟล์เดโมอยู่ box_demo/
+DEMO = ROOT / "box_demo"
+SRC = DEMO / "codecoin_box_demo_v4.html"
+ASSETS = DEMO / "demo_assets"
+DST = DEMO / "codecoin_box_demo_standalone.html"
 
 # ฝังทุกไฟล์รูปใน demo_assets/ ไม่ใช่เฉพาะที่ตอนนี้เรียกใช้
 # เผื่อวันหลังแก้เดโมให้โชว์การ์ดใบอื่น ไฟล์ standalone จะได้ไม่พังเงียบ ๆ
@@ -44,7 +50,8 @@ def main():
         mime = MIME.get(f.suffix.lower())
         if not f.is_file() or not mime:
             continue
-        key = f.relative_to(ROOT).as_posix()          # เช่น demo_assets/cards/coding_01_f.webp
+        # key ต้องตรงกับ path ที่ HTML เรียก (ASSET = 'demo_assets/') จึงอิงจากโฟลเดอร์ box_demo/
+        key = f.relative_to(DEMO).as_posix()          # เช่น demo_assets/cards/coding_01_f.webp
         data = base64.b64encode(f.read_bytes()).decode("ascii")
         embed[key] = f"data:{mime};base64,{data}"
         total += f.stat().st_size

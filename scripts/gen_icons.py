@@ -2,8 +2,8 @@
 """
 gen_icons.py — สร้างไอคอน PWA ลาย PCB ให้ CodeCoin
 ติดตั้งก่อนใช้:  pip install pillow
-รัน:            py gen_icons.py
-ผลลัพธ์:        icon-192.png, icon-512.png (วางที่ root เดียวกับ index.html)
+รัน:            py scripts/gen_icons.py
+ผลลัพธ์:        icon-192.png, icon-512.png (เขียนที่รากโปรเจค ข้าง index.html)
 
 ดีไซน์: พื้น PCB เขียวเข้ม + กริด + ลายเส้นทองแดงสีทองวิ่งเข้าหาเหรียญกลาง
 เนื้อหาหลักอยู่ในวงกลางไม่เกิน 80% ของด้าน — ปลอดภัยกับไอคอนแบบ maskable
@@ -11,11 +11,14 @@ gen_icons.py — สร้างไอคอน PWA ลาย PCB ให้ Code
 """
 import math
 import sys
+from pathlib import Path
 
 from PIL import Image, ImageDraw
 
 if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
     sys.stdout.reconfigure(encoding="utf-8")
+
+ROOT = Path(__file__).resolve().parent.parent   # สคริปต์อยู่ scripts/ ไอคอนต้องไปที่รากโปรเจค
 
 BOARD = (11, 43, 34)     # --board  #0B2B22
 GRID = (15, 76, 58)      # เส้นกริดบนแผ่นปริ๊นต์ #0F4C3A
@@ -63,6 +66,6 @@ def make(size):
 
 
 for s in (192, 512):
-    path = f"icon-{s}.png"
+    path = ROOT / f"icon-{s}.png"
     make(s).save(path)
-    print(f"[OK] {path} ({s}x{s})")
+    print(f"[OK] {path.name} ({s}x{s})")

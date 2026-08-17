@@ -2,13 +2,14 @@
 """
 gen_qr.py — สร้าง QR Code ทั้งชุดของ CodeCoin จาก data.json
 ติดตั้งก่อนใช้:  pip install "qrcode[pil]"
-รัน:            python gen_qr.py
-ผลลัพธ์:        โฟลเดอร์ qr_output/ มี PNG ตั้งชื่อตาม space_id
+รัน:            py scripts/gen_qr.py
+ผลลัพธ์:        โฟลเดอร์ print/qr_output/ มี PNG ตั้งชื่อตาม space_id
 """
 import json
 import math
 import os
 import sys
+from pathlib import Path
 
 import qrcode
 
@@ -19,8 +20,9 @@ from qrcode.constants import ERROR_CORRECT_H
 
 # ================== ตั้งค่าได้ที่นี่ที่เดียว ==================
 BASE_URL = "https://ballgamerzaman-code.github.io/codecoin"
-DATA_FILE = "data.json"
-OUT_DIR = "qr_output"
+ROOT = Path(__file__).resolve().parent.parent   # สคริปต์อยู่ scripts/ ข้อมูลอยู่รากโปรเจค
+DATA_FILE = ROOT / "data.json"
+OUT_DIR = ROOT / "print" / "qr_output"
 TARGET_CM = 3.0    # ขนาดพิมพ์ ~3x3 ซม.
 DPI = 300          # ความละเอียดพิมพ์
 ZONES = ["coding", "design", "office", "hardware"]  # โซนเหตุการณ์ (ตายตัวตามกติกา)
