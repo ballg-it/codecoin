@@ -13,7 +13,7 @@
 ```
 index.html  data.json  sw.js  manifest.webmanifest  icon-192/512.png   ← เว็บจริง (ห้ามย้าย)
 codecoin_database.xlsx                                                 ← ต้นทางข้อมูลทีม content
-docs/       PROJECT_SUMMARY.md · BOX_DEMO.md · animation.md            ← เอกสารสรุป
+docs/       PROJECT_SUMMARY.md · BOX_DEMO.md · animation.md · DESIGN_AUDIT.md  ← เอกสารสรุป
 scripts/    build_data.py · gen_qr.py · gen_icons.py                   ← สคริปต์ Python
             gen_demo_assets.py · make_standalone.py
 print/      Final/*.pdf (ไฟล์ส่งโรงพิมพ์) · qr_output/*.png            ← งานสิ่งพิมพ์

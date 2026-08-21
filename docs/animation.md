@@ -5,7 +5,7 @@
 Stage 5 (ตรวจรับรอบสุดท้าย) ยังไม่ได้ทำ — เอกสารนี้หยุดที่ Stage 4
 
 สถานะ commit: `ca652dd` (Stage 1-2) → `b2b3ea1` (Stage 3) → `de37963` (Stage 4)
-`sw.js` ปัจจุบัน: `codecoin-v12`
+`sw.js` ปัจจุบัน: `codecoin-v17` (เลขขยับต่อจาก v12 ผ่านงาน Stage V1–V3b ปรับสี/เลย์เอาต์มือถือ — ดู [`DESIGN_AUDIT.md`](DESIGN_AUDIT.md) ไม่เกี่ยวกับ Motion Stage)
 
 ---
 
@@ -122,6 +122,10 @@ Stage 5 (ตรวจรับรอบสุดท้าย) ยังไม่
 - **Stage 5** (ตรวจรับรอบสุดท้ายตาม checklist) — ยังไม่ได้รัน
 - **CPU throttle 4x ≥50fps สำหรับ Roulette** — ยืนยันไม่ได้ในรอบทดสอบล่าสุดเพราะ browser pane
   ของ session ไม่ compositing frame จริง (ข้อจำกัดเครื่องมือทดสอบ ไม่ใช่ข้อสงสัยในโค้ด) ควรเปิดดูจริงอีกรอบ
+  — ไล่อ่านโค้ดซ้ำอีกรอบใน Stage V3b (session แยก ไม่เกี่ยวกับ Motion Stage) ยืนยันแล้วว่า `colorVar()`
+  ทุกจุดที่เรียกทั้งไฟล์ (6 จุด) เป็น one-shot ตอนสร้าง SVG/ใน click handler ล้วน ๆ ไม่มีจุดไหนอยู่ใน
+  `step()` ของ `spinRouletteWheel()` เลย (ลูปนั้นเรียกแค่ `wheelG.style.transform`) — มั่นใจเชิงโค้ด 100%
+  ว่าไม่กระทบ fps แต่ตัวเลขจริงบนอุปกรณ์จริงยังไม่ได้วัด
 - `.fx-flash`/`#hit-fx`/`.result.pop`/`.countdown-big` ยังใช้ duration ตายตัวไม่ผ่าน token
   (โค้ดเดิมตั้งแต่ก่อน Stage 1 ไม่ได้อยู่ใน checklist ข้อไหนของ Stage 1-4 เลยไม่ได้แตะ)
 - ไฮไลต์บั๊กรายบรรทัดใน Bug Jam ที่พักไว้ตั้งแต่ Stage 0

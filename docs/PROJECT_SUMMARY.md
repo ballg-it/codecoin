@@ -1,9 +1,9 @@
 # สรุปงานโปรเจค CodeCoin — QR System
 
-> อัปเดตล่าสุด: 16 สิงหาคม 2026 (เว็บ REV 2.5 + **ระบบ Motion Stage 1–4** · `sw.js` = `codecoin-v12`)
+> อัปเดตล่าสุด: 22 สิงหาคม 2026 (เว็บ REV 2.5 + **ระบบ Motion Stage 1–4** · `sw.js` = `codecoin-v17`)
 > เว็บจริง: **https://ballgamerzaman-code.github.io/codecoin/**
 > Repo: **https://github.com/ballgamerzaman-code/codecoin**
-> เอกสารอื่น: [`animation.md`](animation.md) (ระบบ animation ละเอียด) · [`BOX_DEMO.md`](BOX_DEMO.md) (เดโมกล่อง + เช็คลิสต์ก่อนพิมพ์)
+> เอกสารอื่น: [`animation.md`](animation.md) (ระบบ animation ละเอียด) · [`BOX_DEMO.md`](BOX_DEMO.md) (เดโมกล่อง + เช็คลิสต์ก่อนพิมพ์) · [`DESIGN_AUDIT.md`](DESIGN_AUDIT.md) (ตรวจสี/เลย์เอาต์มือถือ Stage V0–V3b)
 
 ## ภาพรวมโปรเจค
 
@@ -230,7 +230,7 @@ docs/  scripts/  print/  box_demo/  tools/
 | ไฟล์ | หน้าที่ |
 |---|---|
 | `index.html` | ตัวแอป SPA (โหลด data.json + fallback + router ทุกหน้า) |
-| `sw.js` | Service Worker — แคชให้เล่นออฟไลน์ (⚠️ แก้ index.html ทีไร ต้องบั๊ม `CACHE` — ตอนนี้ `codecoin-v12`) |
+| `sw.js` | Service Worker — แคชให้เล่นออฟไลน์ (⚠️ แก้ index.html ทีไร ต้องบั๊ม `CACHE` — ตอนนี้ `codecoin-v17`) |
 | `manifest.webmanifest` + `icon-192/512.png` | ข้อมูล/ไอคอนสำหรับติดตั้งเป็นแอปบนมือถือ |
 | `data.json` | ฐานข้อมูลที่เว็บใช้จริง (ห้ามแก้มือ) |
 | `codecoin_database.xlsx` | ต้นทางข้อมูล 4 ชีต (spaces / questions / events / bugjam) — วางไว้รากเพื่อให้ทีม content หาเจอง่าย |
@@ -267,6 +267,7 @@ docs/  scripts/  print/  box_demo/  tools/
 | `docs/PROJECT_SUMMARY.md` | ไฟล์นี้ — สรุปภาพรวมทั้งโปรเจค |
 | `docs/animation.md` | ระบบ Motion Stage 0–4 แบบละเอียด + กับดักที่เจอระหว่างทำ |
 | `docs/BOX_DEMO.md` | สรุปงานเดโมกล่อง + **เช็คลิสต์ 13 ข้อที่ต้องเคลียร์ก่อนส่งพิมพ์กล่อง** |
+| `docs/DESIGN_AUDIT.md` | ตรวจสภาพสี/spacing/ขนาดปุ่มบนมือถือ (Stage V0 audit → V1 refactor token สี → V2/V2b แก้ overflow+touch target → V3/V3b แยกความหมายสีแดงบน zone-tag) |
 | `tools/hotspot_picker.html` | เครื่องมือหาพิกัดคำถาม hotspot — ลากไฟล์ SVG มาวาง คลิกจุด ปรับรัศมี ได้ค่า `x,y,r` ไปวางในคอลัมน์ `answer` (ทีม content ใช้เองได้ ไม่ต้องเปิดโค้ด) |
 | `tools/motherboard.svg` | ต้นฉบับภาพเมนบอร์ดที่ฝัง inline อยู่ใน `index.html` — **แก้ภาพเมื่อไรต้องหาพิกัดใหม่ทุกข้อ** |
 
@@ -283,17 +284,17 @@ docs/  scripts/  print/  box_demo/  tools/
 5. **ส่งโรงพิมพ์**: ไฟล์ใน `print/Final/` พร้อมแล้ว (ตรวจ QR บนกระดานครบ 6 ใบแล้ว) — สั่งพิมพ์ **Scale 100% / Actual size (ห้าม Fit to page)** ไม่งั้น QR จะเล็กลงจนสแกนยาก, เปิด Background graphics, การ์ดพิมพ์ 2 หน้าเลือก Flip on long edge ให้ตรงกับตัวเลือกบนหัวไฟล์
 6. **กล่องเกม**: เคลียร์ 13 ข้อใน [`BOX_DEMO.md`](BOX_DEMO.md) ก่อนส่งพิมพ์กล่อง — ที่ต้องรีบสุดคือ **ตัวเลขจำนวนคำถามบน 3 แผงไม่ตรงกัน** (ของจริงคือ 81) และ **ยังไม่มีไฟล์ออกแบบธนบัตร/โทเค็น/คลิป** เลย
 7. **Motion Stage 5 (ตรวจรับรอบสุดท้าย)** — ยังไม่ได้รัน รายละเอียดใน [`animation.md`](animation.md) ของที่ค้างอยู่:
-   - **ยืนยัน Roulette ≥50fps ตอน CPU throttle 4x** — รอบทดสอบล่าสุดยืนยันไม่ได้เพราะ browser pane ไม่ compositing frame จริง (ข้อจำกัดเครื่องมือทดสอบ ไม่ใช่ข้อสงสัยในโค้ด) ควรเปิดบนมือถือจริงดูอีกรอบ
+   - **ยืนยัน Roulette ≥50fps ตอน CPU throttle 4x** — รอบทดสอบล่าสุดยืนยันไม่ได้เพราะ browser pane ไม่ compositing frame จริง (ข้อจำกัดเครื่องมือทดสอบ ไม่ใช่ข้อสงสัยในโค้ด) ไล่อ่านโค้ดซ้ำแล้ว (session Stage V3b) ยืนยัน `colorVar()` ทุกจุดเป็น one-shot ไม่อยู่ใน rAF loop เลย — มั่นใจเชิงโค้ด 100% แต่ตัวเลขจริงบนอุปกรณ์จริงยังต้องเปิดดูอีกรอบ
    - `.fx-flash` / `#hit-fx` / `.result.pop` / `.countdown-big` ยังใช้ duration ตายตัว ไม่ผ่าน motion token (โค้ดเดิมตั้งแต่ก่อน Stage 1)
    - ไอเดียที่พักไว้: ไฮไลต์บั๊กรายบรรทัดใน Bug Jam (ตอนนี้ `.code-box` เป็น text node เดียว ต้องรื้อโครงก่อน) · View Transitions API ตอนเปลี่ยนหน้า
-8. **ป้าย REV บนหน้าแรกยังเขียน "REV 2.2"** (`index.html` บรรทัด ~428) ทั้งที่ของจริงไปถึง REV 2.5 + Motion แล้ว — แก้ตอนไหนก็ได้ แต่ **ต้องบั๊ม `CACHE` ใน `sw.js` เป็น `codecoin-v13` พร้อมกัน**
+8. ~~ป้าย REV บนหน้าแรกยังเขียน "REV 2.2"~~ — **เสร็จแล้ว** แก้เป็น "REV 2.5" ในงาน Stage V1 (ปรับสี/เลย์เอาต์มือถือ) พร้อมบั๊ม `CACHE` ตามลำดับจนถึง `codecoin-v17` ปัจจุบัน — รายละเอียดครบใน [`DESIGN_AUDIT.md`](DESIGN_AUDIT.md) (แยกงานเป็น Stage V0 ตรวจสภาพ → V1 แปลง hex สีเป็น CSS token → V2/V2b แก้หน้าล้นจอ + ปุ่มเล็กกว่ามาตรฐานสัมผัส 44px → V3/V3b แยกความหมายสีแดงบน zone-tag ไม่ให้สับสนกับเว็บพังจริง)
 
 ## หมายเหตุทางเทคนิค
 
 - เครื่องนี้รัน Python ด้วย `py` (ไม่ใช่ `python`)
 - **สคริปต์ที่มี shebang `#!/usr/bin/env python3` (`gen_demo_assets.py`, `make_standalone.py`) ต้องรันด้วย `py -3`** — `py` เฉย ๆ จะไปอ่าน shebang แล้ววิ่งไปหา `python3` ซึ่งบนเครื่องนี้เป็น alias ของ Microsoft Store แล้วเด้ง "Python was not found"
 - ทดสอบในเครื่องผ่าน `py -m http.server 8000` **ที่รากโปรเจค** (fetch ไม่ทำงานบน `file://` และ Service Worker ต้องการ localhost/https)
-- **แก้ `index.html` เมื่อไร ต้องบั๊ม `CACHE` ใน `sw.js`** (ตอนนี้ `codecoin-v12` → ครั้งหน้า `v13`) ไม่งั้นเครื่องที่เคยเปิดเว็บจะยังเห็นโค้ดเก่า — เจอกับตัวตอนเทสต์ REV 2.5: แก้ไฟล์แล้วแต่เบราว์เซอร์ยังรันโค้ดเก่าจากแคช ทำให้ผลเทสต์ผิด ต้อง unregister SW + `caches.delete()` ก่อนถึงจะเห็นของใหม่
+- **แก้ `index.html` เมื่อไร ต้องบั๊ม `CACHE` ใน `sw.js`** (ตอนนี้ `codecoin-v17` → ครั้งหน้า `v18`) ไม่งั้นเครื่องที่เคยเปิดเว็บจะยังเห็นโค้ดเก่า — เจอกับตัวตอนเทสต์ REV 2.5: แก้ไฟล์แล้วแต่เบราว์เซอร์ยังรันโค้ดเก่าจากแคช ทำให้ผลเทสต์ผิด ต้อง unregister SW + `caches.delete()` ก่อนถึงจะเห็นของใหม่
 - `core.autocrlf = true` บนเครื่องนี้ — ไฟล์ที่สคริปต์ Python เขียนออกมาเป็น CRLF แต่ git เก็บเป็น LF ให้เอง เจนไฟล์ใหม่แล้ว `git diff` ว่างเปล่าถือว่าปกติ (ไม่ใช่สคริปต์ไม่ทำงาน)
 - ไฟล์ Excel จากทีม content: **diff ก่อน merge ทุกครั้ง** อย่าเอาทับตรง ๆ (รอบ qtype ล่าสุดสะอาด ไม่มี regression เป็นครั้งแรก)
 - Push ต้อง login GitHub ใหม่แต่ละครั้ง (Windows Credential Store มีปัญหา เก็บ credential ถาวรไม่ได้) — ใช้ device flow: กรอกรหัสที่ github.com/login/device

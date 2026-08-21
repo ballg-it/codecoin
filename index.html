@@ -23,6 +23,20 @@
     /* สีประจำโซน */
     --coding:#4ADE80; --design:#FB923C; --office:#38BDF8; --hardware:#F472B6;
 
+    /* ---------- Surface/ink tokens (Stage V1) ----------
+       #05100C เดิมทำงาน 2 หน้าที่ปนกัน (พื้นเข้มสุด vs ตัวอักษรบนพื้นสว่าง) — แยกชื่อไว้
+       ค่าเท่ากันตอนนี้ แต่วันหลังจะปรับพื้นเข้ม (--surface-deep) โดยไม่พังตัวอักษรบนปุ่มทอง (--ink-on-bright) */
+    --surface-deep:#05100C;
+    --ink-on-bright:#05100C;
+    --panel-2:#0B241B;
+    --ink-code:#A7F3D0;
+    --bg-win:#0F3B2A;
+    --bg-lose:#3B1414;
+    --bg-warn:#3A2A0A;
+    --ink-warn:#FDE68A;
+    --bg-active:#14200E;
+    --chrome:#111827;
+
     /* ---------- Motion tokens (Stage 1) ----------
        ประกาศที่เดียวจบ — ทุก animation ในเกมต้องอ้างค่าจากตรงนี้ ห้ามใส่ตัวเลขดิบ
        งบเวลา: animation ที่ข้ามไม่ได้ ต่อการสแกน 1 ครั้ง รวมกันต้อง ≤ 1.2 วินาที */
@@ -66,7 +80,7 @@
 
   /* ---------- ส่วนหัวแบบชิป ---------- */
   header {
-    background:#111827; border:2px solid var(--gold); border-radius:14px;
+    background:var(--chrome); border:2px solid var(--gold); border-radius:14px;
     padding:14px 18px; text-align:center; position:relative; margin-bottom:18px;
   }
   header::before, header::after {
@@ -79,7 +93,7 @@
 
   .zone-tag {
     display:inline-block; font-size:12px; font-weight:700; padding:3px 12px;
-    border-radius:20px; margin-bottom:10px; color:#05100C;
+    border-radius:20px; margin-bottom:10px; color:var(--ink-on-bright);
   }
   .card {
     background:var(--panel); border:1px solid var(--line); border-radius:14px;
@@ -91,13 +105,13 @@
 
   .q { font-weight:700; font-size:15px; margin:6px 0 12px; }
   .choice {
-    display:block; width:100%; text-align:left; background:#0B241B;
+    display:block; width:100%; text-align:left; background:var(--panel-2);
     border:1px solid var(--line); border-radius:10px; color:var(--text);
     padding:12px 14px; font-size:14px; font-family:inherit; margin-bottom:9px; cursor:pointer;
   }
   .choice:hover { border-color:var(--gold); }
-  .choice.correct { border-color:var(--ok); background:#0F3B2A; }
-  .choice.wrong { border-color:var(--bad); background:#3B1414; }
+  .choice.correct { border-color:var(--ok); background:var(--bg-win); }
+  .choice.wrong { border-color:var(--bad); background:var(--bg-lose); }
 
   .timer { text-align:center; font-family:'Kanit',sans-serif; font-size:18px; color:var(--gold); margin-bottom:10px; }
   .timer.danger { color:var(--bad); }
@@ -137,21 +151,21 @@
   #choices button:active { transform:scale(.97); transition:transform var(--dur-press) var(--ease-out); }
 
   .result { text-align:center; border-radius:12px; padding:14px; font-size:15px; margin-top:6px; }
-  .result.win { background:#0F3B2A; border:1px solid var(--ok); color:var(--ok); }
-  .result.lose { background:#3B1414; border:1px solid var(--bad); color:var(--bad); }
-  .result.info { background:#14200E; border:1px solid var(--gold); color:#FDE68A; }
+  .result.win { background:var(--bg-win); border:1px solid var(--ok); color:var(--ok); }
+  .result.lose { background:var(--bg-lose); border:1px solid var(--bad); color:var(--bad); }
+  .result.info { background:var(--bg-active); border:1px solid var(--gold); color:var(--ink-warn); }
 
   .btn {
     display:block; width:100%; border:none; border-radius:12px; padding:13px;
     font-family:'Kanit',sans-serif; font-size:16px; cursor:pointer; margin-top:10px;
-    background:var(--gold); color:#05100C;
+    background:var(--gold); color:var(--ink-on-bright);
   }
   .btn.ghost { background:transparent; border:1px solid var(--gold); color:var(--gold); }
 
   .code-box {
     position:relative;   /* ให้ ::after (เรืองขอบตอนเฉลย) วางอิงกรอบนี้ได้ */
-    background:#05100C; border:1px solid var(--line); border-radius:10px;
-    font-family:monospace; font-size:13px; color:#A7F3D0; padding:12px; white-space:pre; overflow-x:auto; margin-bottom:12px;
+    background:var(--surface-deep); border:1px solid var(--line); border-radius:10px;
+    font-family:monospace; font-size:13px; color:var(--ink-code); padding:12px; white-space:pre; overflow-x:auto; margin-bottom:12px;
   }
   /* ---------- Bug Jam เฉลย (Stage 4) — pulse ทั้งกล่อง ห้ามแตะ text node ข้างใน ----------
      animate เฉพาะ transform (scale) + opacity (เรืองขอบผ่าน ::after) เท่านั้น ตามกฎ
@@ -166,7 +180,7 @@
   @keyframes codeBoxGlow  { 0%{opacity:0} 40%{opacity:1} 100%{opacity:0} }
   .menu-item {
     display:flex; justify-content:space-between; align-items:center;
-    background:#0B241B; border:1px solid var(--line); border-radius:10px;
+    background:var(--panel-2); border:1px solid var(--line); border-radius:10px;
     border-left:4px solid var(--zc, var(--line));
     padding:11px 14px; margin-bottom:8px; cursor:pointer; font-size:14px;
   }
@@ -178,11 +192,11 @@
     font-family:'Kanit',sans-serif; font-size:13.5px; letter-spacing:.5px; color:var(--zc);
   }
   .menu-zone-head::after { content:""; flex:1; height:1px; background:var(--line); }
-  .footer-note { text-align:center; font-size:11px; color:#4B6A5C; margin-top:16px; }
+  .footer-note { text-align:center; font-size:11px; color:var(--muted); margin-top:16px; }
 
   .data-warn {
-    background:#3A2A0A; border:1px solid var(--gold); border-radius:10px;
-    font-size:12.5px; color:#FDE68A; padding:9px 12px; margin-bottom:14px; text-align:center;
+    background:var(--bg-warn); border:1px solid var(--gold); border-radius:10px;
+    font-size:12.5px; color:var(--ink-warn); padding:9px 12px; margin-bottom:14px; text-align:center;
   }
   .upgrade-links { display:flex; gap:8px; }
   .upgrade-links .btn { font-size:14px; padding:10px 6px; }
@@ -190,13 +204,13 @@
   /* ---------- ปุ่มเลือกโหมดเดิมพัน (หน้าซื้อทรัพย์สิน) ---------- */
   .bet-row { display:flex; gap:8px; margin-bottom:12px; }
   .bet-btn {
-    flex:1; background:#0B241B; border:1px solid var(--line); border-radius:10px;
+    flex:1; background:var(--panel-2); border:1px solid var(--line); border-radius:10px;
     color:var(--muted); padding:9px 6px; text-align:center;
     font-family:'Kanit',sans-serif; font-size:14px; cursor:pointer;
   }
   .bet-btn small { display:block; font-family:'Sarabun',sans-serif; font-size:10.5px; margin-top:2px; color:var(--muted); }
-  .bet-btn.active { border-color:var(--gold); color:var(--gold); background:#14200E; }
-  .bet-btn.active small { color:#FDE68A; }
+  .bet-btn.active { border-color:var(--gold); color:var(--gold); background:var(--bg-active); }
+  .bet-btn.active small { color:var(--ink-warn); }
   .bet-btn:disabled { opacity:.55; cursor:default; }
 
   /* ---------- modal ยืนยันโหมดมั่นใจ + countdown ---------- */
@@ -218,13 +232,13 @@
   /* ---------- กรอบวงล้อสุ่มผลแก้บั๊ก (เลนมั่นใจ+ผิด) ----------
      duration อ้าง token แทนตัวเลขดิบ (Stage 4) — ให้ reduced-motion ย่ออัตโนมัติแบบเดียวกับที่อื่น */
   .roulette-frame {
-    background:#05100C; border:1px solid var(--line); border-radius:10px;
+    background:var(--surface-deep); border:1px solid var(--line); border-radius:10px;
     padding:13px 12px; margin-top:10px; text-align:center;
-    font-family:'Kanit',sans-serif; font-size:15px; color:#A7F3D0;
+    font-family:'Kanit',sans-serif; font-size:15px; color:var(--ink-code);
     animation:roulettePulse var(--dur-press) ease-out;
   }
   .roulette-frame.final {
-    border-color:var(--gold); color:#FDE68A;
+    border-color:var(--gold); color:var(--ink-warn);
     animation:rouletteLand var(--dur-cheer) cubic-bezier(.34,1.56,.64,1);
   }
   @keyframes roulettePulse { from { transform:scale(.97); opacity:.65; } to { transform:scale(1); opacity:1; } }
@@ -247,26 +261,26 @@
   .card-cover {
     position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:5;
     background:
-      repeating-linear-gradient(45deg, #0B2B22 0 6px, #0F3B2A 6px 12px);
+      repeating-linear-gradient(45deg, #0B2B22 0 6px, var(--bg-win) 6px 12px);
     border:1px solid var(--gold); backface-visibility:hidden;
   }
 
   /* ---------- มินิเกมกู้บั๊กด่วน (Debug Rescue) ---------- */
   .rescue-code {
     font-family:'Kanit',sans-serif; font-size:34px; letter-spacing:8px; color:var(--gold);
-    text-align:center; background:#05100C; border:1px solid var(--gold); border-radius:10px;
+    text-align:center; background:var(--surface-deep); border:1px solid var(--gold); border-radius:10px;
     padding:12px; margin:10px 0;
   }
   .rescue-input {
     width:100%; text-align:center; text-transform:uppercase; letter-spacing:8px;
-    font-family:'Kanit',sans-serif; font-size:26px; background:#05100C; color:var(--text);
+    font-family:'Kanit',sans-serif; font-size:26px; background:var(--surface-deep); color:var(--text);
     border:1px solid var(--line); border-radius:10px; padding:11px; margin-bottom:10px;
   }
   .role-pick { display:flex; gap:8px; }
   .role-pick .btn { margin-top:0; }
   .wire-row {
-    display:flex; align-items:center; gap:10px; margin-bottom:9px;
-    background:#0B241B; border:1px solid var(--line); border-radius:10px; padding:8px 12px;
+    display:flex; align-items:center; gap:10px; margin-bottom:3px;
+    background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:2px 12px;
   }
   .wire-bar { flex:1; height:16px; border-radius:8px; }
   .wire-idx { font-family:monospace; font-size:12px; color:var(--muted); width:20px; }
@@ -274,27 +288,27 @@
   .wire-row.cut .wire-bar { background:#333 !important; position:relative; }
   .wire-cut-btn {
     background:transparent; border:1px solid var(--bad); color:var(--bad); border-radius:8px;
-    font-family:'Kanit',sans-serif; font-size:13px; padding:5px 12px; cursor:pointer;
+    font-family:'Kanit',sans-serif; font-size:13px; padding:12px 12px; cursor:pointer;
   }
   .wire-cut-btn:disabled { opacity:.4; cursor:default; }
   .rescue-guide {
-    background:#14200E; border:1px solid var(--gold); border-radius:12px;
-    padding:16px; font-size:16px; line-height:1.7; color:#FDE68A;
+    background:var(--bg-active); border:1px solid var(--gold); border-radius:12px;
+    padding:16px; font-size:16px; line-height:1.7; color:var(--ink-warn);
   }
 
   /* ---------- ปุ่มเลือกผู้ชนะ (event แบบ speed) ---------- */
   .speed-players { display:flex; gap:8px; margin:4px 0 6px; }
   .speed-player {
-    flex:1; background:#0B241B; border:1px solid var(--gold); border-radius:10px;
+    flex:1; background:var(--panel-2); border:1px solid var(--gold); border-radius:10px;
     color:var(--gold); padding:12px 4px; text-align:center; cursor:pointer;
     font-family:'Kanit',sans-serif; font-size:14px;
   }
-  .speed-player:hover { background:#14200E; }
+  .speed-player:hover { background:var(--bg-active); }
   .speed-player:disabled { opacity:.5; cursor:default; }
 
   /* ---------- คำถามแบบ "ชี้ตำแหน่ง" (hotspot / colorwheel / linepick) ---------- */
   .point-wrap {
-    background:#05100C; border:1px solid var(--line); border-radius:12px;
+    background:var(--surface-deep); border:1px solid var(--line); border-radius:12px;
     padding:8px; margin-bottom:10px; touch-action:manipulation;
   }
   /* ห้าม preserveAspectRatio="none" — การคำนวณพิกัดอิงอัตราส่วนที่คงที่ */
@@ -305,29 +319,29 @@
   .lp-box { border:1px solid var(--line); border-radius:10px; overflow:hidden; margin-bottom:10px; }
   .lp-row {
     display:flex; align-items:stretch; width:100%; text-align:left; cursor:pointer;
-    background:#05100C; border:none; border-bottom:1px solid #10281F; padding:0; color:#A7F3D0;
+    background:var(--surface-deep); border:none; border-bottom:1px solid #10281F; padding:0; color:var(--ink-code);
   }
   .lp-row:last-child { border-bottom:none; }
-  .lp-row:hover { background:#0B241B; }
+  .lp-row:hover { background:var(--panel-2); }
   .lp-num {
     flex:0 0 32px; padding:9px 0; text-align:center; font-family:monospace; font-size:12px;
-    color:var(--muted); background:#0B241B; border-right:1px solid #10281F; user-select:none;
+    color:var(--muted); background:var(--panel-2); border-right:1px solid #10281F; user-select:none;
   }
   .lp-code {
     flex:1; min-width:0; padding:9px 10px; font-family:monospace; font-size:13px;
     white-space:pre; overflow-x:auto;   /* เลื่อนเฉพาะบรรทัดที่ยาว ไม่ลากทั้งหน้า */
   }
-  .lp-row.picked { background:#3B1414; color:var(--bad); }
+  .lp-row.picked { background:var(--bg-lose); color:var(--bad); }
   .lp-row.picked .lp-num { background:#4A1A1A; color:var(--bad); }
-  .lp-row.answer { background:#0F3B2A; color:var(--ok); }
+  .lp-row.answer { background:var(--bg-win); color:var(--ok); }
   .lp-row.answer .lp-num { background:#14472F; color:var(--ok); }
   .lp-row:disabled { cursor:default; }
 
   /* ---------- บอสไฟต์ Server Meltdown (?space=cooling) ---------- */
-  .hp-wrap { background:#05100C; border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:10px; }
+  .hp-wrap { background:var(--surface-deep); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:10px; }
   .hp-row { display:flex; justify-content:space-between; align-items:baseline; font-size:12.5px; color:var(--muted); margin-bottom:7px; }
   .hp-row b { color:var(--gold); font-family:'Kanit',sans-serif; font-size:17px; }
-  .hp-bar { height:12px; background:#0B241B; border-radius:8px; overflow:hidden; }
+  .hp-bar { height:12px; background:var(--panel-2); border-radius:8px; overflow:hidden; }
   /* Stage 4: width → transform:scaleX (ห้ามใช้ width ตามกฎ) — เลขดาเมจ (#dmgNum/#tgtNum) อยู่ใน
      .hp-row แยกกันคนละ element อยู่แล้วตั้งแต่แรก (นอก .hp-fill เสมอ) ไม่ถูก scale ไปด้วยแน่นอน */
   .hp-fill {
@@ -336,7 +350,7 @@
     transition:transform var(--dur-state) var(--ease-out);
   }
   .shout {
-    text-align:center; font-size:12.5px; color:#FDE68A; background:#3A2A0A;
+    text-align:center; font-size:12.5px; color:var(--ink-warn); background:var(--bg-warn);
     border:1px solid var(--gold); border-radius:20px; padding:6px 10px; margin-bottom:11px;
   }
   /* เอฟเฟกต์ฟันโดน — fixed + transform ล้วน ไม่แตะ layout ไม่หน่วง timer */
@@ -350,16 +364,16 @@
     100% { transform:scale(1.4); opacity:0; }
   }
   .lockout {
-    text-align:center; background:#3B1414; border:1px solid var(--bad); border-radius:12px;
+    text-align:center; background:var(--bg-lose); border:1px solid var(--bad); border-radius:12px;
     padding:22px 14px; color:var(--bad); font-family:'Kanit',sans-serif; font-size:19px;
   }
-  .pick-row { display:flex; flex-wrap:wrap; gap:7px; margin:4px 0 12px; }
+  .pick-row { display:flex; flex-wrap:wrap; gap:10px; margin:4px 0 12px; }
   .pick {
-    flex:1 0 17%; background:#0B241B; border:1px solid var(--line); border-radius:9px;
-    color:var(--text); font-family:'Kanit',sans-serif; font-size:14.5px; padding:9px 0;
+    flex:1 0 17%; background:var(--panel-2); border:1px solid var(--line); border-radius:10px;
+    color:var(--text); font-family:'Kanit',sans-serif; font-size:14.5px; padding:10px 0;
     text-align:center; cursor:pointer;
   }
-  .pick.on { border-color:var(--gold); background:#14200E; color:var(--gold); }
+  .pick.on { border-color:var(--gold); background:var(--bg-active); color:var(--gold); }
   .big-num { font-family:'Kanit',sans-serif; font-size:56px; color:var(--gold); text-align:center; line-height:1.15; }
   .countdown-big { font-family:'Kanit',sans-serif; font-size:74px; color:var(--gold); text-align:center; margin:6px 0; animation:resultPop .4s ease-out; }
 
@@ -368,7 +382,7 @@
      วางชิดขวาเหนือ mute (bottom 66 = 14 + สูงปุ่ม 44 + ช่องไฟ 8) เลี่ยงป้ายออฟไลน์ที่อยู่ซ้าย */
   .player-btn {
     position:fixed; right:14px; bottom:66px; z-index:70;
-    background:#111827; border:1px solid var(--line); border-radius:20px;
+    background:var(--chrome); border:1px solid var(--line); border-radius:20px;
     color:var(--muted); font-family:'Kanit',sans-serif; font-size:11.5px;
     padding:5px 11px; cursor:pointer; opacity:.85; line-height:1;
   }
@@ -386,7 +400,7 @@
   .mute-btn, .motion-btn {
     position:fixed; right:14px; bottom:14px; z-index:70;
     width:44px; height:44px; border-radius:50%; cursor:pointer;
-    background:#111827; border:1.5px solid var(--gold); color:var(--gold);
+    background:var(--chrome); border:1.5px solid var(--gold); color:var(--gold);
     font-size:19px; line-height:1; opacity:.92;
   }
   .motion-btn { right:66px; }
@@ -395,8 +409,8 @@
   /* ---------- ป้ายบอกสถานะออฟไลน์ (มุมซ้ายล่าง — ไม่ชนปุ่ม mute) ---------- */
   .net-badge {
     position:fixed; left:14px; bottom:14px; z-index:70; display:none;
-    background:#3A2A0A; border:1px solid var(--gold); border-radius:20px;
-    color:#FDE68A; font-size:12px; padding:6px 12px; pointer-events:none;
+    background:var(--bg-warn); border:1px solid var(--gold); border-radius:20px;
+    color:var(--ink-warn); font-size:12px; padding:6px 12px; pointer-events:none;
   }
   .net-badge.show { display:block; }
 
@@ -425,7 +439,7 @@
 <div class="app">
   <header>
     <h1>CodeCoin</h1>
-    <p>QR SYSTEM — PCB EDITION REV 2.2</p>
+    <p>QR SYSTEM — PCB EDITION REV 2.5</p>
   </header>
   <div id="dataStatus"></div>
   <div id="screen"><div class="card"><p class="content">⏳ กำลังโหลดข้อมูล...</p></div></div>
@@ -707,6 +721,25 @@ function skippable(anim) {
 function easeVar(name) {
   try { return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "ease"; }
   catch (e) { return "ease"; }
+}
+
+// เหมือน easeVar() แต่สำหรับสี — ใช้ตอนวาด SVG ด้วย attribute ตรง ๆ (setAttribute ไม่รู้จัก var() แน่นอนทุกเบราว์เซอร์
+// ต่างจาก inline style ที่ resolve var() ได้เอง) จึงต้องอ่านค่าจริงจาก :root มาเป็นสตริง hex ก่อนใส่ attribute
+function colorVar(name) {
+  try { return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "#000"; }
+  catch (e) { return "#000"; }
+}
+
+/* ---------- Stage V2b FIX-1b: ซ่อน header เฉพาะหน้าจับเวลาที่ยังล้น ≤700 ไม่ได้ ----------
+   ใช้จริง 2 หน้า: event speed (FIX-1b) + debug_rescue solver (FIX-3b) — ไม่ใช่การซ่อน global ทุกหน้า
+   bugjam ก็เป็นหน้าจับเวลาที่ headroom ไม่ถึงเกณฑ์เหมือนกัน แต่ V2b ตัดสินไม่แก้ (นอกสโคป ดู DESIGN_AUDIT.md)
+   เรียก true ที่ต้นฟังก์ชันของ 2 หน้านั้น แล้วคืนค่า false ที่ renderMenu()/dispatch()
+   ซึ่งเป็นจุดที่ทุกเส้นทางออกจากหน้าเหล่านี้ไหลผ่านเสมอ (ปุ่ม "กลับเมนู" ทุกปุ่มเรียก renderMenu()) */
+function setHeaderHidden(hidden) {
+  try {
+    const h = document.querySelector("header");
+    if (h) h.style.display = hidden ? "none" : "";
+  } catch (e) {}
 }
 
 // id เฉพาะของ animation ขาเข้า — ต้องคานี้เดียวกันทั้งฝั่งสร้าง (enterScreen) และฝั่งยกเลิก
@@ -1095,7 +1128,7 @@ const Player = (() => {
 function renderPlayerGate(done) {
   screen.innerHTML = `
     <div class="card">
-      <span class="zone-tag" style="background:var(--gold);color:#05100C">เริ่มต้นใช้งาน</span>
+      <span class="zone-tag" style="background:var(--gold);color:var(--ink-on-bright)">เริ่มต้นใช้งาน</span>
       <h2>👤 คุณคือผู้เล่นคนที่?</h2>
       <p class="content">ตั้งครั้งเดียว เครื่องนี้จะจำไว้ทั้งคาบ — ใช้แยกว่าใครตอบข้อไหน
         (เปลี่ยนทีหลังได้ที่ปุ่มมุมขวาล่าง)</p>
@@ -1315,7 +1348,7 @@ function flash(color) {
 }
 
 function confetti() {
-  const colors = ["#FBBF24", "#4ADE80", "#FB923C", "#38BDF8", "#F472B6", "#FFFFFF"];
+  const colors = ["#FBBF24", "#4ADE80", "#FB923C", colorVar("--office"), "#F472B6", "#FFFFFF"];
   // เครื่องแรงน้อย (มือถือราคาประหยัด ≤4 core) ลดจำนวนลง กันเฟรมตกตอน CPU ไม่พอ
   const N = (navigator.hardwareConcurrency || 4) <= 4 ? 40 : 110;
   for (let i = 0; i < N; i++) {
@@ -1370,9 +1403,11 @@ function renderSpace(id, resume) {
     return Math.round(sp.price * (100 + pct) / 100);
   };
 
+  // Stage V2b FIX-5: บีบ padding/margin ของ 3 การ์ด (การ์ดเอง + q/zone-tag/h2/ราคาข้างใน) เฉพาะ
+  // หน้าเลือกโหมด (renderModeSelect) เท่านั้น — ไม่แตะ .bet-btn (69px) และไม่ตัดข้อความอธิบายโหมด
   const upgradeBtns = `
-    <div class="card">
-      <p class="q">⬆ อัปเกรดช่องนี้ (สำหรับเจ้าของ)</p>
+    <div class="card" style="padding:12px 16px;">
+      <p class="q" style="margin:2px 0 6px;">⬆ อัปเกรดช่องนี้ (สำหรับเจ้าของ)</p>
       <div class="upgrade-links">
         <button class="btn ghost" onclick="location.search='?space=${id}&upgrade=2'">ชำนาญ (L2)</button>
         <button class="btn ghost" onclick="location.search='?space=${id}&upgrade=3'">ผู้เชี่ยวชาญ (L3)</button>
@@ -1380,11 +1415,11 @@ function renderSpace(id, resume) {
     </div>`;
 
   const headerCard = `
-    <div class="card">
-      ${zoneTag(sp.zone)}
-      <h2>${sp.name_th}</h2>
+    <div class="card" style="padding:12px 16px;margin-bottom:6px;">
+      ${zoneTag(sp.zone).replace('style="background', 'style="margin-bottom:4px;background')}
+      <h2 style="margin-bottom:4px;">${sp.name_th}</h2>
       <p class="content" id="spContent"></p>
-      <p style="margin-top:10px;font-size:14px;">ราคา: <span class="price">${sp.price.toLocaleString()} TechCoin</span></p>
+      <p style="margin-top:4px;font-size:14px;">ราคา: <span class="price">${sp.price.toLocaleString()} TechCoin</span></p>
     </div>`;
   const setContent = () => document.getElementById("spContent").textContent =
     sp.content_th.startsWith("📘") ? sp.content_th : "📘 " + sp.content_th;
@@ -1392,8 +1427,8 @@ function renderSpace(id, resume) {
   // ---- 1) หน้าเลือกโหมด (ยังไม่โชว์คำถาม) ----
   function renderModeSelect(toast) {
     const modeCard = l1pool.length ? `
-      <div class="card">
-        <p class="q">เลือกโหมดตอบก่อนเห็นคำถาม:</p>
+      <div class="card" style="padding:12px 16px;margin-bottom:6px;">
+        <p class="q" style="margin:2px 0 6px;">เลือกโหมดตอบก่อนเห็นคำถาม:</p>
         <div class="bet-row">
           <button class="bet-btn active" id="modeNormal">ตอบปกติ
             <small>ถูก ลด ${CONFIG.discount_percent}% · ผิด ราคาเต็ม</small></button>
@@ -1582,7 +1617,7 @@ function buildRouletteWheelSvg(pool) {
   let wedges = "";
   pool.forEach((entry, i) => {
     const a0 = i * seg, a1 = a0 + seg;
-    wedges += `<path d="${rouletteWedgePath(C, C, R_OUT, R_IN, a0, a1)}" fill="${rouletteColor(entry)}" fill-opacity=".82" stroke="#05100C" stroke-width="1.5"/>`;
+    wedges += `<path d="${rouletteWedgePath(C, C, R_OUT, R_IN, a0, a1)}" fill="${rouletteColor(entry)}" fill-opacity=".82" stroke="${colorVar("--surface-deep")}" stroke-width="1.5"/>`;
   });
   return `<svg viewBox="0 0 ${C * 2} ${C * 2}" class="roulette-wheel-svg" aria-hidden="true">
     <g id="rouletteWheelG">${wedges}<circle cx="${C}" cy="${C}" r="${R_IN}" fill="#0D3327" stroke="#1F4A3A" stroke-width="2"/></g>
@@ -1797,6 +1832,7 @@ function renderEvent(zone, resume) {
 // ไม่ใช่ multiplayer จริง — ทุกคนดูจอเดียวกัน แข่งตอบปากเปล่า แล้วคนถือมือถือ
 // กดหมายเลขผู้เล่นที่วงตัดสินว่าตอบถูกไวสุด (state อยู่ในฟังก์ชันนี้ ใช้ครั้งเดียวจบ)
 function renderSpeedEvent(ev, zone, resume) {
+  setHeaderHidden(true);   // Stage V2b FIX-1b: หน้าจับเวลา ยังล้น ≤700 ไม่ได้แม้บีบ margin สุดแล้ว
   // แข่งตอบเร็วด้วยปากเปล่า → ใช้ได้เฉพาะคำถามแบบตัวเลือก (ข้อ "ชี้ตำแหน่ง" อ่านออกเสียงไม่ได้)
   const pool = QUESTIONS.filter(x => !x.qtype);
   const q = (resume && findQuestion(resume.qkey)) || pool[Math.floor(Math.random() * pool.length)];
@@ -1804,21 +1840,23 @@ function renderSpeedEvent(ev, zone, resume) {
     { route: "speed", key: routeKey(), evId: ev.event_id, qkey: qKey(q) }, CONFIG.speed_time_limit);
 
   cancelScreenEnter();   // คำถามต้องโผล่ 0ms — กัน fade ค้างจากหน้าก่อนเข้าเทิร์นนี้
+  // Stage V2 FIX-1: บีบ margin/padding เฉพาะเทมเพลตนี้ (?space=event_* mechanic=speed เท่านั้น)
+  // ให้ปุ่มตัวสุดท้ายเข้าใกล้ 640px มากที่สุดบนจอ 360×640 โดยไม่แตะขนาดปุ่ม/นาฬิกา/ฟอนต์
   screen.innerHTML = `
     <div class="card">
-      ${zoneTag(zone)}
-      <h2>⚡ ${ev.title_th}</h2>
-      ${ev.description_th ? `<p class="content" id="evDesc" style="margin-bottom:8px;"></p>` : ""}
-      <div class="result info" style="margin-bottom:12px;">แข่งตอบเร็ว! ทุกคนตอบพร้อมกันด้วยปากเปล่า —
+      ${zoneTag(zone).replace('style="background', 'style="margin-bottom:1px;background')}
+      <h2 style="margin-bottom:1px;">⚡ ${ev.title_th}</h2>
+      ${ev.description_th ? `<p class="content" id="evDesc" style="margin-bottom:1px;"></p>` : ""}
+      <div class="result info" style="margin:0 0 1px;padding:2px 14px;">แข่งตอบเร็ว! ทุกคนตอบพร้อมกันด้วยปากเปล่า —
         คนที่ตอบถูกและไวที่สุด${effectText(ev.effect)}</div>
       <div id="timerBox"></div>
-      <p class="q" id="qText"></p>
+      <p class="q" id="qText" style="margin:0 0 1px;"></p>
       <div id="choices"></div>
-      <p class="q" style="margin-top:12px;">ใครตอบถูกไวสุด? (วงตัดสินเอง แล้วกดหมายเลข)</p>
-      <div class="speed-players" id="speedPlayers"></div>
+      <p class="q" style="margin:1px 0 1px;">ใครตอบถูกไวสุด? (วงตัดสินเอง แล้วกดหมายเลข)</p>
+      <div class="speed-players" id="speedPlayers" style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px 0;margin:0 -3px 1px;"></div>
       <div id="result"></div>
-      <button class="btn ghost" onclick="Session.clear();Session.allowAgain(routeKey());location.search='?space=event_${zone}'">สุ่มใหม่ (ทดสอบ)</button>
-      <button class="btn" id="speedBack">กลับเมนู</button>
+      <button class="btn ghost" style="margin-top:3px;" onclick="Session.clear();Session.allowAgain(routeKey());location.search='?space=event_${zone}'">สุ่มใหม่ (ทดสอบ)</button>
+      <button class="btn" id="speedBack" style="margin-top:3px;">กลับเมนู</button>
     </div>`;
 
   if (ev.description_th) document.getElementById("evDesc").textContent = ev.description_th;
@@ -1960,14 +1998,16 @@ function renderBugQuestion(diff, resume) {
   let hintUsed = !!(resume && resume.hintUsed);   // เคยกด hint ไปแล้วก็ยังนับว่ากดแล้ว
 
   cancelScreenEnter();   // คำถามต้องโผล่ 0ms — กัน fade ค้างจากหน้าเลือกระดับก่อนหน้า
+  // Stage V2 FIX-2: บีบ margin/padding เฉพาะเทมเพลตนี้ (?space=bugjam เท่านั้น) + code-box จำกัด
+  // max-height ให้เลื่อนเนื้อโค้ดในกล่องได้เอง (โจทย์ยาว 3 บรรทัด) แทนดันหน้าล้น — ไม่แตะขนาดปุ่ม/นาฬิกา/ฟอนต์
   screen.innerHTML = `
     <div class="card">
-      <span class="zone-tag" style="background:var(--bad)">ติดบั๊ก (Bug Jam) · ระดับ${isHard ? "ยาก 💎" : "ง่าย"}</span>
-      <h2>แก้โจทย์ Debug เพื่อออก!</h2>
-      <p class="content" style="font-size:12.5px;margin-bottom:8px;">⚠️ ตอบได้ครั้งเดียว! ผิดหรือหมดเวลา = เสียค่าปรับ ${fine.toLocaleString()} หรือรอทอยรอบหน้า</p>
+      <span class="zone-tag" style="margin-bottom:4px;background:var(--bad)">ติดบั๊ก (Bug Jam) · ระดับ${isHard ? "ยาก 💎" : "ง่าย"}</span>
+      <h2 style="margin-bottom:4px;">แก้โจทย์ Debug เพื่อออก!</h2>
+      <p class="content" style="font-size:12.5px;margin-bottom:4px;">⚠️ ตอบได้ครั้งเดียว! ผิดหรือหมดเวลา = เสียค่าปรับ ${fine.toLocaleString()} หรือรอทอยรอบหน้า</p>
       <div id="timerBox"></div>
-      <div class="code-box" id="bugCode"></div>
-      <p class="q" id="qText"></p>
+      <div class="code-box" id="bugCode" style="max-height:58px;overflow-y:auto;padding:6px 10px;margin-top:-6px;margin-bottom:6px;"></div>
+      <p class="q" id="qText" style="margin:3px 0 6px;"></p>
       <div id="choices"></div>
       ${bug.hint ? `
         <button class="btn ghost" id="hintBtn">💡 ดู hint${isHard
@@ -2243,7 +2283,7 @@ function renderHotspot(q, onAnswer) {
       y: Math.max(vb.width * 0.05, cy - r - 6),
       "text-anchor": "middle", "font-family": "'Kanit',sans-serif",
       "font-size": Math.round(vb.width * 0.045), fill: "#4ADE80",
-      stroke: "#05100C", "stroke-width": 3.5, "paint-order": "stroke",  // ขอบเข้มให้อ่านออกบนลายวงจร
+      stroke: colorVar("--surface-deep"), "stroke-width": 3.5, "paint-order": "stroke",  // ขอบเข้มให้อ่านออกบนลายวงจร
     });
     t.textContent = label;   // ชื่อชิ้นส่วนมาจากข้อมูล — ใส่แบบ text ล้วนเสมอ
     svg.appendChild(t);
@@ -2264,7 +2304,7 @@ function renderHotspot(q, onAnswer) {
     lock();
     svg.appendChild(svgEl("circle", {          // จุดทองตรงที่แตะ ให้รู้ว่าระบบรับแล้ว
       cx: px / 100 * vb.width, cy: py / 100 * vb.height, r: Math.max(4, vb.width * 0.013),
-      fill: "#FBBF24", stroke: "#05100C", "stroke-width": 1.5,
+      fill: "#FBBF24", stroke: colorVar("--surface-deep"), "stroke-width": 1.5,
     }));
     if (!hit) reveal();
     onAnswer(hit, {           // พิกัดเป็น % ของภาพ → เอาไป plot heatmap ว่าเด็กแตะผิดตรงไหนบ่อย
@@ -2302,7 +2342,7 @@ function renderColorWheel(q, onAnswer) {
 
   let wedges = "";
   for (let i = 0; i < 12; i++)
-    wedges += `<path d="${wedge(i * 30, (i + 1) * 30)}" fill="hsl(${i * 30} 78% 55%)" stroke="#05100C" stroke-width="1"/>`;
+    wedges += `<path d="${wedge(i * 30, (i + 1) * 30)}" fill="hsl(${i * 30} 78% 55%)" stroke="${colorVar("--surface-deep")}" stroke-width="1"/>`;
   const ring = info.hue === null ? ""   // วงแหวนทองรอบสีโจทย์ ให้เห็นว่าโจทย์อยู่ตรงไหน
     : `<path d="${wedge(info.hue, info.hue + 30)}" fill="none" stroke="#FBBF24" stroke-width="4"/>`;
 
@@ -2334,7 +2374,7 @@ function renderColorWheel(q, onAnswer) {
     svg.style.cursor = "default";
     svg.appendChild(svgEl("circle", {
       cx: px / 100 * 300, cy: py / 100 * 300, r: 7,
-      fill: "#FBBF24", stroke: "#05100C", "stroke-width": 2,
+      fill: "#FBBF24", stroke: colorVar("--surface-deep"), "stroke-width": 2,
     }));
     if (!hit) svg.appendChild(svgEl("path", {   // เฉลย: กรอบเขียวรอบเสี้ยวที่ถูก
       d: wedge(deg - 15, deg + 15), fill: "none",
@@ -2592,6 +2632,7 @@ function floatBadge(anchorEl, text, positive) {
 
 // ---------- เมนูทดสอบ (แสดงเมื่อเปิดโดยไม่มี ?space=) ----------
 function renderMenu() {
+  setHeaderHidden(false);   // จุดที่ปุ่ม "กลับเมนู" ทุกปุ่มไหลผ่านเสมอ — คืน header ให้เห็นปกติ
   const item = (id, label) =>
     `<div class="menu-item" onclick="location.search='?space=${id}'">${label}<small>${id}</small></div>`;
 
@@ -2695,16 +2736,17 @@ function wireAnswer(colors, vid) {
   return [0];
 }
 
-const WIRE_HEX = { red: "#F87171", green: "#4ADE80", blue: "#38BDF8", yellow: "#FBBF24", white: "#E2E8F0" };
+const WIRE_HEX = { red: "#F87171", green: "#4ADE80", blue: colorVar("--office"), yellow: "#FBBF24", white: "#E2E8F0" };
 
 // หน้าแรก: เลือก/สร้างรหัสร่วม + เลือก role
 function renderRescueLanding() {
   const code0 = Array.from({ length: 4 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.floor(Math.random() * 32)]).join("");
   screen.innerHTML = `
     <div class="card">
-      <span class="zone-tag" style="background:var(--bad)">🚨 Server Error</span>
+      <span class="zone-tag" style="background:var(--gold);color:var(--ink-on-bright)">มินิเกม 2 คน · กู้บั๊กด่วน</span>
       <h2>กู้บั๊กด่วน (Debug Rescue)</h2>
-      <p class="content">มินิเกม 2 คน — <b>ผู้กด</b> เห็นปริศนา · <b>ผู้อ่านคู่มือ</b> เห็นกฎ ห้ามดูจอกัน คุยด้วยปากเปล่าเท่านั้น!</p>
+      <p class="content">ℹ️ เว็บทำงานปกติ นี่คือมินิเกม ไม่ใช่เว็บพัง</p>
+      <p class="content" style="margin-top:8px;">🚨 มินิเกม 2 คน — <b>ผู้กด</b> เห็นปริศนา · <b>ผู้อ่านคู่มือ</b> เห็นกฎ ห้ามดูจอกัน คุยด้วยปากเปล่าเท่านั้น!</p>
       <p class="content" style="margin-top:8px;">1. ตกลงรหัสร่วมกัน 1 ชุด (ทั้งคู่ต้องพิมพ์เหมือนกัน) · 2. แยกกันเลือกบทบาท · 3. กด "เริ่ม" พร้อมกัน</p>
       <input class="rescue-input" id="rescueCode" maxlength="4" value="${code0}" autocomplete="off">
       <p class="content" style="text-align:center;font-size:12px;color:var(--muted);margin-bottom:10px;">รหัสสุ่มให้แล้ว — บอกเพื่อนให้พิมพ์รหัสนี้ หรือพิมพ์รหัสที่ตกลงกันเอง</p>
@@ -2745,19 +2787,22 @@ function rescueTimer(seconds, boxId, onEnd) {
 
 // หน้า solver (ผู้กด) — เห็นปริศนา ตรวจผลเอง
 function renderRescueSolver(code) {
+  setHeaderHidden(true);   // Stage V2b FIX-3b: ต้องการ headroom ≥20px แต่ .wire-row ห้ามลดต่อจาก FIX-3 แล้ว
   const P = CONFIG.debug_rescue.patterns.find(p => p.id === "wire_cut");
   const state = buildWireCut(seededRng(code));
   let step = 0, done = false, timer = null, hinted = false;
 
   cancelScreenEnter();   // นาฬิกาเริ่มทันที — กัน fade ค้างจากหน้าก่อน
+  // Stage V2: FIX-3 (เพิ่ม padding .wire-cut-btn ให้ ≥44px) ทำให้แถวสายไฟสูงขึ้น — บีบ margin
+  // เฉพาะเทมเพลตนี้ (?space=debug_rescue&role=solver) กันหน้าที่จับเวลาล้นจอ ไม่แตะขนาดปุ่มตัด
   screen.innerHTML = `
     <div class="card">
-      <span class="zone-tag" style="background:var(--bad)">🖥 ผู้กด · รหัส ${code}</span>
-      <h2>${P.name} — ตัดให้ถูก!</h2>
-      <p class="content">ฟังผู้อ่านคู่มือบอก แล้วกด "ตัด" ตามลำดับ</p>
+      <span class="zone-tag" style="margin-bottom:2px;background:var(--gold);color:var(--ink-on-bright)">🖥 ผู้กด · รหัส ${code}</span>
+      <h2 style="margin-bottom:2px;">${P.name} — ตัดให้ถูก!</h2>
+      <p class="content" style="margin-bottom:2px;">ฟังผู้อ่านคู่มือบอก แล้วกด "ตัด" ตามลำดับ</p>
       <div id="rTimer"></div>
-      <div id="wires" style="margin:12px 0;"></div>
-      <button class="btn ghost" id="rHint">💡 ขอ hint (เสียเวลา ${Math.round(CONFIG.debug_rescue.hint_time_cut*100)}%)</button>
+      <div id="wires" style="margin:4px 0;"></div>
+      <button class="btn ghost" id="rHint" style="margin-top:4px;">💡 ขอ hint (เสียเวลา ${Math.round(CONFIG.debug_rescue.hint_time_cut*100)}%)</button>
       <div id="rHintBox"></div>
       <div id="rResult"></div>
     </div>`;
@@ -2822,7 +2867,7 @@ function renderRescueGuide(code) {
   cancelScreenEnter();   // นาฬิกาเริ่มทันที — กัน fade ค้างจากหน้าก่อน
   screen.innerHTML = `
     <div class="card">
-      <span class="zone-tag" style="background:var(--gold);color:#05100C">📖 ผู้อ่านคู่มือ · รหัส ${code}</span>
+      <span class="zone-tag" style="background:var(--gold);color:var(--ink-on-bright)">📖 ผู้อ่านคู่มือ · รหัส ${code}</span>
       <h2>${P.name} — คู่มือ</h2>
       <p class="content">อ่านกฎให้ผู้กดฟัง ถามสีเส้นที่เขาเห็น แล้วบอกว่าให้ตัดเส้นไหน (ห้ามดูจอผู้กด!)</p>
       <div id="rTimer"></div>
@@ -2855,7 +2900,7 @@ function renderCoolingBoss() {
   if (!CONFIG.bossfight_enabled) {
     screen.innerHTML = `
       <div class="card">
-        <span class="zone-tag" style="background:#38BDF8">จุดพักเครื่อง (Cooling Zone)</span>
+        <span class="zone-tag" style="background:var(--office)">จุดพักเครื่อง (Cooling Zone)</span>
         <h2>❄️ พักเครื่อง</h2>
         <div class="result info">รับเงินกองกลางทั้งหมดจากกลางกระดาน (กติกาดั้งเดิม — บอสไฟต์ปิดอยู่)</div>
         <button class="btn" onclick="renderMenu()">กลับเมนู</button>
@@ -2917,7 +2962,7 @@ function renderMeltdownJoin(pre) {
     if (count && slot > count) slot = 0;   // ลดจำนวนคนแล้วเลขเดิมเกิน — ล้างให้เลือกใหม่
     screen.innerHTML = `
       <div class="card">
-        <span class="zone-tag" style="background:#38BDF8">จุดพักเครื่อง (Cooling Zone)</span>
+        <span class="zone-tag" style="background:var(--office)">จุดพักเครื่อง (Cooling Zone)</span>
         <h2>🔥 SERVER MELTDOWN</h2>
         <p class="content"><b>ทุกคนหยิบมือถือขึ้นมาสแกน QR ช่องนี้ — ไม่ใช่เฉพาะคนที่หยุด!</b>
           บอสมีพลังชีวิตร่วมกันทั้งโต๊ะ · <b>ตอบถูก 1 ข้อ = ฟันบอส 1 แต้ม</b></p>
@@ -2966,7 +3011,7 @@ function renderMeltdownReady(cfg) {
   const target = meltdownTarget(cfg.count);
   screen.innerHTML = `
     <div class="card">
-      <span class="zone-tag" style="background:#38BDF8">รอบ ${cfg.round} · คุณคือผู้เล่น ${cfg.slot}/${cfg.count}</span>
+      <span class="zone-tag" style="background:var(--office)">รอบ ${cfg.round} · คุณคือผู้เล่น ${cfg.slot}/${cfg.count}</span>
       <h2>🔥 SERVER MELTDOWN</h2>
       <div class="result info">🎯 เป้าหมายทีม: ฟันบอสให้ครบ <b>${target}</b> แต้ม ใน ${C.seconds} วินาที</div>
       <p class="content" style="margin-top:10px;">คำถามของแต่ละคน<b>คนละชุด</b> — ชำเลืองจอเพื่อนไม่ได้ช่วยอะไร
@@ -3023,7 +3068,7 @@ function renderMeltdownFight(st) {
   cancelScreenEnter();
   screen.innerHTML = `
     <div class="card">
-      <span class="zone-tag" style="background:#38BDF8">🔥 SERVER MELTDOWN · รอบ ${st.round}</span>
+      <span class="zone-tag" style="background:var(--office)">🔥 SERVER MELTDOWN · รอบ ${st.round}</span>
       <div id="timerBox"></div>
       <div class="hp-wrap">
         <div class="hp-row">
@@ -3189,7 +3234,7 @@ function renderMeltdownSummary(r, target) {
   const share = Math.ceil(target / r.count);   // "ส่วนของตัวเอง" ไว้ตัดสินว่าควรฉลองไหม
   screen.innerHTML = `
     <div class="card">
-      <span class="zone-tag" style="background:#38BDF8">บอสไฟต์จบแล้ว · รอบ ${r.round}</span>
+      <span class="zone-tag" style="background:var(--office)">บอสไฟต์จบแล้ว · รอบ ${r.round}</span>
       <h2>⏱ หมดเวลา!</h2>
       <p class="content" style="text-align:center;margin-top:8px;">ดาเมจของคุณ</p>
       <div class="big-num">${r.damage}</div>
@@ -3221,7 +3266,7 @@ function renderCoolingWirecut() {
 
   screen.innerHTML = `
     <div class="card">
-      <span class="zone-tag" style="background:#38BDF8">จุดพักเครื่อง (Cooling Zone)</span>
+      <span class="zone-tag" style="background:var(--office)">จุดพักเครื่อง (Cooling Zone)</span>
       <h2>🚨 บอสไฟต์: กู้บั๊กด่วนทั้งวง!</h2>
       <p class="content"><b>ทุกคนหยิบมือถือขึ้นมาสแกน QR ช่องนี้ — ไม่ใช่เฉพาะคนที่หยุด!</b>
         ใครแก้บั๊กทันเวลา ได้ส่วนแบ่งจากกองกลาง 💰</p>
@@ -3240,7 +3285,7 @@ function renderCoolingWirecut() {
 function renderCoolingReady(round) {
   screen.innerHTML = `
     <div class="card">
-      <span class="zone-tag" style="background:#38BDF8">บอสไฟต์ · รอบ ${round}</span>
+      <span class="zone-tag" style="background:var(--office)">บอสไฟต์ · รอบ ${round}</span>
       <h2>พร้อมยัง?</h2>
       <p class="content">รอทุกคนมาถึงหน้านี้ แล้วนับ 3-2-1 กด "เริ่ม" พร้อมกันทั้งวง —
         เวลา <b>${CONFIG.bossfight_time} วินาที</b> เท่ากันทุกเครื่อง</p>
@@ -3260,7 +3305,7 @@ function renderCoolingPlay(round) {
   cancelScreenEnter();   // นาฬิกาเริ่มทันที — กัน fade ค้างจากหน้าพร้อมยัง? ก่อนหน้า
   screen.innerHTML = `
     <div class="card">
-      <span class="zone-tag" style="background:#38BDF8">บอสไฟต์ · รอบ ${round}</span>
+      <span class="zone-tag" style="background:var(--office)">บอสไฟต์ · รอบ ${round}</span>
       <h2>ตัดสายไฟตามกฎ!</h2>
       <div id="rTimer"></div>
       <div class="rescue-guide" style="margin:10px 0;">📋 กฎ: ${state.variant.guide_text}</div>
@@ -3389,6 +3434,7 @@ function renderRescanGate(sec) {
 }
 
 function dispatch() {
+  setHeaderHidden(false);   // ค่าเริ่มต้นทุก route คือ header โชว์ — 3 ฟังก์ชันที่ต้องซ่อนจะสั่ง true เองที่ต้นฟังก์ชัน
   if (!param) renderMenu();
   else if (param === "bugjam") renderBugjam();
   else if (param === "debug_rescue") renderDebugRescue();
