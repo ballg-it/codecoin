@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CodeCoin Dashboard</title>
+<style>
+:root{
+  --bg:#05100C; --panel:#0c1d16; --line:#1c3a2d; --text:#e6f2ea; --mute:#8fae9c;
+  --gold:#f5c542; --ok:#4cd58a; --warn:#f0a23b; --bad:#ef5b5b;
+  --coding:#4cc9f0; --office:#f5c542; --design:#e879f9; --hardware:#4cd58a;
+}
+@media (prefers-color-scheme: light){
+  :root{ --bg:#f3f7f4; --panel:#fff; --line:#d5e3da; --text:#10261b; --mute:#587064;
+    --gold:#a67c00; --ok:#1a8f52; --warn:#b36b00; --bad:#c62f2f;
+    --coding:#0b7fa6; --office:#a67c00; --design:#a21caf; --hardware:#1a8f52; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,"Noto Sans Thai",sans-serif}
+.wrap{max-width:1100px;margin:0 auto;padding:20px 16px 48px}
+header{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;justify-content:space-between;margin-bottom:16px}
+h1{margin:0;font-size:24px}
+h1 span{color:var(--gold)}
+.meta{color:var(--mute);font-size:13px}
+.meta a{color:var(--gold)}
+h2{font-size:15px;margin:0 0 12px;color:var(--mute);font-weight:600;letter-spacing:.02em}
+.grid{display:grid;gap:12px}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:12px}
+.two{grid-template-columns:repeat(auto-fit,minmax(320px,1fr));margin-bottom:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.kpi b{display:block;font-size:30px;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi small{color:var(--mute)}
+.tag{display:inline-block;font-size:12px;padding:1px 8px;border-radius:99px;border:1px solid var(--line);color:var(--mute)}
+.tag.ok{color:var(--ok);border-color:var(--ok)} .tag.warn{color:var(--warn);border-color:var(--warn)}
+.tag.bad{color:var(--bad);border-color:var(--bad)}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--line);font-size:14px}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--mute);font-weight:600}
+tr:last-child td{border-bottom:0}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.bar{height:10px;border-radius:5px;background:var(--line);overflow:hidden;min-width:60px}
+.bar i{display:block;height:100%}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--mute);margin-bottom:8px}
+.task{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.task:last-child{border:0}
+.task .id{flex:none;width:26px;height:26px;border-radius:6px;display:grid;place-items:center;font-weight:700;font-size:13px;background:var(--line)}
+.task p{margin:2px 0 0;color:var(--mute);font-size:13px}
+.commit{display:flex;gap:10px;font-size:13px;padding:4px 0}
+.commit code{color:var(--gold)} .commit time{color:var(--mute);flex:none}
+.scroll{overflow-x:auto}
+.overall{display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.ring{position:relative;width:132px;height:132px;flex:none}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font-size:32px;font-variant-numeric:tabular-nums}
+.ring b span{font-size:16px;color:var(--mute)}
+.ov-text{flex:1;min-width:220px}
+.ov-text h2{margin-bottom:4px}
+.ov-text p{margin:2px 0;color:var(--mute);font-size:13px}
+.ov-text strong{color:var(--text);font-size:18px}
+.sec-grid{grid-template-columns:repeat(auto-fit,minmax(320px,1fr));margin-bottom:12px}
+.sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.sec-head b{font-size:16px}
+.sec-head .pct{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.sec small{color:var(--mute)}
+.pbar{height:10px;border-radius:5px;background:var(--line);margin:8px 0 6px;overflow:hidden}
+.pbar i{display:block;height:100%;border-radius:5px;background:var(--ok)}
+.sec details{margin-top:6px}
+.sec summary{cursor:pointer;color:var(--mute);font-size:13px}
+.sec ul{list-style:none;margin:8px 0 0;padding:0}
+.sec li{display:flex;gap:8px;font-size:13px;padding:3px 0}
+.sec li .ck{flex:none;width:16px;text-align:center;color:var(--ok)}
+.sec li.todo{color:var(--mute)} .sec li.todo .ck{color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+const D = /*__DATA__*/null;
+const $ = (h) => h;
+const zc = (z) => `var(--${z})`;
+const n = (x) => x.toLocaleString("th-TH");
+const sum = (o) => Object.values(o).reduce((a, b) => a + b, 0);
+
+function kpi(label, value, sub) {
+  return `<div class="card kpi"><small>${label}</small><b>${value}</b><small>${sub || ""}</small></div>`;
+}
+
+function matrix() {
+  const max = Math.max(...D.zones.flatMap(z => D.levels.map(l => D.matrix[z.id][l])));
+  const head = D.levels.map(l => `<th>L${l}</th>`).join("");
+  const rows = D.zones.map(z => {
+    const v = D.levels.map(l => D.matrix[z.id][l]);
+    return `<tr><td><span class="dot" style="background:${zc(z.id)}"></span>${z.name}</td>` +
+      v.map(x => `<td style="background:color-mix(in srgb, ${zc(z.id)} ${Math.round(x / max * 45)}%, transparent)">${x}</td>`).join("") +
+      `<td><b>${v.reduce((a, b) => a + b, 0)}</b></td></tr>`;
+  }).join("");
+  return `<table><tr><th>โซน</th>${head}<th>รวม</th></tr>${rows}</table>`;
+}
+
+function events() {
+  const mech = [...new Set(D.zones.flatMap(z => Object.keys(D.events[z.id])))];
+  const head = mech.map(m => `<th>${m}</th>`).join("");
+  const rows = D.zones.map(z =>
+    `<tr><td><span class="dot" style="background:${zc(z.id)}"></span>${z.name}</td>` +
+    mech.map(m => `<td>${D.events[z.id][m] || 0}</td>`).join("") +
+    `<td><b>${sum(D.events[z.id])}</b></td></tr>`).join("");
+  return `<table><tr><th>โซน</th>${head}<th>รวม</th></tr>${rows}</table>`;
+}
+
+function economy() {
+  const maxPrice = Math.max(...D.spaces.map(s => s.price));
+  const rows = D.spaces.map(s =>
+    `<tr><td><span class="dot" style="background:${zc(s.zone)}"></span>${s.name}</td>` +
+    `<td>${n(s.price)}</td><td>${s.rent.map(n).join(" / ")}</td><td>${n(s.upgrade)}</td>` +
+    `<td style="width:90px"><div class="bar"><i style="width:${s.price / maxPrice * 100}%;background:${zc(s.zone)}"></i></div></td></tr>`
+  ).join("");
+  return `<div class="scroll"><table><tr><th>ช่อง</th><th>ราคา</th><th>ค่าเช่า L0–L3</th><th>อัปเกรด</th><th></th></tr>${rows}</table></div>`;
+}
+
+function backlog() {
+  const cls = { block: "bad", mid: "warn", low: "" };
+  const lab = { block: "บล็อกโรงพิมพ์", mid: "ปานกลาง", low: "optional" };
+  return D.backlog.map(t =>
+    `<div class="task"><div class="id">${t.id}</div><div><b>${t.title}</b> <span class="tag ${cls[t.level]}">${lab[t.level]}</span><p>${t.note}</p></div></div>`
+  ).join("");
+}
+
+function progress() {
+  const P = D.progress, R = 56, C = 2 * Math.PI * R;
+  const ring = `<div class="ring"><svg viewBox="0 0 132 132"><circle cx="66" cy="66" r="${R}" fill="none" stroke="var(--line)" stroke-width="12"/>` +
+    `<circle cx="66" cy="66" r="${R}" fill="none" stroke="var(--gold)" stroke-width="12" stroke-linecap="round" stroke-dasharray="${C * P.pct / 100} ${C}"/></svg>` +
+    `<b>${P.pct}<span>%</span></b></div>`;
+  const top = `<div class="card overall">${ring}<div class="ov-text"><h2>ความคืบหน้าทั้งโปรเจค</h2>` +
+    `<p><strong>${P.done} / ${P.total}</strong> รายการเสร็จแล้ว · เหลือ ${P.total - P.done}</p>` +
+    `<p>เฉลี่ยรายหัวข้อ (ให้ทุกหัวข้อน้ำหนักเท่ากัน) = ${P.avg_pct}%</p>` +
+    `<p>คิดจาก checklist น้ำหนักเท่ากันทุกรายการ — เป็นการประเมินจากจำนวนรายการ ไม่ใช่จำนวนชั่วโมงแรง</p></div></div>`;
+  const secs = P.sections.map(s => `<div class="card sec"><div class="sec-head"><b>${s.name}</b><span class="pct">${s.pct}%</span></div>` +
+    `<small>${s.sub} · ${s.done}/${s.total} รายการ</small><div class="pbar"><i style="width:${s.pct}%"></i></div>` +
+    `<details${s.pct < 100 ? " open" : ""}><summary>รายการ</summary><ul>` +
+    s.items.map(i => `<li class="${i.done ? "" : "todo"}"><span class="ck">${i.done ? "✓" : "○"}</span><span>${i.label}</span></li>`).join("") +
+    `</ul></details></div>`).join("");
+  return top + `<div class="grid sec-grid">${secs}</div>`;
+}
+
+const t = D.totals;
+document.getElementById("app").innerHTML = `
+<header>
+  <h1>Code<span>Coin</span> Dashboard</h1>
+  <div class="meta">REV ${D.rev} · cache v${D.cache} · <a href="${D.site}" target="_blank" rel="noopener">เว็บจริง</a> · สร้างเมื่อ ${D.generated}</div>
+</header>
+${progress()}
+<div class="grid kpis">
+  ${kpi("ช่องทรัพย์สิน", t.spaces, "4 โซน × 4 ช่อง")}
+  ${kpi("คำถาม", t.questions, "L1–L4")}
+  ${kpi("Events", t.events, "โซนละ 5")}
+  ${kpi("Bug Jam", t.bugjam, Object.entries(D.bugjam).map(([k, v]) => `${k} ${v}`).join(" · "))}
+  ${kpi("QR พร้อมพิมพ์", t.qr, "ใน print/qr_output")}
+  ${kpi("เก็บสถิติผู้เล่น", D.log_ready ? "เปิด" : "ปิด", D.log_ready ? "log_url ตั้งแล้ว" : "ยังไม่ตั้ง log_url")}
+</div>
+<div class="grid two">
+  <div class="card"><h2>คำถามต่อโซน × ระดับ</h2>${matrix()}</div>
+  <div class="card"><h2>Events ต่อโซน × กลไก</h2>${events()}</div>
+</div>
+<div class="grid two">
+  <div class="card"><h2>งานค้าง</h2>${backlog()}</div>
+  <div class="card"><h2>Commit ล่าสุด</h2>${D.commits.map(c =>
+    `<div class="commit"><code>${c.hash}</code><span>${c.subject.replace(/</g, "&lt;")}</span><time>${c.date}</time></div>`).join("")}</div>
+</div>
+<div class="card"><h2>เศรษฐกิจรายช่อง</h2>${economy()}</div>
+`;
+</script>
+</body>
+</html>

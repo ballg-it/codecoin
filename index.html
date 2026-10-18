@@ -1510,7 +1510,9 @@ function renderSpace(id, resume) {
   // ---- การ์ดคำถาม (ใช้ทั้ง 2 โหมด) time_limit มาจากตัวคำถามเอง (L4 = 25 วิ) ----
   function startQuiz(mode, q, level, toast, sess) {
     // จดสถานะไว้ก่อนเริ่มจับเวลา — refresh แล้วกลับมาได้ข้อเดิม เวลาที่เหลือเท่าเดิม
-    sess = sess || Session.begin({ route: "space", key: routeKey(), mode, level, qkey: qKey(q) }, q.time_limit);
+    const sh = shuffledQuestion(q, sess && sess.order);
+    q = sh.q;
+    sess = sess || Session.begin({ route: "space", key: routeKey(), mode, level, qkey: qKey(q), order: sh.order }, q.time_limit);
     cancelScreenEnter();   // คำถามต้องโผล่ 0ms — กัน fade ค้างจากหน้าเลือกโหมดก่อนหน้า
     screen.innerHTML = `
       <div class="card">
@@ -1747,8 +1749,10 @@ function renderUpgrade(id, level, resume) {
   }
 
   // refresh กลางคัน → ใช้คำถามข้อเดิม (ไม่ใช่สุ่มใหม่) แล้วนับเวลาต่อจาก deadline เดิม
-  const q = (resume && findQuestion(resume.qkey)) || pool[Math.floor(Math.random() * pool.length)];
-  const sess = resume || Session.begin({ route: "upgrade", key: routeKey(), level, qkey: qKey(q) }, q.time_limit);
+  const q0 = (resume && findQuestion(resume.qkey)) || pool[Math.floor(Math.random() * pool.length)];
+  const sh = shuffledQuestion(q0, resume && resume.order);
+  const q = sh.q;
+  const sess = resume || Session.begin({ route: "upgrade", key: routeKey(), level, qkey: qKey(q0), order: sh.order }, q.time_limit);
   cancelScreenEnter();   // คำถามต้องโผล่ 0ms — กัน fade ค้างจากกล่องตั้งเลขผู้เล่นที่อาจเพิ่งปิดไป
   screen.innerHTML = infoCard + `
     <div class="card">
@@ -1980,6 +1984,15 @@ function shuffleOrderSeeded(n, rng) {
 function shuffledBug(bug, timeLimit, order) {
   const idx = order || shuffleOrder(bug.choices.length);
   return { ...bug, choices: idx.map(i => bug.choices[i]), answer: idx.indexOf(bug.answer), time_limit: timeLimit };
+}
+
+// สลับตัวเลือกของคำถามปรนัยปกติ (ซื้อ/อัปเกรด) + รีแมปเฉลย — ข้อมูลต้นทางเฉลยกระจุกตำแหน่ง A และตัวที่ยาวสุด
+// คืน {q, order}: order ไว้เก็บลง Session เพื่อให้ refresh แล้วเรียงเหมือนเดิม; คำถามชี้ตำแหน่ง (ไม่มี choices) คืนค่าเดิม
+function shuffledQuestion(q, order) {
+  const n = Array.isArray(q.choices) ? q.choices.length : 0;
+  if (n < 2 || typeof q.answer !== "number") return { q, order: null };
+  const idx = (order && order.length === n) ? order : shuffleOrder(n);
+  return { q: { ...q, choices: idx.map(i => q.choices[i]), answer: idx.indexOf(q.answer) }, order: idx };
 }
 
 // โจทย์ Bug Jam หนึ่งข้อตามระดับที่เลือก — 1 เทิร์นตอบได้ครั้งเดียว (ปุ่มล็อกหลังตอบ)
