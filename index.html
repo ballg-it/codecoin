@@ -291,6 +291,23 @@
     font-family:'Kanit',sans-serif; font-size:13px; padding:12px 12px; cursor:pointer;
   }
   .wire-cut-btn:disabled { opacity:.4; cursor:default; }
+  /* คีย์แพด / จับคู่คำสั่ง / ด่านรวม */
+  .kp-display {
+    font-family:'Kanit',sans-serif; font-size:28px; text-align:center; letter-spacing:6px;
+    background:var(--surface-deep); border:1px solid var(--line); border-radius:10px;
+    padding:6px; margin:4px 0; min-height:48px;
+  }
+  .kp-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:4px 0; }
+  .kp-grid.two { grid-template-columns:repeat(2,1fr); }
+  .kp-key {
+    background:var(--panel-2); border:2px solid var(--line); border-radius:10px; color:var(--text);
+    font-family:'Kanit',sans-serif; font-size:20px; min-height:44px; cursor:pointer;
+  }
+  .kp-key:disabled { opacity:.4; cursor:default; }
+  .kp-key.used { opacity:.35; }
+  .kp-key.act { border-color:var(--gold); color:var(--gold); }
+  .kp-cmd { font-family:monospace; font-size:16px; }
+  .kp-stage { font-size:12px; color:var(--muted); text-align:center; margin:2px 0; }
   .rescue-guide {
     background:var(--bg-active); border:1px solid var(--gold); border-radius:12px;
     padding:16px; font-size:16px; line-height:1.7; color:var(--ink-warn);
@@ -450,6 +467,7 @@
 <button class="mute-btn" id="muteBtn" title="เปิด/ปิดเสียง">🔊</button>
 <div class="net-badge" id="netBadge">⚡ โหมดออฟไลน์</div>
 
+<script src="qrcode.js"></script>
 <script>
 /* =====================================================================
    ⚙️ ส่วนที่ 1: ข้อมูลสำรอง (FALLBACK)
@@ -581,6 +599,7 @@ const CONFIG = {
   debug_rescue: {
     reward: 200,   // สำเร็จ: โบนัสให้ทั้ง 2 คน (คงที่ ไม่ผูกราคาช่อง)
     penalty: 100,  // ไม่สำเร็จ: โทษเบา ๆ เท่ากันทั้งคู่
+    lobby_sec: 45,        // สร้างห้องแล้วนับถอยหลังกี่วินาทีก่อนเริ่มพร้อมกัน (เผื่อเวลาส่งลิงก์ให้เพื่อน)
     hint_time_cut: 0.30,  // กดขอ hint แล้วตัดเวลาที่เหลือ 30%
     patterns: [
       {
@@ -594,22 +613,36 @@ const CONFIG = {
           { id: "v4", guide_text: "ตัดเส้นที่สีไม่ใช่แดงและไม่ใช่เขียว เรียงจากซ้ายไปขวา 2 เส้น (ตามลำดับ)" },
         ],
       },
-      // ---- ต่อไปนี้วางโครงไว้ (config พร้อม แต่ยังไม่เปิดให้เล่นรอบนี้) ----
-      { id: "keypad", name: "ป้อนรหัสคีย์แพด", time_limit: 55, min_players: 2, enabled: false,
+      // keypad: ผู้กดเห็นไอคอน/ตัวเลข/กรอบสี ผู้อ่านคู่มือเห็นกฎแปลง
+      { id: "keypad", name: "ป้อนรหัสคีย์แพด", time_limit: 55, min_players: 2,
+        icons: { key: "🔑", rocket: "🚀", star: "⭐", heart: "❤️" },
+        icon_digits: { key: 7, rocket: 3, star: 9, heart: 1 },   // ตารางเดียวกับ guide_text v1
+        frame_colors: ["red", "green", "blue", "yellow"],         // ลำดับกดของ v3
         rule_variants: [
-          { id: "v1", guide_text: "ตารางไอคอน→เลข: กุญแจ=7, จรวด=3, ดาว=9, หัวใจ=1" },
-          { id: "v2", guide_text: "รหัสคือผลรวมเลขคี่ทั้งหมดบนปุ่ม บวก 1" },
-          { id: "v3", guide_text: "กดปุ่มตามลำดับกรอบสี: แดง → เขียว → น้ำเงิน → เหลือง" },
+          { id: "v1", guide_text: "ตารางไอคอน→เลข: กุญแจ=7, จรวด=3, ดาว=9, หัวใจ=1 — ให้ผู้กดอ่านไอคอนทีละตัวตามลำดับ แล้วบอกเลขที่ต้องกด" },
+          { id: "v2", guide_text: "รหัสคือผลรวมของเลขคี่ทั้งหมดบนปุ่ม บวก 1 — ถามผู้กดว่าบนจอมีเลขอะไรบ้าง แล้วบอกรหัสที่ต้องพิมพ์" },
+          { id: "v3", guide_text: "กดปุ่มตามลำดับกรอบสี: แดง → เขียว → น้ำเงิน → เหลือง — ผู้กดต้องบอกว่าปุ่มไหนมีกรอบสีอะไร" },
         ] },
-      { id: "command_match", name: "จับคู่คำสั่ง", time_limit: 55, min_players: 2, enabled: false,
+      // command_match: ผู้กดเห็นคำสั่ง 5 ตัว ผู้อ่านคู่มือเห็น "ภารกิจ" 3 ข้อ ต้องกดคำสั่งตามลำดับภารกิจ
+      { id: "command_match", name: "จับคู่คำสั่ง", time_limit: 55, min_players: 2,
         commands: ["print()", "len()", "sort()", "input()", "range()"],
+        mission_count: 3,
+        command_info: {
+          "print()": { meaning: "แสดงข้อความออกหน้าจอ", initial: "p", riddle: "ใช้พูดให้คอมพิวเตอร์โชว์ข้อความ" },
+          "len()":   { meaning: "นับความยาว",           initial: "l", riddle: "ใช้ถามว่าข้อความนี้ยาวกี่ตัวอักษร" },
+          "sort()":  { meaning: "เรียงลำดับ",           initial: "s", riddle: "ใช้จัดรายการที่ยุ่งเหยิงให้เป็นระเบียบ" },
+          "input()": { meaning: "รับค่าจากผู้ใช้",       initial: "i", riddle: "ใช้ถามผู้ใช้แล้วรอให้พิมพ์ตอบ" },
+          "range()": { meaning: "สร้างช่วงตัวเลข",       initial: "r", riddle: "ใช้สร้างเลขเรียงกัน เช่น 0 ถึง 9" },
+        },
         rule_variants: [
-          { id: "v1", guide_text: "print()=แสดงข้อความ, len()=นับความยาว, sort()=เรียงลำดับ, input()=รับค่า, range()=สร้างช่วงตัวเลข" },
-          { id: "v2", guide_text: "จับคู่คำสั่งที่ขึ้นต้นด้วยตัวอักษรเดียวกันกับผลลัพธ์" },
-          { id: "v3", guide_text: "ใบ้อ้อม ทีละคำสั่ง ไม่บอกชื่อฟังก์ชันตรง ๆ" },
+          { id: "v1", guide_text: "อ่าน 'หน้าที่' ของแต่ละภารกิจให้ผู้กดฟังตามลำดับ (ห้ามบอกชื่อคำสั่งตรง ๆ) แล้วให้เขากดคำสั่งที่ตรงกัน" },
+          { id: "v2", guide_text: "อ่าน 'หน้าที่' พร้อมบอกตัวอักษรขึ้นต้นของคำสั่งทีละภารกิจ ให้ผู้กดกดคำสั่งตามลำดับ" },
+          { id: "v3", guide_text: "ใบ้อ้อมทีละภารกิจ ไม่บอกชื่อฟังก์ชันตรง ๆ — อ่านคำใบ้ให้ผู้กดฟังแล้วให้เขากดตามลำดับ" },
         ] },
+      // final_boss: ต่อเนื่อง 2 ด่าน (ตัดสายไฟ → คีย์แพด) ใน 90 วิ ใช้ได้ครั้งเดียวต่อเกม
+      // (ไม่มี backend → จำว่าใช้แล้วด้วย localStorage ของเครื่อง ปลดล็อกได้จากหน้าเลือก)
       { id: "final_boss", name: "กู้ระบบขั้นสุด", time_limit: 90, min_players: 2, max_players: 3,
-        enabled: false, combines: ["wire_cut", "keypad"], one_time_per_game: true },
+        combines: ["wire_cut", "keypad"], one_time_per_game: true },
     ],
   },
 };
@@ -2751,32 +2784,225 @@ function wireAnswer(colors, vid) {
 
 const WIRE_HEX = { red: "#F87171", green: "#4ADE80", blue: colorVar("--office"), yellow: "#FBBF24", white: "#E2E8F0" };
 
-// หน้าแรก: เลือก/สร้างรหัสร่วม + เลือก role
+// ---------- ปริศนาของ pattern อื่น (ทุกตัวสร้างจาก seed เดียวกัน → ผลตรงกันทั้ง 2 เครื่อง) ----------
+const rescuePattern = id => CONFIG.debug_rescue.patterns.find(p => p.id === id);
+const rescuePatternOn = id => { const p = rescuePattern(id); return !!p && p.enabled !== false; };
+const FINAL_BOSS_KEY = "cc_final_boss_used";   // final_boss เล่นได้ครั้งเดียวต่อเกม — จำไว้ในเครื่อง (ไม่มี backend)
+const finalBossUsed = () => { try { return localStorage.getItem(FINAL_BOSS_KEY) === "1"; } catch (e) { return false; } };
+
+// คีย์แพด 3 แบบ: v1 ไอคอน→เลข · v2 ผลรวมเลขคี่+1 · v3 กดตามลำดับสีกรอบ
+function buildKeypad(rng) {
+  const P = rescuePattern("keypad");
+  const variant = P.rule_variants[rngInt(rng, 0, P.rule_variants.length - 1)];
+  if (variant.id === "v1") {
+    const keys = Object.keys(P.icons);
+    const order = shuffleOrderSeeded(keys.length, rng).map(i => keys[i]);
+    return { variant, kind: "digits", shown: order.map(k => P.icons[k]),
+             answer: order.map(k => String(P.icon_digits[k])).join("") };
+  }
+  if (variant.id === "v2") {
+    let nums;
+    do { nums = shuffleOrderSeeded(9, rng).slice(0, 5).map(i => i + 1); }
+    while (!nums.some(n => n % 2));   // ต้องมีเลขคี่อย่างน้อย 1 ตัว ไม่งั้นกฎคลุมเครือ
+    const sum = nums.filter(n => n % 2).reduce((a, b) => a + b, 0);
+    return { variant, kind: "digits", shown: nums.map(String), answer: String(sum + 1) };
+  }
+  const nums = shuffleOrderSeeded(9, rng).slice(0, 4).map(i => i + 1);
+  const colors = shuffleOrderSeeded(4, rng).map(i => P.frame_colors[i]);
+  const keys = nums.map((n, i) => ({ label: String(n), color: colors[i] }));
+  return { variant, kind: "colors", keys,
+           answer: P.frame_colors.map(c => keys.findIndex(k => k.color === c)) };
+}
+
+// จับคู่คำสั่ง: ผู้กดเห็นคำสั่ง 5 ตัว (สลับที่) · ผู้อ่านคู่มือเห็น "ภารกิจ" ลำดับหนึ่ง → ต้องกดตามลำดับ
+function buildCommandMatch(rng) {
+  const P = rescuePattern("command_match");
+  const variant = P.rule_variants[rngInt(rng, 0, P.rule_variants.length - 1)];
+  const shown = shuffleOrderSeeded(P.commands.length, rng).map(i => P.commands[i]);
+  const missions = shuffleOrderSeeded(P.commands.length, rng).slice(0, P.mission_count).map(i => P.commands[i]);
+  return { variant, shown, missions, answer: missions.map(m => shown.indexOf(m)) };
+}
+
+// คืนรายการด่าน [{pid, state}] — wire_cut ใช้ seed = code ตรง ๆ เหมือนเดิม (ลิงก์/QR เก่ายังได้ปริศนาเดิม)
+function buildRescue(pid, code) {
+  if (pid === "keypad") return [{ pid, state: buildKeypad(seededRng(code + ":keypad")) }];
+  if (pid === "command_match") return [{ pid, state: buildCommandMatch(seededRng(code + ":cmd")) }];
+  if (pid === "final_boss")
+    return [{ pid: "wire_cut", state: buildWireCut(seededRng(code + ":fw")) },
+            { pid: "keypad", state: buildKeypad(seededRng(code + ":fk")) }];
+  return [{ pid: "wire_cut", state: buildWireCut(seededRng(code)) }];
+}
+
+// ---------- ตัวแสดงผลฝั่งผู้กดของแต่ละ pattern ----------
+// box = กล่องว่างให้วาด · api.step() = กดถูกแต่ยังไม่จบ · api.pass(i) = ด่านนี้จบ · api.fail(i) = พลาด (ล่มทันที)
+function mountWireCut(box, state, api) {
+  let step = 0;
+  state.colors.forEach((c, i) => {
+    const row = document.createElement("div");
+    row.className = "wire-row";
+    row.innerHTML = `<span class="wire-idx">${i + 1}</span>
+      <div class="wire-bar" style="background:${WIRE_HEX[c]}"></div>
+      <button class="wire-cut-btn">✂ ตัด</button>`;
+    row.querySelector("button").onclick = () => {
+      if (row.classList.contains("cut")) return;
+      row.classList.add("cut");
+      row.querySelector("button").disabled = true;
+      if (i === state.answer[step]) {
+        step++;
+        if (step >= state.answer.length) api.pass(i); else api.step();
+      } else api.fail(i);   // ตัดผิดเส้น = ล่มทันที
+    };
+    box.appendChild(row);
+  });
+}
+
+function mountKeypad(box, state, api) {
+  if (state.kind === "colors") {
+    let step = 0;
+    box.innerHTML = `<div class="kp-grid two"></div>`;
+    const grid = box.firstChild;
+    state.keys.forEach((k, i) => {
+      const b = document.createElement("button");
+      b.className = "kp-key";
+      b.style.borderColor = WIRE_HEX[k.color];   // กรอบสี = ข้อมูลที่ guide ต้องใช้ ไม่ใช่สถานะผิดถูก
+      b.textContent = k.label;
+      b.onclick = () => {
+        if (b.classList.contains("used")) return;
+        b.classList.add("used"); b.disabled = true;
+        if (i === state.answer[step]) {
+          step++;
+          if (step >= state.answer.length) api.pass(null); else api.step();
+        } else api.fail(null);
+      };
+      grid.appendChild(b);
+    });
+    return;
+  }
+  let entered = "";
+  box.innerHTML = `
+    <div class="kp-display" id="kpShow">${state.shown.join("  ")}</div>
+    <div class="kp-display" id="kpIn" style="font-size:24px;min-height:40px;">&nbsp;</div>
+    <div class="kp-grid" id="kpPad"></div>`;
+  const inEl = box.querySelector("#kpIn");
+  const paint = () => { inEl.innerHTML = entered || "&nbsp;"; };
+  const key = (label, fn, cls) => {
+    const b = document.createElement("button");
+    b.className = "kp-key" + (cls ? " " + cls : "");
+    b.textContent = label; b.onclick = fn;
+    box.querySelector("#kpPad").appendChild(b);
+  };
+  for (let d = 1; d <= 9; d++) key(String(d), () => { if (entered.length < 4) { entered += d; paint(); } });
+  key("⌫", () => { entered = entered.slice(0, -1); paint(); });
+  key("0", () => { if (entered.length < 4) { entered += "0"; paint(); } });
+  key("✓", () => {
+    if (!entered) return;
+    if (entered === state.answer) api.pass(null); else api.fail(null);
+  }, "act");
+}
+
+function mountCommandMatch(box, state, api) {
+  let step = 0;
+  box.innerHTML = `<div class="kp-stage" id="cmStep">ภารกิจที่ 1 จาก ${state.answer.length}</div><div class="kp-grid two"></div>`;
+  const grid = box.querySelector(".kp-grid");
+  state.shown.forEach((cmd, i) => {
+    const b = document.createElement("button");
+    b.className = "kp-key kp-cmd";
+    b.textContent = cmd;
+    b.onclick = () => {
+      if (b.classList.contains("used")) return;
+      b.classList.add("used"); b.disabled = true;
+      if (i === state.answer[step]) {
+        step++;
+        if (step >= state.answer.length) api.pass(null);
+        else { api.step(); box.querySelector("#cmStep").textContent = `ภารกิจที่ ${step + 1} จาก ${state.answer.length}`; }
+      } else api.fail(null);
+    };
+    grid.appendChild(b);
+  });
+}
+
+// ข้อความหัว/คำแนะนำ + ตัววาดของแต่ละ pattern
+const RESCUE_UI = {
+  wire_cut: { title: "ตัดให้ถูก!", sub: 'ฟังผู้อ่านคู่มือบอก แล้วกด "ตัด" ตามลำดับ', mount: mountWireCut,
+              guideSub: "อ่านกฎให้ผู้กดฟัง ถามสีเส้นที่เขาเห็น แล้วบอกว่าให้ตัดเส้นไหน (ห้ามดูจอผู้กด!)" },
+  keypad: { title: "ป้อนรหัสให้ถูก!", sub: "ดูจอของคุณ บอกผู้อ่านคู่มือ แล้วทำตามที่เขาบอก", mount: mountKeypad,
+            guideSub: "ถามผู้กดว่าบนจอเห็นอะไร แล้วใช้กฎด้านล่างบอกว่าต้องกดอะไร (ห้ามดูจอผู้กด!)" },
+  command_match: { title: "กดคำสั่งตามภารกิจ!", sub: "ฟังภารกิจจากผู้อ่านคู่มือ แล้วกดคำสั่งที่ตรงกันตามลำดับ", mount: mountCommandMatch,
+                   guideSub: "อ่านภารกิจด้านล่างให้ผู้กดฟังทีละข้อ ตามกฎ (ห้ามดูจอผู้กด!)" },
+};
+
+// เนื้อหาเฉพาะของผู้อ่านคู่มือ นอกเหนือจากกฎ (ตอนนี้มีเฉพาะจับคู่คำสั่งที่มีรายการภารกิจ)
+function rescueGuideExtra(stage) {
+  if (stage.pid !== "command_match") return "";
+  const info = rescuePattern("command_match").command_info, vid = stage.state.variant.id;
+  const lines = stage.state.missions.map(m => {
+    const c = info[m];
+    return vid === "v3" ? c.riddle : vid === "v2" ? `${c.meaning} (ขึ้นต้นด้วย "${c.initial}")` : c.meaning;
+  });
+  return `<ol style="margin:8px 0 0 22px;">${lines.map(t => `<li>${t}</li>`).join("")}</ol>`;
+}
+
+// หน้าแรก: เลือก/สร้างรหัสร่วม + เลือกด่าน + เลือก role
 function renderRescueLanding() {
   const code0 = Array.from({ length: 4 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.floor(Math.random() * 32)]).join("");
-  screen.innerHTML = `
+  const pats = CONFIG.debug_rescue.patterns.filter(p => p.enabled !== false);
+  let pid = "wire_cut";
+  const draw = () => {
+    const used = finalBossUsed();
+    screen.innerHTML = `
     <div class="card">
       <span class="zone-tag" style="background:var(--gold);color:var(--ink-on-bright)">มินิเกม 2 คน · กู้บั๊กด่วน</span>
       <h2>กู้บั๊กด่วน (Debug Rescue)</h2>
       <p class="content">ℹ️ เว็บทำงานปกติ นี่คือมินิเกม ไม่ใช่เว็บพัง</p>
       <p class="content" style="margin-top:8px;">🚨 มินิเกม 2 คน — <b>ผู้กด</b> เห็นปริศนา · <b>ผู้อ่านคู่มือ</b> เห็นกฎ ห้ามดูจอกัน คุยด้วยปากเปล่าเท่านั้น!</p>
-      <p class="content" style="margin-top:8px;">1. ตกลงรหัสร่วมกัน 1 ชุด (ทั้งคู่ต้องพิมพ์เหมือนกัน) · 2. แยกกันเลือกบทบาท · 3. กด "เริ่ม" พร้อมกัน</p>
-      <input class="rescue-input" id="rescueCode" maxlength="4" value="${code0}" autocomplete="off">
-      <p class="content" style="text-align:center;font-size:12px;color:var(--muted);margin-bottom:10px;">รหัสสุ่มให้แล้ว — บอกเพื่อนให้พิมพ์รหัสนี้ หรือพิมพ์รหัสที่ตกลงกันเอง</p>
-      <p class="q">เครื่องนี้เป็น:</p>
+      <p class="q" style="margin-top:10px;">เลือกด่าน:</p>
+      <div class="pick-row" id="patPick">
+        ${pats.map(p => {
+          const lock = p.id === "final_boss" && used;
+          return `<button class="pick${p.id === pid ? " on" : ""}" data-pid="${p.id}" style="flex:1 0 45%;padding:10px 6px;"${lock ? " disabled" : ""}>
+            ${p.name}<br><small>${p.time_limit} วิ${p.id === "final_boss" ? (lock ? " · ใช้แล้ว" : " · ครั้งเดียว/เกม") : ""}</small></button>`;
+        }).join("")}
+      </div>
+      ${used ? `<p class="content" style="font-size:12px;color:var(--muted);">กู้ระบบขั้นสุดถูกใช้ไปแล้วในเกมนี้ · <a href="#" id="resetFinal" style="color:var(--gold);">เริ่มเกมใหม่ (ปลดล็อก)</a></p>` : ""}
+      <p class="q" style="margin-top:6px;">เครื่องนี้เป็น:</p>
       <div class="role-pick">
         <button class="btn" id="asSolver">🖥 ผู้กด (เห็นปริศนา)</button>
         <button class="btn ghost" id="asGuide">📖 ผู้อ่านคู่มือ (เห็นกฎ)</button>
       </div>
+      <p class="content" style="font-size:12px;color:var(--muted);margin-top:6px;">กดแล้วจะได้ลิงก์ส่งให้เพื่อน — เพื่อนกดลิงก์เข้าบทบาทตรงข้ามเอง ไม่ต้องพิมพ์รหัส · ทั้งคู่นับถอยหลังแล้วเริ่มพร้อมกัน${pid === "final_boss" ? " · คนที่ 3 เปิดลิงก์ผู้อ่านคู่มือเพิ่มได้" : ""}</p>
+      <details style="margin-top:10px;"><summary class="content" style="cursor:pointer;color:var(--muted);">เล่นแบบพิมพ์รหัสเอง (ไม่ซิงค์เวลา)</summary>
+        <p class="content" style="margin:6px 0;">ทั้งคู่พิมพ์รหัสเดียวกันและเลือกด่านเหมือนกัน แล้วกดเริ่มเอง</p>
+        <input class="rescue-input" id="rescueCode" maxlength="4" value="${(draw.code || code0)}" autocomplete="off">
+        <div class="role-pick">
+          <button class="btn ghost" id="manSolver">🖥 ผู้กด</button>
+          <button class="btn ghost" id="manGuide">📖 ผู้อ่านคู่มือ</button>
+        </div>
+      </details>
     </div>`;
-  enterScreen();
-  const go = role => {
-    const code = document.getElementById("rescueCode").value.trim().toUpperCase();
-    if (code.length < 3) { document.getElementById("rescueCode").focus(); return; }
-    location.search = `?space=debug_rescue&role=${role}&code=${code}`;
+    enterScreen();
+    screen.querySelectorAll("#patPick .pick").forEach(b => b.onclick = () => {
+      draw.code = document.getElementById("rescueCode").value;   // เปลี่ยนด่านแล้วไม่ให้รหัสที่พิมพ์ไว้หาย
+      pid = b.dataset.pid; draw();
+    });
+    const rs = document.getElementById("resetFinal");
+    if (rs) rs.onclick = e => { e.preventDefault(); try { localStorage.removeItem(FINAL_BOSS_KEY); } catch (x) {} draw.code = document.getElementById("rescueCode").value; draw(); };
+    const manual = role => {
+      const code = document.getElementById("rescueCode").value.trim().toUpperCase();
+      if (code.length < 3) { document.getElementById("rescueCode").focus(); return; }
+      location.search = `?space=debug_rescue&role=${role}&code=${code}&pattern=${pid}`;
+    };
+    // สร้างห้อง: สุ่มรหัส + ฝังเวลาเริ่ม (นาฬิกาเครื่อง) ไว้ในลิงก์ ทั้งสองเครื่องนับถอยหลังถึงเวลาเดียวกัน
+    const host = role => {
+      const t = Date.now() + CONFIG.debug_rescue.lobby_sec * 1000;
+      location.search = `?space=debug_rescue&role=${role}&code=${draw.code0}&pattern=${pid}&t=${t}&host=1`;
+    };
+    draw.code0 = draw.code0 || code0;
+    document.getElementById("asSolver").onclick = () => host("solver");
+    document.getElementById("asGuide").onclick = () => host("guide");
+    document.getElementById("manSolver").onclick = () => manual("solver");
+    document.getElementById("manGuide").onclick = () => manual("guide");
   };
-  document.getElementById("asSolver").onclick = () => go("solver");
-  document.getElementById("asGuide").onclick = () => go("guide");
+  draw();
 }
 
 // timer ร่วม (เริ่มนับเมื่อกด "เริ่ม" บนเครื่องตัวเอง — ไม่ sync เป๊ะข้ามเครื่อง ตามสเปค)
@@ -2798,68 +3024,73 @@ function rescueTimer(seconds, boxId, onEnd) {
   };
 }
 
-// หน้า solver (ผู้กด) — เห็นปริศนา ตรวจผลเอง
-function renderRescueSolver(code) {
+// หน้า solver (ผู้กด) — เห็นปริศนา ตรวจผลเอง · final_boss = หลายด่านต่อกันภายใต้นาฬิกาเดียว
+function renderRescueSolver(code, pid) {
   setHeaderHidden(true);   // Stage V2b FIX-3b: ต้องการ headroom ≥20px แต่ .wire-row ห้ามลดต่อจาก FIX-3 แล้ว
-  const P = CONFIG.debug_rescue.patterns.find(p => p.id === "wire_cut");
-  const state = buildWireCut(seededRng(code));
-  let step = 0, done = false, timer = null, hinted = false;
+  const P = rescuePattern(pid);
+  const stages = buildRescue(pid, code), multi = stages.length > 1;
+  let si = 0, done = false, timer = null, hinted = false;
 
   cancelScreenEnter();   // นาฬิกาเริ่มทันที — กัน fade ค้างจากหน้าก่อน
+  const ui0 = RESCUE_UI[stages[0].pid];
   // Stage V2: FIX-3 (เพิ่ม padding .wire-cut-btn ให้ ≥44px) ทำให้แถวสายไฟสูงขึ้น — บีบ margin
   // เฉพาะเทมเพลตนี้ (?space=debug_rescue&role=solver) กันหน้าที่จับเวลาล้นจอ ไม่แตะขนาดปุ่มตัด
   screen.innerHTML = `
     <div class="card">
       <span class="zone-tag" style="margin-bottom:2px;background:var(--gold);color:var(--ink-on-bright)">🖥 ผู้กด · รหัส ${code}</span>
-      <h2 style="margin-bottom:2px;">${P.name} — ตัดให้ถูก!</h2>
-      <p class="content" style="margin-bottom:2px;">ฟังผู้อ่านคู่มือบอก แล้วกด "ตัด" ตามลำดับ</p>
+      <h2 style="margin-bottom:2px;">${P.name} — ${multi ? "ผ่านให้ครบทุกด่าน!" : ui0.title}</h2>
+      <p class="content" id="rSub" style="margin-bottom:2px;">${ui0.sub}</p>
       <div id="rTimer"></div>
+      ${multi ? `<div class="kp-stage" id="rStageTag"></div>` : ""}
       <div id="wires" style="margin:4px 0;"></div>
       <button class="btn ghost" id="rHint" style="margin-top:4px;">💡 ขอ hint (เสียเวลา ${Math.round(CONFIG.debug_rescue.hint_time_cut*100)}%)</button>
       <div id="rHintBox"></div>
       <div id="rResult"></div>
     </div>`;
 
-  const wrap = document.getElementById("wires");
-  state.colors.forEach((c, i) => {
-    const row = document.createElement("div");
-    row.className = "wire-row";
-    row.innerHTML = `<span class="wire-idx">${i + 1}</span>
-      <div class="wire-bar" style="background:${WIRE_HEX[c]}"></div>
-      <button class="wire-cut-btn">✂ ตัด</button>`;
-    row.querySelector("button").onclick = () => cut(i, row);
-    wrap.appendChild(row);
-  });
+  const box = document.getElementById("wires");
 
   const finish = (ok, timedOut, cutIndex) => {
     if (done) return;
     done = true; timer.stop();
-    wrap.querySelectorAll("button").forEach(b => b.disabled = true);
+    box.querySelectorAll("button").forEach(b => b.disabled = true);
     document.getElementById("rHint").disabled = true;
+    if (P.one_time_per_game) { try { localStorage.setItem(FINAL_BOSS_KEY, "1"); } catch (e) {} }
     const r = CONFIG.debug_rescue.reward, pen = CONFIG.debug_rescue.penalty;
     if (ok) { SFX.celebrate(); confetti();
       document.getElementById("rResult").innerHTML = `<div class="result win pop">🎉 กู้ระบบสำเร็จ! ทั้งคู่รับ ${r.toLocaleString()} TechCoin</div>`;
     } else { SFX.wrong(); flash("red");
       document.getElementById("rResult").innerHTML = `<div class="result lose">💀 ระบบล่ม — ทั้งคู่เสีย ${pen.toLocaleString()} TechCoin</div>`;
     }
-    // มินิเกมตัดสายไฟ ไม่ใช่คำถามจากคลัง → ไม่มี question_id/picked
+    // มินิเกมนี้ไม่ใช่คำถามจากคลัง → ไม่มี question_id/picked
     // และไม่ได้ใช้ Session → elapsed_ms จะเป็น null ถาวร (ตัวจับเวลาเป็น rescueTimer แยกของตัวเอง)
-    // cut_index = เลขเส้นที่กดตัดเป็นเส้นสุดท้าย ฐาน 1 ตรงกับตัวเลขที่โชว์ข้างเส้นบนจอ
-    // (ตอบผิด = เส้นที่พลาด, ตอบถูก = เส้นสุดท้ายที่ปิดจ๊อบ, หมดเวลา = null เพราะไม่ได้กด)
+    // cut_index = เลขเส้นที่กดตัดเป็นเส้นสุดท้าย ฐาน 1 ตรงกับตัวเลขที่โชว์ข้างเส้นบนจอ (เฉพาะด่านตัดสายไฟ)
+    // (ตอบผิด = เส้นที่พลาด, ตอบถูก = เส้นสุดท้ายที่ปิดจ๊อบ, หมดเวลา/ด่านอื่น = null)
     logAnswer("debug_rescue", "debug_rescue", 0, ok,
-      { pattern: "wire_cut", variant: state.variant.id, hinted, qtype: "wire_cut", timed_out: !!timedOut,
+      { pattern: pid, variant: stages.map(s => s.state.variant.id).join("+"), hinted, qtype: pid, timed_out: !!timedOut,
         cut_index: (cutIndex === undefined || cutIndex === null) ? null : cutIndex + 1 });
     const back = document.createElement("button");
     back.className = "btn"; back.textContent = "กลับเมนู";
     back.onclick = renderMenu; document.getElementById("rResult").appendChild(back);
   };
 
-  function cut(i, row) {
-    if (done || row.classList.contains("cut")) return;
-    row.classList.add("cut");
-    row.querySelector("button").disabled = true;
-    if (i === state.answer[step]) { SFX.correct(); step++; if (step >= state.answer.length) finish(true, false, i); }
-    else finish(false, false, i);  // ตัดผิดเส้น = ล่มทันที
+  const api = {
+    step: () => { if (!done) SFX.correct(); },
+    pass: i => {
+      if (done) return;
+      SFX.correct();
+      si++;
+      if (si >= stages.length) finish(true, false, i); else runStage();
+    },
+    fail: i => finish(false, false, i),
+  };
+
+  function runStage() {
+    const st = stages[si], ui = RESCUE_UI[st.pid];
+    box.innerHTML = "";
+    document.getElementById("rSub").textContent = ui.sub;
+    if (multi) document.getElementById("rStageTag").textContent = `ด่าน ${si + 1} จาก ${stages.length} · ${rescuePattern(st.pid).name}`;
+    ui.mount(box, st.state, api);
   }
 
   document.getElementById("rHint").onclick = () => {
@@ -2867,24 +3098,26 @@ function renderRescueSolver(code) {
     document.getElementById("rHint").disabled = true;
     timer.cut(CONFIG.debug_rescue.hint_time_cut);
     document.getElementById("rHintBox").innerHTML =
-      `<div class="result info" style="margin-top:8px;">💡 กฎรอบนี้: ${state.variant.guide_text}</div>`;
+      `<div class="result info" style="margin-top:8px;">💡 กฎรอบนี้: ${stages[Math.min(si, stages.length - 1)].state.variant.guide_text}</div>`;
   };
 
+  runStage();
   timer = rescueTimer(P.time_limit, "rTimer", () => finish(false, true));   // onEnd ยิงเฉพาะตอนหมดเวลา
 }
 
 // หน้า guide (ผู้อ่านคู่มือ) — เห็นเฉพาะกฎ ไม่เห็นปริศนา
-function renderRescueGuide(code) {
-  const P = CONFIG.debug_rescue.patterns.find(p => p.id === "wire_cut");
-  const state = buildWireCut(seededRng(code));  // seed เดียวกัน → กฎตรงกับ solver
+function renderRescueGuide(code, pid) {
+  const P = rescuePattern(pid);
+  const stages = buildRescue(pid, code), multi = stages.length > 1;  // seed เดียวกัน → กฎตรงกับ solver
   cancelScreenEnter();   // นาฬิกาเริ่มทันที — กัน fade ค้างจากหน้าก่อน
+  const rules = stages.map((s, i) => `
+      <div class="rescue-guide" style="margin-top:10px;">${multi ? `<b>ด่าน ${i + 1} · ${rescuePattern(s.pid).name}</b><br>` : ""}📋 กฎ: ${s.state.variant.guide_text}${rescueGuideExtra(s)}</div>`).join("");
   screen.innerHTML = `
     <div class="card">
       <span class="zone-tag" style="background:var(--gold);color:var(--ink-on-bright)">📖 ผู้อ่านคู่มือ · รหัส ${code}</span>
       <h2>${P.name} — คู่มือ</h2>
-      <p class="content">อ่านกฎให้ผู้กดฟัง ถามสีเส้นที่เขาเห็น แล้วบอกว่าให้ตัดเส้นไหน (ห้ามดูจอผู้กด!)</p>
-      <div id="rTimer"></div>
-      <div class="rescue-guide" style="margin-top:10px;">📋 กฎ: ${state.variant.guide_text}</div>
+      <p class="content">${multi ? "อ่านทีละด่านตามลำดับ เริ่มด่าน 1 ก่อน (ห้ามดูจอผู้กด!)" : RESCUE_UI[pid].guideSub}</p>
+      <div id="rTimer"></div>${rules}
       <button class="btn" style="margin-top:14px;" onclick="renderMenu()">กลับเมนู</button>
     </div>`;
   rescueTimer(P.time_limit, "rTimer", () => {
@@ -2892,10 +3125,82 @@ function renderRescueGuide(code) {
   });
 }
 
+// ห้องรอ: นับถอยหลังถึงเวลา t (ฝังในลิงก์) แล้วค่อยเริ่มจริง — host เห็นปุ่มส่งลิงก์ให้เพื่อน
+function renderRescueLobby(role, code, pid, t, isHost) {
+  setHeaderHidden(false);
+  const P = rescuePattern(pid);
+  const other = role === "solver" ? "guide" : "solver";
+  const base = location.origin + location.pathname;
+  const link = r => `${base}?space=debug_rescue&role=${r}&code=${code}&pattern=${pid}&t=${t}`;
+  const roleTh = r => r === "solver" ? "🖥 ผู้กด" : "📖 ผู้อ่านคู่มือ";
+  screen.innerHTML = `
+    <div class="card">
+      <span class="zone-tag" style="background:var(--gold);color:var(--ink-on-bright)">ห้องรอ · ${P.name}</span>
+      <h2>เตรียมตัว — คุณเป็น ${roleTh(role)}</h2>
+      <div class="big-num" id="lobbyCd">–</div>
+      <p class="content" style="text-align:center;">วางเครื่องให้พร้อม ห้ามดูจอกัน — เกมเริ่มเองเมื่อนับถึง 0</p>
+      ${isHost ? `<p class="q" style="margin-top:10px;">ให้เพื่อนสแกน QR (เขาจะได้เป็น ${roleTh(other)}):</p>
+        <div id="lobbyQr" style="background:#fff;border-radius:10px;padding:10px;width:200px;max-width:70%;margin:6px auto;"></div>
+        <p class="content" style="text-align:center;">📷 ให้เพื่อนเปิดกล้องสแกน QR นี้ (หรือส่งลิงก์ด้านล่าง)</p>
+        <button class="btn" id="lobbyShare">📤 ส่งลิงก์ให้เพื่อน</button>
+        <button class="btn ghost" id="lobbyCopy">📋 คัดลอกลิงก์</button>
+        <div id="lobbyMsg"></div>` : `<p class="content" style="text-align:center;">รหัสห้อง ${code}</p>`}
+      <p class="content" style="font-size:12px;color:var(--muted);margin-top:8px;">ต้องเปิดลิงก์ให้ทันก่อนนับถึง 0 · ใช้เวลาจากนาฬิกาเครื่อง ถ้าเวลาเครื่องเพี้ยนให้เปิดเวลาอัตโนมัติ</p>
+      <button class="btn ghost" onclick="renderMenu()">ยกเลิก</button>
+    </div>`;
+  enterScreen();
+  if (isHost) {
+    try {
+      const qr = qrcode(0, "M"); qr.addData(link(other)); qr.make();
+      document.getElementById("lobbyQr").innerHTML = qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+    } catch (e) { document.getElementById("lobbyQr").remove(); }   // สร้าง QR ไม่ได้ก็ยังมีปุ่มส่ง/คัดลอกลิงก์
+    const msg = x => { document.getElementById("lobbyMsg").innerHTML = `<div class="result info" style="margin-top:8px;">${x}</div>`; };
+    document.getElementById("lobbyShare").onclick = () => {
+      const data = { title: "CodeCoin · กู้บั๊กด่วน", text: `มาเล่นกู้บั๊กด่วนด้วยกัน! (${P.name}) เปิดลิงก์ก่อนนับถึง 0`, url: link(other) };
+      if (navigator.share) navigator.share(data).catch(() => {});
+      else msg("เครื่องนี้ไม่รองรับการแชร์ — กดคัดลอกลิงก์แล้วส่งเอง");
+    };
+    document.getElementById("lobbyCopy").onclick = () => {
+      (navigator.clipboard ? navigator.clipboard.writeText(link(other)) : Promise.reject())
+        .then(() => msg("คัดลอกแล้ว ✓"), () => msg("คัดลอกไม่ได้ — กดค้างที่ลิงก์ด้านบนเพื่อคัดลอก"));
+    };
+  }
+  const cd = document.getElementById("lobbyCd");
+  const myToken = renderToken;
+  const tick = () => {
+    if (myToken !== renderToken || !document.body.contains(cd)) { clearInterval(iv); return; }   // ออกจากหน้านี้แล้ว
+    const left = Math.ceil((t - Date.now()) / 1000);
+    if (left > 0) { cd.textContent = left; if (left <= 3) SFX.tick(true); return; }
+    clearInterval(iv);
+    startRescue(role, code, pid);
+  };
+  const iv = setInterval(tick, 250);
+  tick();
+}
+
+function startRescue(role, code, pid) {
+  role === "guide" ? renderRescueGuide(code, pid) : renderRescueSolver(code, pid);
+}
+
 function renderDebugRescue() {
   const role = params.get("role"), code = params.get("code");
   if (!role || !code) { renderRescueLanding(); return; }
-  role === "guide" ? renderRescueGuide(code) : renderRescueSolver(code);
+  let pid = params.get("pattern") || "wire_cut";   // ไม่มี pattern = ลิงก์เดิม → ตัดสายไฟ
+  if (!rescuePatternOn(pid)) pid = "wire_cut";
+  const t = Number(params.get("t")) || 0;
+  if (!t) { startRescue(role, code, pid); return; }   // โหมดพิมพ์รหัสเอง / ลิงก์เก่า — เริ่มทันที
+  const late = Date.now() - t;
+  if (late < 0) { renderRescueLobby(role, code, pid, t, params.get("host") === "1"); return; }
+  if (late < 3000) { startRescue(role, code, pid); return; }   // เพิ่งเลยเวลานิดเดียว (เช่น โหลดช้า)
+  screen.innerHTML = `
+    <div class="card">
+      <h2>ห้องหมดเวลาแล้ว</h2>
+      <p class="content">ลิงก์นี้เลยเวลานับถอยหลังไปแล้ว — ให้คนสร้างห้องกดสร้างใหม่ แล้วส่งลิงก์ใหม่</p>
+      <button class="btn" onclick="location.search='?space=debug_rescue'">สร้างห้องใหม่</button>
+      <button class="btn ghost" id="soloGo">เล่นเลยโดยไม่ซิงค์</button>
+    </div>`;
+  enterScreen();
+  document.getElementById("soloGo").onclick = () => startRescue(role, code, pid);
 }
 
 /* =====================================================================
