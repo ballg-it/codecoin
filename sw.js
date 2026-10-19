@@ -10,7 +10,7 @@
      - data.json                                = network-first → เนื้อหาอัปเดตบ่อย
    ทุก path เป็น relative ล้วน เพราะ deploy บน GitHub Pages แบบ subpath (/codecoin/)
    ===================================================================== */
-const CACHE = 'codecoin-v20';
+const CACHE = 'codecoin-v21';
 
 const SHELL = [
   './',
@@ -70,6 +70,31 @@ self.addEventListener('fetch', e => {
   // ที่ยิงเน็ตซ้ำเบื้องหลังทั้งที่ตอบจากแคชไปแล้ว เพราะกันเคส "ลืมบั๊ม CACHE":
   // ถ้าไม่ทำ เครื่องที่เคยเปิดเว็บจะติดโค้ดเวอร์ชันเก่าถาวรจนกว่า sw.js จะเปลี่ยน
   // ทำแบบนี้แล้วอย่างช้าสุดคือได้ของใหม่ตอนเปิดรอบถัดไป
+  // ---------- หน้าเว็บ (เปิดผ่าน QR/ลิงก์): เน็ตก่อน รอไม่เกิน 3 วิ แล้วค่อยใช้แคช ----------
+  // เหตุผล: cache-first ด้านล่างทำให้เครื่องที่เคยเปิดเว็บ "สแกน QR แล้วได้โค้ดเก่า" 1 รอบหลังทุกครั้งที่ deploy
+  // (เจอจริงกับห้องรอกู้บั๊กด่วน: เครื่องเพื่อนสแกน QR แล้วเข้าเกมตรง ๆ ข้ามห้องรอ) — ออฟไลน์/เน็ตช้ายังได้แคชเหมือนเดิม
+  if (sameOrigin && req.mode === 'navigate') {
+    e.respondWith((async () => {
+      const cache = await caches.open(CACHE);
+      try {
+        const res = await Promise.race([
+          fetch(req),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 3000)),
+        ]);
+        if (res && res.ok && res.type === 'basic') {
+          await cache.put('./', res.clone());
+          await cache.put('./index.html', res.clone());
+        }
+        return res;
+      } catch (err) {
+        return (await caches.match(req, { ignoreSearch: true }))
+            || (await cache.match('./index.html', { ignoreSearch: true }))
+            || Response.error();
+      }
+    })());
+    return;
+  }
+
   if (sameOrigin) {
     e.respondWith((async () => {
       const cache = await caches.open(CACHE);
