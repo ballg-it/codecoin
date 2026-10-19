@@ -599,7 +599,6 @@ const CONFIG = {
   debug_rescue: {
     reward: 200,   // สำเร็จ: โบนัสให้ทั้ง 2 คน (คงที่ ไม่ผูกราคาช่อง)
     penalty: 100,  // ไม่สำเร็จ: โทษเบา ๆ เท่ากันทั้งคู่
-    lobby_sec: 45,        // สร้างห้องแล้วนับถอยหลังกี่วินาทีก่อนเริ่มพร้อมกัน (เผื่อเวลาส่งลิงก์ให้เพื่อน)
     hint_time_cut: 0.30,  // กดขอ hint แล้วตัดเวลาที่เหลือ 30%
     patterns: [
       {
@@ -2969,7 +2968,7 @@ function renderRescueLanding() {
         <button class="btn" id="asSolver">🖥 ผู้กด (เห็นปริศนา)</button>
         <button class="btn ghost" id="asGuide">📖 ผู้อ่านคู่มือ (เห็นกฎ)</button>
       </div>
-      <p class="content" style="font-size:12px;color:var(--muted);margin-top:6px;">กดแล้วจะได้ลิงก์ส่งให้เพื่อน — เพื่อนกดลิงก์เข้าบทบาทตรงข้ามเอง ไม่ต้องพิมพ์รหัส · ทั้งคู่นับถอยหลังแล้วเริ่มพร้อมกัน${pid === "final_boss" ? " · คนที่ 3 เปิดลิงก์ผู้อ่านคู่มือเพิ่มได้" : ""}</p>
+      <p class="content" style="font-size:12px;color:var(--muted);margin-top:6px;">กดแล้วจะได้ลิงก์ส่งให้เพื่อน — เพื่อนกดลิงก์เข้าบทบาทตรงข้ามเอง ไม่ต้องพิมพ์รหัส · ทั้งคู่กด "พร้อม" แล้วนับ 3-2-1 พร้อมกัน${pid === "final_boss" ? " · (ห้องรองรับ 2 เครื่อง คนที่ 3 ใช้แบบพิมพ์รหัสเองด้านล่าง)" : ""}</p>
       <details style="margin-top:10px;"><summary class="content" style="cursor:pointer;color:var(--muted);">เล่นแบบพิมพ์รหัสเอง (ไม่ซิงค์เวลา)</summary>
         <p class="content" style="margin:6px 0;">ทั้งคู่พิมพ์รหัสเดียวกันและเลือกด่านเหมือนกัน แล้วกดเริ่มเอง</p>
         <input class="rescue-input" id="rescueCode" maxlength="4" value="${(draw.code || code0)}" autocomplete="off">
@@ -2991,12 +2990,11 @@ function renderRescueLanding() {
       if (code.length < 3) { document.getElementById("rescueCode").focus(); return; }
       location.search = `?space=debug_rescue&role=${role}&code=${code}&pattern=${pid}`;
     };
-    // สร้างห้อง: สุ่มรหัส + ฝังเวลาเริ่ม (นาฬิกาเครื่อง) ไว้ในลิงก์ ทั้งสองเครื่องนับถอยหลังถึงเวลาเดียวกัน
+    // สร้างห้อง: สุ่มรหัสห้อง 6 ตัว (ยาวพอให้เดายาก) แล้วเข้าห้องรอ — รหัสเดียวกันเป็น seed ปริศนาด้วย
     const host = role => {
-      const t = Date.now() + CONFIG.debug_rescue.lobby_sec * 1000;
-      location.search = `?space=debug_rescue&role=${role}&code=${draw.code0}&pattern=${pid}&t=${t}&host=1`;
+      const rc = Array.from({ length: 6 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.floor(Math.random() * 32)]).join("");
+      location.search = `?space=debug_rescue&role=${role}&code=${rc}&pattern=${pid}&lobby=1&host=1`;
     };
-    draw.code0 = draw.code0 || code0;
     document.getElementById("asSolver").onclick = () => host("solver");
     document.getElementById("asGuide").onclick = () => host("guide");
     document.getElementById("manSolver").onclick = () => manual("solver");
@@ -3125,57 +3123,137 @@ function renderRescueGuide(code, pid) {
   });
 }
 
-// ห้องรอ: นับถอยหลังถึงเวลา t (ฝังในลิงก์) แล้วค่อยเริ่มจริง — host เห็นปุ่มส่งลิงก์ให้เพื่อน
-function renderRescueLobby(role, code, pid, t, isHost) {
+// ห้องรอ (lobby): ทั้งสองเครื่องกด "พร้อม" → ครบแล้วทุกเครื่องนับ 3-2-1 พร้อมกันแล้วเริ่มเกม
+// ไม่มี backend ของเราเอง → ใช้ ntfy.sh (pub/sub สาธารณะ ไม่ต้องสมัคร) เป็นช่องส่งข้อความสั้น ๆ ตามรหัสห้อง
+// ข้อความมีแค่ "บทบาท:สถานะ" (solver:join / :ready / :wait / :leave) ไม่มีข้อมูลส่วนตัว
+// ไม่ต้องตั้งนาฬิกาตรงกัน: ทุกเครื่องเริ่มนับเมื่อ "ได้รับข้อความพร้อมครบ" จากเซิร์ฟเวอร์เดียวกัน
+const RESCUE_LOBBY_BASE = "https://ntfy.sh/";
+
+function renderRescueLobby(role, code, pid, isHost) {
   setHeaderHidden(false);
   const P = rescuePattern(pid);
   const other = role === "solver" ? "guide" : "solver";
-  const base = location.origin + location.pathname;
-  const link = r => `${base}?space=debug_rescue&role=${r}&code=${code}&pattern=${pid}&t=${t}`;
   const roleTh = r => r === "solver" ? "🖥 ผู้กด" : "📖 ผู้อ่านคู่มือ";
+  const base = location.origin + location.pathname;
+  const link = r => `${base}?space=debug_rescue&role=${r}&code=${code}&pattern=${pid}&lobby=1`;
+  const topic = RESCUE_LOBBY_BASE + "cc-dr-" + code.toLowerCase();
+  const who = { solver: { joined: false, ready: false }, guide: { joined: false, ready: false } };
+  let es = null, started = false, connected = false, lastId = "";
+
   screen.innerHTML = `
     <div class="card">
       <span class="zone-tag" style="background:var(--gold);color:var(--ink-on-bright)">ห้องรอ · ${P.name}</span>
-      <h2>เตรียมตัว — คุณเป็น ${roleTh(role)}</h2>
-      <div class="big-num" id="lobbyCd">–</div>
-      <p class="content" style="text-align:center;">วางเครื่องให้พร้อม ห้ามดูจอกัน — เกมเริ่มเองเมื่อนับถึง 0</p>
+      <h2>คุณเป็น ${roleTh(role)}</h2>
+      <div id="lobbyWho" class="content" style="line-height:1.9;"></div>
+      <div class="big-num" id="lobbyCd" style="display:none;"></div>
+      <button class="btn" id="lobbyReady" disabled>กำลังเชื่อมต่อห้อง…</button>
+      <div id="lobbyMsg"></div>
       ${isHost ? `<p class="q" style="margin-top:10px;">ให้เพื่อนสแกน QR (เขาจะได้เป็น ${roleTh(other)}):</p>
-        <div id="lobbyQr" style="background:#fff;border-radius:10px;padding:10px;width:200px;max-width:70%;margin:6px auto;"></div>
-        <p class="content" style="text-align:center;">📷 ให้เพื่อนเปิดกล้องสแกน QR นี้ (หรือส่งลิงก์ด้านล่าง)</p>
-        <button class="btn" id="lobbyShare">📤 ส่งลิงก์ให้เพื่อน</button>
-        <button class="btn ghost" id="lobbyCopy">📋 คัดลอกลิงก์</button>
-        <div id="lobbyMsg"></div>` : `<p class="content" style="text-align:center;">รหัสห้อง ${code}</p>`}
-      <p class="content" style="font-size:12px;color:var(--muted);margin-top:8px;">ต้องเปิดลิงก์ให้ทันก่อนนับถึง 0 · ใช้เวลาจากนาฬิกาเครื่อง ถ้าเวลาเครื่องเพี้ยนให้เปิดเวลาอัตโนมัติ</p>
-      <button class="btn ghost" onclick="renderMenu()">ยกเลิก</button>
+        <div id="lobbyQr" style="background:#fff;border-radius:10px;padding:10px;width:180px;max-width:60%;margin:6px auto;"></div>
+        <button class="btn ghost" id="lobbyShare">📤 ส่งลิงก์ให้เพื่อน</button>
+        <button class="btn ghost" id="lobbyCopy">📋 คัดลอกลิงก์</button>` : ""}
+      <p class="content" style="font-size:12px;color:var(--muted);margin-top:8px;">ทั้งสองเครื่องกด "พร้อม" แล้วเกมจะนับ 3-2-1 พร้อมกัน ห้ามดูจอกัน · ห้องนี้ใช้ได้กับ 2 เครื่อง</p>
+      <button class="btn ghost" id="lobbyCancel">ยกเลิก</button>
     </div>`;
   enterScreen();
+  const myToken = renderToken;
+  const el = id => document.getElementById(id);
+  const alive = () => myToken === renderToken && !!el("lobbyWho");
+  const msg = (x, bad) => { el("lobbyMsg").innerHTML = x ? `<div class="result ${bad ? "lose" : "info"}" style="margin-top:8px;">${x}</div>` : ""; };
+
+  const paint = () => {
+    const row = r => {
+      const w = who[r];
+      return `${roleTh(r)}${r === role ? " (คุณ)" : ""}: ${!w.joined ? "⌛ ยังไม่เข้าห้อง" : w.ready ? "✅ พร้อม" : "⏳ ยังไม่พร้อม"}`;
+    };
+    el("lobbyWho").innerHTML = `${row("solver")}<br>${row("guide")}`;
+    if (started) return;
+    const b = el("lobbyReady");
+    b.disabled = !connected;
+    b.textContent = !connected ? "กำลังเชื่อมต่อห้อง…" : who[role].ready ? "✅ พร้อมแล้ว (กดเพื่อยกเลิก)" : "👍 พร้อม!";
+    b.className = who[role].ready ? "btn ghost" : "btn";
+  };
+
+  const apply = text => {
+    const m = /^(solver|guide):(join|ready|wait|leave)$/.exec(text || "");
+    if (!m) return;
+    const w = who[m[1]];
+    if (m[2] === "leave") { w.joined = false; w.ready = false; }
+    else { w.joined = true; w.ready = m[2] === "ready"; }   // join = เข้ามาใหม่ → เริ่มจาก "ยังไม่พร้อม" เสมอ
+  };
+
+  const send = text => fetch(topic, { method: "POST", body: text, keepalive: true })
+    .catch(() => msg("ส่งข้อความไม่สำเร็จ ลองกดอีกครั้ง", true));
+
+  // ครบทั้งคู่ → ทุกเครื่องนับ 3-2-1 จากตอนที่ได้ข้อความนี้ (ผ่านเซิร์ฟเวอร์เดียวกัน จึงเริ่มเกือบพร้อมกัน)
+  const beginCountdown = () => {
+    started = true;
+    if (es) es.close();
+    el("lobbyReady").style.display = "none";
+    const cdEl = el("lobbyCd"); cdEl.style.display = "";
+    let n = 3;
+    const step = () => {
+      if (!alive()) return;
+      if (n <= 0) {
+        try { history.replaceState(null, "", location.search + "&go=1"); } catch (e) {}   // refresh กลางเกมต้องไม่วนกลับห้องรอ
+        startRescue(role, code, pid);
+        return;
+      }
+      cdEl.textContent = n; SFX.tick(true); n--;
+      setTimeout(step, 1000);
+    };
+    step();
+  };
+
+  const onMsg = text => {
+    apply(text); paint();
+    if (!started && who.solver.ready && who.guide.ready) beginCountdown();
+  };
+
+  el("lobbyReady").onclick = () => { if (connected && !started) send(`${role}:${who[role].ready ? "wait" : "ready"}`); };
+  el("lobbyCancel").onclick = () => { if (es) es.close(); send(`${role}:leave`); started = true; renderMenu(); };
+  window.addEventListener("pagehide", () => { if (!started) { try { navigator.sendBeacon(topic, `${role}:leave`); } catch (e) {} } }, { once: true });
+
   if (isHost) {
     try {
       const qr = qrcode(0, "M"); qr.addData(link(other)); qr.make();
-      document.getElementById("lobbyQr").innerHTML = qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
-    } catch (e) { document.getElementById("lobbyQr").remove(); }   // สร้าง QR ไม่ได้ก็ยังมีปุ่มส่ง/คัดลอกลิงก์
-    const msg = x => { document.getElementById("lobbyMsg").innerHTML = `<div class="result info" style="margin-top:8px;">${x}</div>`; };
-    document.getElementById("lobbyShare").onclick = () => {
-      const data = { title: "CodeCoin · กู้บั๊กด่วน", text: `มาเล่นกู้บั๊กด่วนด้วยกัน! (${P.name}) เปิดลิงก์ก่อนนับถึง 0`, url: link(other) };
+      el("lobbyQr").innerHTML = qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+    } catch (e) { el("lobbyQr").remove(); }   // สร้าง QR ไม่ได้ก็ยังมีปุ่มส่ง/คัดลอกลิงก์
+    el("lobbyShare").onclick = () => {
+      const data = { title: "CodeCoin · กู้บั๊กด่วน", text: `มาเล่นกู้บั๊กด่วนด้วยกัน! (${P.name}) เปิดลิงก์แล้วกด "พร้อม"`, url: link(other) };
       if (navigator.share) navigator.share(data).catch(() => {});
       else msg("เครื่องนี้ไม่รองรับการแชร์ — กดคัดลอกลิงก์แล้วส่งเอง");
     };
-    document.getElementById("lobbyCopy").onclick = () => {
+    el("lobbyCopy").onclick = () => {
       (navigator.clipboard ? navigator.clipboard.writeText(link(other)) : Promise.reject())
-        .then(() => msg("คัดลอกแล้ว ✓"), () => msg("คัดลอกไม่ได้ — กดค้างที่ลิงก์ด้านบนเพื่อคัดลอก"));
+        .then(() => msg("คัดลอกแล้ว ✓"), () => msg("คัดลอกไม่ได้ — ให้เพื่อนสแกน QR แทน"));
     };
   }
-  const cd = document.getElementById("lobbyCd");
-  const myToken = renderToken;
-  const tick = () => {
-    if (myToken !== renderToken || !document.body.contains(cd)) { clearInterval(iv); return; }   // ออกจากหน้านี้แล้ว
-    const left = Math.ceil((t - Date.now()) / 1000);
-    if (left > 0) { cd.textContent = left; if (left <= 3) SFX.tick(true); return; }
-    clearInterval(iv);
-    startRescue(role, code, pid);
-  };
-  const iv = setInterval(tick, 250);
-  tick();
+  paint();
+
+  // 1) ดึงประวัติห้อง (ใครเข้ามาก่อนแล้ว) 2) ประกาศตัวเอง 3) ฟังข้อความสดต่อ
+  const since0 = Math.floor(Date.now() / 1000) - 5;
+  fetch(`${topic}/json?poll=1&since=all`).then(r => { if (!r.ok) throw 0; return r.text(); }).then(txt => {
+    if (!alive()) return;
+    txt.split("\n").filter(Boolean).forEach(l => {
+      try { const o = JSON.parse(l); if (o.event === "message") { apply(o.message); lastId = o.id; } } catch (e) {}
+    });
+    // ของค้างจากรอบก่อน (เช่น รีเฟรช) ไม่ถือว่าพร้อม — ตัวเองเข้าใหม่ = ยังไม่พร้อม ส่วนอีกฝั่งยืนยันด้วยข้อความสดเท่านั้น
+    who[role].joined = true; who[role].ready = false;
+    send(`${role}:join`);
+    es = new EventSource(`${topic}/sse?since=${lastId || since0}`);
+    es.onopen = () => { if (!alive()) { es.close(); return; } connected = true; msg(""); paint(); };
+    es.onerror = () => { if (!alive()) { es.close(); return; } if (!started) { connected = false; msg("หลุดการเชื่อมต่อ กำลังต่อใหม่…", true); paint(); } };
+    es.onmessage = e => {
+      if (!alive()) { es.close(); return; }
+      try { const o = JSON.parse(e.data); if (o.event === "message") onMsg(o.message); } catch (x) {}
+    };
+    paint();
+  }).catch(() => {
+    if (!alive()) return;
+    el("lobbyReady").textContent = "เชื่อมต่อห้องไม่ได้";
+    msg(`เชื่อมต่อห้องรอไม่ได้ (เน็ตอาจบล็อกบริการนี้) — ใช้แบบพิมพ์รหัสเองแทน: <a href="?space=debug_rescue" style="color:var(--gold);">กลับหน้าเลือกด่าน</a>`, true);
+  });
 }
 
 function startRescue(role, code, pid) {
@@ -3187,20 +3265,9 @@ function renderDebugRescue() {
   if (!role || !code) { renderRescueLanding(); return; }
   let pid = params.get("pattern") || "wire_cut";   // ไม่มี pattern = ลิงก์เดิม → ตัดสายไฟ
   if (!rescuePatternOn(pid)) pid = "wire_cut";
-  const t = Number(params.get("t")) || 0;
-  if (!t) { startRescue(role, code, pid); return; }   // โหมดพิมพ์รหัสเอง / ลิงก์เก่า — เริ่มทันที
-  const late = Date.now() - t;
-  if (late < 0) { renderRescueLobby(role, code, pid, t, params.get("host") === "1"); return; }
-  if (late < 3000) { startRescue(role, code, pid); return; }   // เพิ่งเลยเวลานิดเดียว (เช่น โหลดช้า)
-  screen.innerHTML = `
-    <div class="card">
-      <h2>ห้องหมดเวลาแล้ว</h2>
-      <p class="content">ลิงก์นี้เลยเวลานับถอยหลังไปแล้ว — ให้คนสร้างห้องกดสร้างใหม่ แล้วส่งลิงก์ใหม่</p>
-      <button class="btn" onclick="location.search='?space=debug_rescue'">สร้างห้องใหม่</button>
-      <button class="btn ghost" id="soloGo">เล่นเลยโดยไม่ซิงค์</button>
-    </div>`;
-  enterScreen();
-  document.getElementById("soloGo").onclick = () => startRescue(role, code, pid);
+  // lobby=1 (ยังไม่ได้ go) → เข้าห้องรอก่อน · พิมพ์รหัสเอง/refresh กลางเกม (go=1) → เริ่มทันที
+  if (params.get("lobby") === "1" && params.get("go") !== "1") { renderRescueLobby(role, code, pid, params.get("host") === "1"); return; }
+  startRescue(role, code, pid);
 }
 
 /* =====================================================================
