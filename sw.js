@@ -6,11 +6,13 @@
       cache (data.json ไม่ต้องบั๊ม — เป็น network-first อยู่แล้ว)
 
    กติกา cache:
-     - app shell (หน้าเว็บ + ไอคอน + manifest) = cache-first  → เปิดไวและออฟไลน์ได้
+     - หน้าเว็บที่เปิดผ่าน QR/ลิงก์ (navigate)  = network-first รอไม่เกิน 3 วิ → ได้โค้ดล่าสุดเสมอเมื่อมีเน็ต
+                                                  (เก็บลงแคชเฉพาะหน้าเกม / กับ /index.html — v23)
+     - ไฟล์ประกอบ (qrcode.js + ไอคอน + manifest) = cache-first  → เปิดไวและออฟไลน์ได้
      - data.json                                = network-first → เนื้อหาอัปเดตบ่อย
    ทุก path เป็น relative ล้วน เพราะ deploy บน GitHub Pages แบบ subpath (/codecoin/)
    ===================================================================== */
-const CACHE = 'codecoin-v22';
+const CACHE = 'codecoin-v25';
 
 const SHELL = [
   './',
@@ -22,6 +24,8 @@ const SHELL = [
 ];
 
 const isData = url => url.pathname.endsWith('data.json');
+const SCOPE_PATH = new URL('./', self.location).pathname;   // '/codecoin/' บน Pages · '/' ตอนรันในเครื่อง
+const isShellPage = url => url.pathname === SCOPE_PATH || url.pathname === SCOPE_PATH + 'index.html';
 
 self.addEventListener('install', e => {
   e.waitUntil((async () => {
@@ -81,7 +85,10 @@ self.addEventListener('fetch', e => {
           fetch(req),
           new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 3000)),
         ]);
-        if (res && res.ok && res.type === 'basic') {
+        // เก็บเป็น app shell เฉพาะหน้าเกมจริง (/ หรือ /index.html) — scope ครอบทั้ง repo
+        // ถ้าไม่กรอง เปิด tools/dashboard.html หรือ box_demo/*.html ในเครื่องเดียวกันแล้ว
+        // หน้านั้นจะไปทับแคชหน้าเกม → เน็ตล่มแล้วสแกน QR ได้หน้าเดโมแทนเกม
+        if (res && res.ok && res.type === 'basic' && isShellPage(url)) {
           await cache.put('./', res.clone());
           await cache.put('./index.html', res.clone());
         }

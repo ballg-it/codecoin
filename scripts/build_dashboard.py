@@ -4,9 +4,13 @@
 อ่านจาก data.json, sw.js, index.html, print/qr_output, git log แล้วฝังเป็น JSON ในหน้า
 รัน: py scripts/build_dashboard.py  (รันซ้ำทุกครั้งที่ข้อมูลเปลี่ยนเพื่ออัปเดตตัวเลข)
 """
-import json, re, subprocess, datetime
+import json, re, subprocess, datetime, sys
 from collections import Counter
 from pathlib import Path
+
+# console Windows (cp1252) พิมพ์ภาษาไทยไม่ได้ — เขียนไฟล์เสร็จแล้วแต่จบด้วย traceback (เหมือนสคริปต์ตัวอื่นที่แก้ไปแล้ว)
+if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
+    sys.stdout.reconfigure(encoding="utf-8")
 
 ROOT = Path(__file__).resolve().parent.parent
 ZONES = ["coding", "office", "design", "hardware"]
@@ -14,8 +18,8 @@ ZONE_TH = {"coding": "Coding", "office": "Office", "design": "Design", "hardware
 
 # งานค้าง — แก้ตรงนี้เมื่อสถานะเปลี่ยน (ต้นทาง: memory/docs/BOX_DEMO.md)
 BACKLOG = [
-    {"id": "D", "title": "งานกล่อง/สิ่งพิมพ์ 13 ข้อ (docs/BOX_DEMO.md)", "level": "block",
-     "note": "ตัวบล็อกส่งโรงพิมพ์: เลขจำนวนคำถาม 3 แผงไม่ตรง, ถาดไม่ลงช่อง, คู่มือ A4 ล้นกล่อง, ยังไม่มีธนบัตร/โทเค็น/คลิป"},
+    {"id": "D", "title": "งานกล่อง/สิ่งพิมพ์ 14 ข้อ (docs/BOX_DEMO.md)", "level": "block",
+     "note": "ตัวบล็อกส่งโรงพิมพ์: เลขจำนวนคำถาม 3 แผงไม่ตรง, ถาดไม่ลงช่อง, คู่มือ A4 ล้นกล่อง, ยังไม่มีโทเค็น/คลิป (ธนบัตรเสร็จแล้ว)"},
     {"id": "B", "title": "Stage V4 — เก็บ 🟡 จาก design audit", "level": "mid",
      "note": "duration 6 จุดเข้า motion token, ปุ่มลอย 44→48px, fx เข้า token"},
     {"id": "C", "title": "Motion Stage 5 — วัด fps Roulette บนมือถือจริง", "level": "mid",
@@ -46,10 +50,15 @@ def build_progress(t, log_ready):
             T("Bug Jam (ระดับง่าย/ยาก, ค่าปรับ, สลับตัวเลือก)", True),
             T("Event แข่งตอบเร็ว (speed)", True),
             T("Debug Rescue 2 เครื่อง — pattern wire_cut", True),
+            T("Debug Rescue อีก 3 pattern (keypad / command_match / final_boss)", True),
+            T("Debug Rescue ห้องรอ + QR เริ่มพร้อมกัน", True),
+            T("รอบ debug เว็บเกม 20 ต.ค. (5 บั๊ก + ปิดช่องโหว่ reroll 2 จุด, CACHE v24)", True),
             T("Cooling Zone บอสไฟต์ทั้งวง", True),
             T("รองรับสถานการณ์จริงในห้องเรียน (REV 2.2)", True),
             T("Deploy ขึ้นเว็บจริง + PWA/Service Worker", True),
-            T("Debug Rescue อีก 3 pattern (keypad / command_match / final_boss)", False),
+            T("ทดสอบห้องรอ Debug Rescue บนมือถือ 2 เครื่องจริง", False),
+            T("กู้ระบบขั้นสุด: ล็อกครั้งเดียว/เกมด้วยการ์ดจริง (CACHE v25)", True),
+            T("กำหนดจุดบนกระดานที่สั่งเล่น Debug Rescue ด่านอื่น", False),
         ]),
         ("ดีไซน์ & Motion", "UI, animation, design audit", [
             T("Motion Stage 1–2: token + วงแหวนเวลา + screen enter", True),
@@ -62,10 +71,12 @@ def build_progress(t, log_ready):
         ]),
         ("สื่อสิ่งพิมพ์", "กระดาน การ์ด QR คู่มือ", [
             T("กระดานเกม 50×50 (PDF final)", True),
+            T("กระดานพร้อมส่งพิมพ์ (trim/bleed + crop marks)", True),
             T("การ์ดทรัพย์สิน 16 ใบ หน้า-หลัง", True),
             T("QR ครบ 23 จุด", t["qr"] >= 23),
             T("ตรวจ QR บนกระดาน (6 ใบ)", True),
             T("เขียนคู่มือกติกา ส่วนจุดพักเครื่อง (Server Meltdown) ใหม่", False),
+            T("เขียนคู่มือกติกา ส่วนการ์ดกู้ระบบขั้นสุด", False),
             T("สั่งพิมพ์จริง (Scale 100%)", False),
         ]),
         ("กล่องเกม", "เดโม 3 มิติ + งานพิมพ์กล่อง", [
@@ -73,7 +84,8 @@ def build_progress(t, log_ready):
             T("ข้อมูลไม่ตรงกันระหว่างแผง 5 ข้อ (จำนวนคำถาม/เวลา/รหัสรุ่น/การ์ดเหตุการณ์/คลิป)", False),
             T("ของไม่ลงช่อง 4 ข้อ (ถาดการ์ด/ธนบัตร/คลิป/คู่มือ A5)", False),
             T("งานพิมพ์ 3 ข้อ (เส้นชมพู/ข้อความสัน/สันซ้ำ+รูสกรู)", False),
-            T("ออกแบบธนบัตร TechCoin 200 ใบ", False),
+            T("ออกแบบธนบัตร TechCoin 5 ราคา (print/banknotes)", True),
+            T("ออกแบบการ์ดกู้ระบบขั้นสุด (print/final_boss_card)", True),
             T("ออกแบบโทเค็นผู้เล่น 4 ตัว", False),
             T("ออกแบบคลิปอัปเกรด 24 ตัว", False),
         ]),

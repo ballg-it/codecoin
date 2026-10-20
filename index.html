@@ -619,7 +619,8 @@ const CONFIG = {
         frame_colors: ["red", "green", "blue", "yellow"],         // ลำดับกดของ v3
         rule_variants: [
           { id: "v1", guide_text: "ตารางไอคอน→เลข: กุญแจ=7, จรวด=3, ดาว=9, หัวใจ=1 — ให้ผู้กดอ่านไอคอนทีละตัวตามลำดับ แล้วบอกเลขที่ต้องกด" },
-          { id: "v2", guide_text: "รหัสคือผลรวมของเลขคี่ทั้งหมดบนปุ่ม บวก 1 — ถามผู้กดว่าบนจอมีเลขอะไรบ้าง แล้วบอกรหัสที่ต้องพิมพ์" },
+          // "แถวตัวเลขบนจอ" ไม่ใช่ "บนปุ่ม" — ผู้กดเห็นปุ่ม 0-9 ด้วย ถ้าเขียนว่า "บนปุ่ม" จะได้ 1+3+5+7+9 แทน
+          { id: "v2", guide_text: "รหัสคือผลรวมของเลขคี่ทั้งหมดในแถวตัวเลขบนจอ (ไม่นับปุ่มกด 0-9) บวก 1 — ถามผู้กดว่าแถวบนจอมีเลขอะไรบ้าง แล้วบอกรหัสที่ต้องพิมพ์" },
           { id: "v3", guide_text: "กดปุ่มตามลำดับกรอบสี: แดง → เขียว → น้ำเงิน → เหลือง — ผู้กดต้องบอกว่าปุ่มไหนมีกรอบสีอะไร" },
         ] },
       // command_match: ผู้กดเห็นคำสั่ง 5 ตัว ผู้อ่านคู่มือเห็น "ภารกิจ" 3 ข้อ ต้องกดคำสั่งตามลำดับภารกิจ
@@ -638,10 +639,15 @@ const CONFIG = {
           { id: "v2", guide_text: "อ่าน 'หน้าที่' พร้อมบอกตัวอักษรขึ้นต้นของคำสั่งทีละภารกิจ ให้ผู้กดกดคำสั่งตามลำดับ" },
           { id: "v3", guide_text: "ใบ้อ้อมทีละภารกิจ ไม่บอกชื่อฟังก์ชันตรง ๆ — อ่านคำใบ้ให้ผู้กดฟังแล้วให้เขากดตามลำดับ" },
         ] },
-      // final_boss: ต่อเนื่อง 2 ด่าน (ตัดสายไฟ → คีย์แพด) ใน 90 วิ ใช้ได้ครั้งเดียวต่อเกม
-      // (ไม่มี backend → จำว่าใช้แล้วด้วย localStorage ของเครื่อง ปลดล็อกได้จากหน้าเลือก)
+      // final_boss: ต่อเนื่อง 2 ด่าน (ตัดสายไฟ → คีย์แพด) ใน 90 วิ
+      // "ครั้งเดียวต่อเกม" ล็อกด้วย **การ์ดจริง 1 ใบ** ที่ Banker ถือ (print/final_boss_card/) ไม่ใช่ด้วยเว็บ —
+      // เว็บไม่มี backend รู้ได้แค่เครื่องตัวเอง (ล็อก localStorage เดิมทั้งหลุดง่ายและค้างข้ามเกม) จึงแค่เตือน+ให้ยืนยัน
+      // ⚠️ ตัวเลขชุดนี้พิมพ์อยู่บนการ์ดด้วย — แก้แล้วต้องรัน py scripts/gen_final_boss_card.py ใหม่
       { id: "final_boss", name: "กู้ระบบขั้นสุด", time_limit: 90, min_players: 2, max_players: 3,
-        combines: ["wire_cut", "keypad"], one_time_per_game: true },
+        combines: ["wire_cut", "keypad"], needs_card: true,
+        reward: 500, penalty: 200,          // ต่อคนในทีม (ด่านอื่นใช้ค่ากลาง 200/100 ด้านบน)
+        entry_fee: 300,                     // คนขอการ์ดจ่าย Banker คนเดียว — เว็บแค่แสดง ไม่คิดเงิน
+        unlock_rounds: "10–12" },           // ขอการ์ดได้เฉพาะช่วง Crash Round
     ],
   },
 };
@@ -851,6 +857,9 @@ const screen = document.getElementById("screen");
 const params = new URLSearchParams(location.search);
 const param = params.get("space");
 const upgradeParam = params.get("upgrade");
+// โหมดทดสอบ (&test=1) — โชว์ปุ่ม "สุ่มใหม่" บนการ์ดเหตุการณ์ เฉพาะตอนเปิดจากเมนูทดสอบ
+// QR จริงไม่มีพารามิเตอร์นี้ → ผู้เล่นไม่เห็นปุ่ม (เดิมโชว์ทุกครั้ง เด็กกดหนีการ์ดที่ไม่ชอบได้ ข้ามระบบกันสแกนซ้ำ)
+const TEST_MODE = params.get("test") === "1";
 
 // ---------- โหลดข้อมูลจาก data.json → ถ้าพลาดใช้ FALLBACK ----------
 async function loadData() {
@@ -1780,33 +1789,78 @@ function renderUpgrade(id, level, resume) {
     return;
   }
 
-  // refresh กลางคัน → ใช้คำถามข้อเดิม (ไม่ใช่สุ่มใหม่) แล้วนับเวลาต่อจาก deadline เดิม
-  const q0 = (resume && findQuestion(resume.qkey)) || pool[Math.floor(Math.random() * pool.length)];
-  const sh = shuffledQuestion(q0, resume && resume.order);
-  const q = sh.q;
-  const sess = resume || Session.begin({ route: "upgrade", key: routeKey(), level, qkey: qKey(q0), order: sh.order }, q.time_limit);
-  cancelScreenEnter();   // คำถามต้องโผล่ 0ms — กัน fade ค้างจากกล่องตั้งเลขผู้เล่นที่อาจเพิ่งปิดไป
-  screen.innerHTML = infoCard + `
-    <div class="card">
-      <div id="timerBox"></div>
-      <p class="q" id="qText"></p>
-      <div id="choices"></div>
-      <div id="result"></div>
-      <button class="btn ghost" onclick="Session.clear();location.search='?space=${id}'">กลับหน้าช่อง</button>
-    </div>`;
-  document.getElementById("qText").textContent = "Q: " + q.question_th;
+  // ---- 1) หน้าเตรียมตัว (ยังไม่เห็นคำถาม) — กดเข้าผิดระดับ/ผิดช่อง ถอยออกได้ฟรีตรงนี้เท่านั้น ----
+  // เดิมคำถามขึ้นทันทีพร้อมปุ่ม "กลับหน้าช่อง" ที่ล้าง Session → เห็นข้อยากแล้วกดกลับ เข้าใหม่ได้ข้อใหม่ฟรี
+  // ตอนนี้: ก่อนเห็นคำถาม = ออกฟรี · เห็นคำถามแล้ว = ออกได้ทางเดียวคือ "ยอมแพ้" (นับว่าไม่สำเร็จ)
+  function renderReady() {
+    screen.innerHTML = infoCard + `
+      <div class="card">
+        <p class="content">กด "เริ่มตอบ" แล้วคำถามจะขึ้นทันที — <b>เห็นคำถามแล้วออกกลางคัน = นับว่าอัปเกรดไม่สำเร็จ</b></p>
+        <button class="btn" id="upStart">▶ เริ่มตอบ</button>
+        <button class="btn ghost" onclick="location.search='?space=${id}'">กลับหน้าช่อง</button>
+      </div>`;
+    enterScreen();
+    document.getElementById("upStart").onclick = () => startQuestion();
+  }
 
-  renderQuiz(q, (ok, timedOut, info, chosenEl) => {
-    Session.done(routeKey());
-    logAnswer("upgrade", id, level, ok, answerMeta(q, timedOut, info));
-    playAnswerFx(ok, chosenEl);   // ต้องอยู่ต่อจาก logAnswer() เท่านั้น
-    document.getElementById("result").innerHTML = ok
-      ? `<div class="result win pop">🎉 ตอบถูก! จ่าย <b>${sp.upgrade_cost.toLocaleString()}</b> เพื่ออัปเกรดเป็น "${name}" — ค่าเช่าใหม่ <b>${sp.rent[level].toLocaleString()}</b> TechCoin</div>`
-      : `<div class="result lose">ตอบผิด — อัปเกรดไม่สำเร็จ ลองใหม่ได้ในเทิร์นถัดไป</div>`;
+  // ---- 2) คำถาม — refresh กลางคันใช้ข้อเดิม (ไม่ใช่สุ่มใหม่) แล้วนับเวลาต่อจาก deadline เดิม ----
+  function startQuestion() {
+    const q0 = (resume && findQuestion(resume.qkey)) || pool[Math.floor(Math.random() * pool.length)];
+    const sh = shuffledQuestion(q0, resume && resume.order);
+    const q = sh.q;
+    const sess = resume || Session.begin({ route: "upgrade", key: routeKey(), level, qkey: qKey(q0), order: sh.order }, q.time_limit);
+    cancelScreenEnter();   // คำถามต้องโผล่ 0ms — กัน fade ค้างจากหน้าเตรียมตัว
+    screen.innerHTML = infoCard + `
+      <div class="card">
+        <div id="timerBox"></div>
+        <p class="q" id="qText"></p>
+        <div id="choices"></div>
+        <div id="result"></div>
+        <button class="btn ghost" id="upForfeit">🏳 ยอมแพ้ข้อนี้</button>
+      </div>`;
+    document.getElementById("qText").textContent = "Q: " + q.question_th;
 
-    if (ok) { SFX.celebrate(); confetti(); }         // อัปเกรดสำเร็จ = highlight moment
-    else if (!timedOut) { SFX.wrong(); flash("red"); }
-  }, false, sess);
+    // จบแล้ว (ตอบ/หมดเวลา/ยอมแพ้) → ปุ่มล่างกลายเป็น "กลับหน้าช่อง" ธรรมดา ไม่แตะ Session อีก
+    const endButton = () => {
+      const b = document.getElementById("upForfeit");
+      b.textContent = "กลับหน้าช่อง";
+      b.onclick = () => { location.search = `?space=${id}`; };
+    };
+
+    const quiz = renderQuiz(q, (ok, timedOut, info, chosenEl) => {
+      Session.done(routeKey());
+      logAnswer("upgrade", id, level, ok, answerMeta(q, timedOut, info));
+      playAnswerFx(ok, chosenEl);   // ต้องอยู่ต่อจาก logAnswer() เท่านั้น
+      document.getElementById("result").innerHTML = ok
+        ? `<div class="result win pop">🎉 ตอบถูก! จ่าย <b>${sp.upgrade_cost.toLocaleString()}</b> เพื่ออัปเกรดเป็น "${name}" — ค่าเช่าใหม่ <b>${sp.rent[level].toLocaleString()}</b> TechCoin</div>`
+        : `<div class="result lose">ตอบผิด — อัปเกรดไม่สำเร็จ ลองใหม่ได้ในเทิร์นถัดไป</div>`;
+      endButton();
+
+      if (ok) { SFX.celebrate(); confetti(); }         // อัปเกรดสำเร็จ = highlight moment
+      else if (!timedOut) { SFX.wrong(); flash("red"); }
+    }, false, sess);
+
+    // ยอมแพ้ = แตะ 2 ครั้ง (กันนิ้วโดน) — ไม่ใช้ confirm() เพราะมันหยุด JS ทั้งหน้าระหว่างที่นาฬิกาควรเดิน
+    let armed = null;
+    document.getElementById("upForfeit").onclick = () => {
+      const b = document.getElementById("upForfeit");
+      if (!armed) {
+        b.textContent = "แตะอีกครั้งเพื่อยืนยัน — นับว่าอัปเกรดไม่สำเร็จ";
+        armed = setTimeout(() => { armed = null; if (b.isConnected && b.textContent.startsWith("แตะ")) b.textContent = "🏳 ยอมแพ้ข้อนี้"; }, 3000);
+        return;
+      }
+      clearTimeout(armed); armed = null;
+      if (!quiz || !quiz.abort()) return;   // ตอบ/หมดเวลาไปแล้วในจังหวะเดียวกัน — onDone จัดการแล้ว
+      Session.done(routeKey());             // ปิดเทิร์นจริง → สแกนซ้ำใน 90 วิขึ้นหน้าเตือน (ครูปลดได้)
+      logAnswer("upgrade", id, level, false, { ...answerMeta(q, false, null), forfeited: true });
+      document.getElementById("result").innerHTML =
+        `<div class="result lose">🏳 ยอมแพ้ — อัปเกรดไม่สำเร็จ ลองใหม่ได้ในเทิร์นถัดไป</div>`;
+      endButton();
+    };
+  }
+
+  // refresh กลางคำถาม → เข้าคำถามเดิมทันที (เวลาเดินต่อ) ไม่ผ่านหน้าเตรียมตัว
+  if (resume) startQuestion(); else renderReady();
 }
 
 // ---------- หน้าช่องเหตุการณ์ ----------
@@ -1838,7 +1892,7 @@ function renderEvent(zone, resume) {
       <h2>🎰 ${ev.title_th}</h2>
       ${ev.description_th ? `<p class="content" id="evDesc" style="margin-bottom:10px;"></p>` : ""}
       ${body}
-      <button class="btn ghost" onclick="Session.allowAgain(routeKey());location.search='?space=event_${zone}'">สุ่มใหม่ (ทดสอบ)</button>
+      ${TEST_MODE ? `<button class="btn ghost" onclick="Session.allowAgain(routeKey());location.search='?space=event_${zone}&test=1'">สุ่มใหม่ (ทดสอบ)</button>` : ""}
       <button class="btn" onclick="renderMenu()">กลับเมนู</button>
     </div>`;
   // การ์ดเหตุการณ์ (simple/choice/chain เท่านั้น — speed คืนไปแล้วด้านบน) ใช้ "พลิกการ์ด" แทน
@@ -1871,9 +1925,13 @@ function renderSpeedEvent(ev, zone, resume) {
   setHeaderHidden(true);   // Stage V2b FIX-1b: หน้าจับเวลา ยังล้น ≤700 ไม่ได้แม้บีบ margin สุดแล้ว
   // แข่งตอบเร็วด้วยปากเปล่า → ใช้ได้เฉพาะคำถามแบบตัวเลือก (ข้อ "ชี้ตำแหน่ง" อ่านออกเสียงไม่ได้)
   const pool = QUESTIONS.filter(x => !x.qtype);
-  const q = (resume && findQuestion(resume.qkey)) || pool[Math.floor(Math.random() * pool.length)];
+  const q0 = (resume && findQuestion(resume.qkey)) || pool[Math.floor(Math.random() * pool.length)];
+  // สลับตัวเลือกเหมือนหน้าซื้อ/อัปเกรด — ข้อมูลต้นทางเฉลย A ถึง 45% วงจะจำได้ว่า "ตอบ A ไว้ก่อน"
+  // order เก็บใน Session → refresh แล้วตัวเลือกเรียงเดิม (resume เก่าที่ไม่มี order = สุ่มใหม่ได้ ไม่พัง)
+  const sh = shuffledQuestion(q0, resume && resume.order);
+  const q = sh.q;
   const sess = resume || Session.begin(
-    { route: "speed", key: routeKey(), evId: ev.event_id, qkey: qKey(q) }, CONFIG.speed_time_limit);
+    { route: "speed", key: routeKey(), evId: ev.event_id, qkey: qKey(q0), order: sh.order }, CONFIG.speed_time_limit);
 
   cancelScreenEnter();   // คำถามต้องโผล่ 0ms — กัน fade ค้างจากหน้าก่อนเข้าเทิร์นนี้
   // Stage V2 FIX-1: บีบ margin/padding เฉพาะเทมเพลตนี้ (?space=event_* mechanic=speed เท่านั้น)
@@ -1891,7 +1949,7 @@ function renderSpeedEvent(ev, zone, resume) {
       <p class="q" style="margin:1px 0 1px;">ใครตอบถูกไวสุด? (วงตัดสินเอง แล้วกดหมายเลข)</p>
       <div class="speed-players" id="speedPlayers" style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px 0;margin:0 -3px 1px;"></div>
       <div id="result"></div>
-      <button class="btn ghost" style="margin-top:3px;" onclick="Session.clear();Session.allowAgain(routeKey());location.search='?space=event_${zone}'">สุ่มใหม่ (ทดสอบ)</button>
+      ${TEST_MODE ? `<button class="btn ghost" style="margin-top:3px;" onclick="Session.clear();Session.allowAgain(routeKey());location.search='?space=event_${zone}&test=1'">สุ่มใหม่ (ทดสอบ)</button>` : ""}
       <button class="btn" id="speedBack" style="margin-top:3px;">กลับเมนู</button>
     </div>`;
 
@@ -2498,6 +2556,10 @@ function renderQuiz(q, onDone, timeout_fail, sess) {
     onDone(ok, false, info, chosenEl);
   });
 
+  // ตัวควบคุมให้ผู้เรียก — abort() = จบข้อนี้จากนอกตัวเลือก (เช่น ยอมแพ้หน้าอัปเกรด)
+  // หยุดนาฬิกา + ล็อกอินพุต แต่ไม่เรียก onDone (ผู้เรียกจัดการ log/ข้อความเอง) · คืน false ถ้าจบไปแล้ว
+  const ctl = { abort() { if (done) return false; done = true; stop(); view.lock(); return true; } };
+
   if (q.time_limit > 0) {
     const tb = document.getElementById("timerBox");
     const totalMs = q.time_limit * 1000;
@@ -2553,7 +2615,7 @@ function renderQuiz(q, onDone, timeout_fail, sess) {
       onDone(false, true, null, null);   // หมดเวลา = ไม่ได้แตะอะไรเลย ไม่มี picked/chosenEl
     };
 
-    if (left() <= 0) { timeUp(); return; }   // refresh กลับมาหลังหมดเวลา = เข้า flow หมดเวลาทันที
+    if (left() <= 0) { timeUp(); return ctl; }   // refresh กลับมาหลังหมดเวลา = เข้า flow หมดเวลาทันที
     paint(left());
     Wake.on();
     timer = setInterval(() => {
@@ -2572,6 +2634,7 @@ function renderQuiz(q, onDone, timeout_fail, sess) {
       }
     }, 1000);
   }
+  return ctl;
 }
 
 /* =====================================================================
@@ -2678,8 +2741,8 @@ function floatBadge(anchorEl, text, positive) {
 // ---------- เมนูทดสอบ (แสดงเมื่อเปิดโดยไม่มี ?space=) ----------
 function renderMenu() {
   setHeaderHidden(false);   // จุดที่ปุ่ม "กลับเมนู" ทุกปุ่มไหลผ่านเสมอ — คืน header ให้เห็นปกติ
-  const item = (id, label) =>
-    `<div class="menu-item" onclick="location.search='?space=${id}'">${label}<small>${id}</small></div>`;
+  const item = (id, label, extra = "") =>
+    `<div class="menu-item" onclick="location.search='?space=${id}${extra}'">${label}<small>${id}</small></div>`;
 
   let items = "";
   for (const z of Object.keys(CONFIG.zone_names)) {
@@ -2687,7 +2750,7 @@ function renderMenu() {
       <div class="menu-zone-head">${CONFIG.zone_names[z]}</div>`;
     for (const [id, sp] of Object.entries(SPACES))
       if (sp.zone === z) items += item(id, sp.name_th);
-    items += item("event_" + z, "🎰 การ์ดเหตุการณ์") + `</div>`;
+    items += item("event_" + z, "🎰 การ์ดเหตุการณ์", "&test=1") + `</div>`;   // เปิดจากเมนู = มีปุ่มสุ่มใหม่ไว้ทดสอบ
   }
   items += `<div class="menu-zone" style="--zc:var(--bad)">
     <div class="menu-zone-head">พิเศษ</div>
@@ -2769,9 +2832,10 @@ function wireAnswer(colors, vid) {
     return [reds % 2 === 0 ? colors.length - 1 : Math.max(0, colors.length - 2)];
   }
   if (vid === "v3") {
-    const dupColor = colors.find((c, i) => colors.indexOf(c) !== i && colors.indexOf(c) === colors.lastIndexOf(c) - (colors.filter(x => x === c).length - 1))
-      || colors.find(c => colors.filter(x => x === c).length >= 2);
-    if (dupColor) return [colors.indexOf(dupColor)];
+    // "เส้นสีซ้ำที่อยู่บนสุด" = เส้นแรกจากบนที่สีของมันมีมากกว่า 1 เส้น
+    // (เดิมเลือกสีที่เส้นซ้ำติดกันก่อน → [แดง,ขาว,ขาว,แดง] เฉลยเส้น 2 ทั้งที่กฎบอกเส้น 1 — พลาด ~11% ของรอบ v3)
+    const dup = colors.findIndex(c => colors.filter(x => x === c).length >= 2);
+    if (dup >= 0) return [dup];
     const g = firstOf("green"); return [g >= 0 ? g : 0];
   }
   if (vid === "v4") {
@@ -2786,8 +2850,9 @@ const WIRE_HEX = { red: "#F87171", green: "#4ADE80", blue: colorVar("--office"),
 // ---------- ปริศนาของ pattern อื่น (ทุกตัวสร้างจาก seed เดียวกัน → ผลตรงกันทั้ง 2 เครื่อง) ----------
 const rescuePattern = id => CONFIG.debug_rescue.patterns.find(p => p.id === id);
 const rescuePatternOn = id => { const p = rescuePattern(id); return !!p && p.enabled !== false; };
-const FINAL_BOSS_KEY = "cc_final_boss_used";   // final_boss เล่นได้ครั้งเดียวต่อเกม — จำไว้ในเครื่อง (ไม่มี backend)
-const finalBossUsed = () => { try { return localStorage.getItem(FINAL_BOSS_KEY) === "1"; } catch (e) { return false; } };
+// final_boss ล็อก "ครั้งเดียว/เกม" ด้วยการ์ดจริงที่ Banker ถือ (ดู CONFIG) — ล็อกในเครื่องรุ่นเก่าเลิกใช้แล้ว
+// ลบค่าค้างของรุ่นเก่าทิ้ง (เครื่องที่เคยเล่นจะได้ไม่มีขยะค้างใน localStorage — ไม่มีผลกับเกม)
+try { localStorage.removeItem("cc_final_boss_used"); } catch (e) {}
 
 // คีย์แพด 3 แบบ: v1 ไอคอน→เลข · v2 ผลรวมเลขคี่+1 · v3 กดตามลำดับสีกรอบ
 function buildKeypad(rng) {
@@ -2945,9 +3010,21 @@ function rescueGuideExtra(stage) {
 function renderRescueLanding() {
   const code0 = Array.from({ length: 4 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.floor(Math.random() * 32)]).join("");
   const pats = CONFIG.debug_rescue.patterns.filter(p => p.enabled !== false);
-  let pid = "wire_cut";
+  // ?pattern= บนหน้าเลือกด่าน = เลือกด่านนั้นไว้ให้ (QR บนการ์ดกู้ระบบขั้นสุดใช้ทางนี้)
+  const pre = params.get("pattern");
+  let pid = pre && rescuePatternOn(pre) ? pre : "wire_cut";
+  let hasCard = false;   // ติ๊กยืนยัน "ได้การ์ดแล้ว" — ใช้เฉพาะด่านที่ needs_card (ไม่จำข้ามหน้า ตั้งใจให้ยืนยันทุกครั้ง)
   const draw = () => {
-    const used = finalBossUsed();
+    const P = rescuePattern(pid);
+    const gated = !!P.needs_card && !hasCard;
+    const cardBox = P.needs_card ? `
+      <div class="result info" style="margin-top:8px;text-align:left;">
+        🎴 <b>ต้องมีการ์ด "${P.name}"</b> (1 ใบต่อเกม อยู่ที่ Banker)<br>
+        <span style="font-size:12.5px;">ขอได้ช่วง Crash Round (รอบ ${P.unlock_rounds}) ในตาตัวเอง · จ่ายค่าเข้า ${P.entry_fee.toLocaleString()} TechCoin
+        · สำเร็จ ทีมได้คนละ ${P.reward.toLocaleString()} / พลาด เสียคนละ ${P.penalty.toLocaleString()} · จบแล้วคืนการ์ดลงกล่อง</span>
+      </div>
+      <button class="btn${hasCard ? "" : " ghost"}" id="cardOk">${hasCard ? "✅ ทีมเราได้การ์ดจาก Banker แล้ว" : "☐ แตะเมื่อได้การ์ด + จ่ายค่าเข้าแล้ว"}</button>` : "";
+    const dis = gated ? " disabled" : "";
     screen.innerHTML = `
     <div class="card">
       <span class="zone-tag" style="background:var(--gold);color:var(--ink-on-bright)">มินิเกม 2 คน · กู้บั๊กด่วน</span>
@@ -2956,25 +3033,22 @@ function renderRescueLanding() {
       <p class="content" style="margin-top:8px;">🚨 มินิเกม 2 คน — <b>ผู้กด</b> เห็นปริศนา · <b>ผู้อ่านคู่มือ</b> เห็นกฎ ห้ามดูจอกัน คุยด้วยปากเปล่าเท่านั้น!</p>
       <p class="q" style="margin-top:10px;">เลือกด่าน:</p>
       <div class="pick-row" id="patPick">
-        ${pats.map(p => {
-          const lock = p.id === "final_boss" && used;
-          return `<button class="pick${p.id === pid ? " on" : ""}" data-pid="${p.id}" style="flex:1 0 45%;padding:10px 6px;"${lock ? " disabled" : ""}>
-            ${p.name}<br><small>${p.time_limit} วิ${p.id === "final_boss" ? (lock ? " · ใช้แล้ว" : " · ครั้งเดียว/เกม") : ""}</small></button>`;
-        }).join("")}
+        ${pats.map(p => `<button class="pick${p.id === pid ? " on" : ""}" data-pid="${p.id}" style="flex:1 0 45%;padding:10px 6px;">
+            ${p.name}<br><small>${p.time_limit} วิ${p.needs_card ? " · ต้องใช้การ์ด 🎴" : ""}</small></button>`).join("")}
       </div>
-      ${used ? `<p class="content" style="font-size:12px;color:var(--muted);">กู้ระบบขั้นสุดถูกใช้ไปแล้วในเกมนี้ · <a href="#" id="resetFinal" style="color:var(--gold);">เริ่มเกมใหม่ (ปลดล็อก)</a></p>` : ""}
+      ${cardBox}
       <p class="q" style="margin-top:6px;">เครื่องนี้เป็น:</p>
       <div class="role-pick">
-        <button class="btn" id="asSolver">🖥 ผู้กด (เห็นปริศนา)</button>
-        <button class="btn ghost" id="asGuide">📖 ผู้อ่านคู่มือ (เห็นกฎ)</button>
+        <button class="btn" id="asSolver"${dis}>🖥 ผู้กด (เห็นปริศนา)</button>
+        <button class="btn ghost" id="asGuide"${dis}>📖 ผู้อ่านคู่มือ (เห็นกฎ)</button>
       </div>
       <p class="content" style="font-size:12px;color:var(--muted);margin-top:6px;">กดแล้วจะได้ลิงก์ส่งให้เพื่อน — เพื่อนกดลิงก์เข้าบทบาทตรงข้ามเอง ไม่ต้องพิมพ์รหัส · ทั้งคู่กด "พร้อม" แล้วนับ 3-2-1 พร้อมกัน${pid === "final_boss" ? " · (ห้องรองรับ 2 เครื่อง คนที่ 3 ใช้แบบพิมพ์รหัสเองด้านล่าง)" : ""}</p>
       <details style="margin-top:10px;"><summary class="content" style="cursor:pointer;color:var(--muted);">เล่นแบบพิมพ์รหัสเอง (ไม่ซิงค์เวลา)</summary>
         <p class="content" style="margin:6px 0;">ทั้งคู่พิมพ์รหัสเดียวกันและเลือกด่านเหมือนกัน แล้วกดเริ่มเอง</p>
         <input class="rescue-input" id="rescueCode" maxlength="4" value="${(draw.code || code0)}" autocomplete="off">
         <div class="role-pick">
-          <button class="btn ghost" id="manSolver">🖥 ผู้กด</button>
-          <button class="btn ghost" id="manGuide">📖 ผู้อ่านคู่มือ</button>
+          <button class="btn ghost" id="manSolver"${dis}>🖥 ผู้กด</button>
+          <button class="btn ghost" id="manGuide"${dis}>📖 ผู้อ่านคู่มือ</button>
         </div>
       </details>
     </div>`;
@@ -2983,8 +3057,8 @@ function renderRescueLanding() {
       draw.code = document.getElementById("rescueCode").value;   // เปลี่ยนด่านแล้วไม่ให้รหัสที่พิมพ์ไว้หาย
       pid = b.dataset.pid; draw();
     });
-    const rs = document.getElementById("resetFinal");
-    if (rs) rs.onclick = e => { e.preventDefault(); try { localStorage.removeItem(FINAL_BOSS_KEY); } catch (x) {} draw.code = document.getElementById("rescueCode").value; draw(); };
+    const ok = document.getElementById("cardOk");
+    if (ok) ok.onclick = () => { draw.code = document.getElementById("rescueCode").value; hasCard = !hasCard; SFX.tick(false); draw(); };
     const manual = role => {
       const code = document.getElementById("rescueCode").value.trim().toUpperCase();
       if (code.length < 3) { document.getElementById("rescueCode").focus(); return; }
@@ -3012,6 +3086,9 @@ function rescueTimer(seconds, boxId, onEnd) {
   paint();
   Wake.on();   // กันจอดับระหว่างลุ้น (มินิเกมนี้มือไม่ได้แตะจอนาน ๆ)
   const iv = setInterval(() => {
+    // ออกจากหน้านี้ไปแล้ว (เช่น ผู้อ่านคู่มือกด "กลับเมนู" กลางเกม) — หยุดเงียบ ๆ
+    // เดิมนับต่อ ติ๊กต่อ แล้ว onEnd ไปเขียน #rTimer ที่ไม่มีแล้ว → TypeError → เมนูกลายเป็นหน้า "เกิดข้อผิดพลาด"
+    if (!tb.isConnected) { clearInterval(iv); Wake.off(); return; }
     t--; paint();
     if (t <= 0) { clearInterval(iv); Wake.off(); SFX.buzzer(); flash("red"); onEnd(false); }
     else SFX.tick(t <= 5);
@@ -3053,12 +3130,14 @@ function renderRescueSolver(code, pid) {
     done = true; timer.stop();
     box.querySelectorAll("button").forEach(b => b.disabled = true);
     document.getElementById("rHint").disabled = true;
-    if (P.one_time_per_game) { try { localStorage.setItem(FINAL_BOSS_KEY, "1"); } catch (e) {} }
-    const r = CONFIG.debug_rescue.reward, pen = CONFIG.debug_rescue.penalty;
+    // ด่านที่มีค่าเฉพาะ (final_boss 500/200) ใช้ของตัวเอง ที่เหลือใช้ค่ากลาง
+    const r = P.reward ?? CONFIG.debug_rescue.reward, pen = P.penalty ?? CONFIG.debug_rescue.penalty;
+    const who = (P.max_players || 2) > 2 ? "ทุกคนในทีม" : "ทั้งคู่", each = (P.max_players || 2) > 2 ? "คนละ" : "";
+    const cardBack = P.needs_card ? `<div class="result info" style="margin-top:8px;">🎴 คืนการ์ด "${P.name}" ลงกล่อง — ใช้ไม่ได้อีกในเกมนี้</div>` : "";
     if (ok) { SFX.celebrate(); confetti();
-      document.getElementById("rResult").innerHTML = `<div class="result win pop">🎉 กู้ระบบสำเร็จ! ทั้งคู่รับ ${r.toLocaleString()} TechCoin</div>`;
+      document.getElementById("rResult").innerHTML = `<div class="result win pop">🎉 กู้ระบบสำเร็จ! ${who}รับ${each} ${r.toLocaleString()} TechCoin</div>` + cardBack;
     } else { SFX.wrong(); flash("red");
-      document.getElementById("rResult").innerHTML = `<div class="result lose">💀 ระบบล่ม — ทั้งคู่เสีย ${pen.toLocaleString()} TechCoin</div>`;
+      document.getElementById("rResult").innerHTML = `<div class="result lose">💀 ระบบล่ม — ${who}เสีย${each} ${pen.toLocaleString()} TechCoin</div>` + cardBack;
     }
     // มินิเกมนี้ไม่ใช่คำถามจากคลัง → ไม่มี question_id/picked
     // และไม่ได้ใช้ Session → elapsed_ms จะเป็น null ถาวร (ตัวจับเวลาเป็น rescueTimer แยกของตัวเอง)
@@ -3116,11 +3195,14 @@ function renderRescueGuide(code, pid) {
       <h2>${P.name} — คู่มือ</h2>
       <p class="content">${multi ? "อ่านทีละด่านตามลำดับ เริ่มด่าน 1 ก่อน (ห้ามดูจอผู้กด!)" : RESCUE_UI[pid].guideSub}</p>
       <div id="rTimer"></div>${rules}
-      <button class="btn" style="margin-top:14px;" onclick="renderMenu()">กลับเมนู</button>
+      <button class="btn" style="margin-top:14px;" id="rGuideBack">กลับเมนู</button>
     </div>`;
-  rescueTimer(P.time_limit, "rTimer", () => {
-    document.getElementById("rTimer").innerHTML = `<div class="result lose">⏱ หมดเวลา</div>`;
+  const timer = rescueTimer(P.time_limit, "rTimer", () => {
+    const tb = document.getElementById("rTimer");
+    // จอนี้ไม่รู้ผลจริง (ผู้กดอาจกู้สำเร็จไปก่อนแล้ว) — ห้ามขึ้นกรอบแดงว่าแพ้
+    if (tb) tb.innerHTML = `<div class="result info">⏱ หมดเวลา — ดูผลที่จอผู้กด</div>`;
   });
+  document.getElementById("rGuideBack").onclick = () => { timer.stop(); renderMenu(); };
 }
 
 // ห้องรอ (lobby): ทั้งสองเครื่องกด "พร้อม" → ครบแล้วทุกเครื่องนับ 3-2-1 พร้อมกันแล้วเริ่มเกม
