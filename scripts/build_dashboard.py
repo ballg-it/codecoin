@@ -56,7 +56,7 @@ def build_progress(t, log_ready):
             T("Cooling Zone บอสไฟต์ทั้งวง", True),
             T("รองรับสถานการณ์จริงในห้องเรียน (REV 2.2)", True),
             T("Deploy ขึ้นเว็บจริง + PWA/Service Worker", True),
-            T("ทดสอบห้องรอ Debug Rescue บนมือถือ 2 เครื่องจริง", False),
+            T("ทดสอบห้องรอ Debug Rescue บนมือถือ 2 เครื่องจริง (ผ่าน 21 ต.ค.)", True),
             T("กู้ระบบขั้นสุด: ล็อกครั้งเดียว/เกมด้วยการ์ดจริง (CACHE v25)", True),
             T("กำหนดจุดบนกระดานที่สั่งเล่น Debug Rescue ด่านอื่น", False),
         ]),
