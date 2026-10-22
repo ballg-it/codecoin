@@ -3452,6 +3452,7 @@ function renderMeltdownJoin(pre) {
         <div class="result info">🎯 เป้าหมายทีม: ฟันบอสให้ครบ <b>${count ? meltdownTarget(count) : "—"}</b> แต้ม ใน ${C.seconds} วินาที</div>
         ${err ? `<div class="result lose" style="margin-top:8px;">${err}</div>` : ""}
         <button class="btn" id="meltGo">เข้าร่วมบอสไฟต์</button>
+        <button class="btn ghost" onclick="renderDebugRescue()">🔧 กู้บั๊กด่วน — มินิเกม 2 คน</button>
         <button class="btn ghost" onclick="renderMenu()">กลับเมนู</button>
       </div>`;
     if (!entered) { entered = true; enterScreen(); }
