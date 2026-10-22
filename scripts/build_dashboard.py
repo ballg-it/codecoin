@@ -55,7 +55,7 @@ def build_progress(t, log_ready):
             T("ทดสอบห้องรอ Debug Rescue บนมือถือ 2 เครื่องจริง (ผ่าน 21 ต.ค.)", True),
             T("กู้ระบบขั้นสุด: ล็อกครั้งเดียว/เกมด้วยการ์ดจริง (CACHE v25)", True),
             T("ปุ่มเข้า Debug Rescue จากหน้าจุดพักเครื่อง (CACHE v26)", True),
-            T("กำหนดจุดบนกระดานที่สั่งเล่น Debug Rescue ด่านอื่น", False),
+            T("กำหนดจุดสั่งเล่น Debug Rescue ด่านอื่น = จุดพักเครื่อง (cooling)", True),
         ]),
         ("ดีไซน์ & Motion", "UI, animation, design audit", [
             T("Motion Stage 1–2: token + วงแหวนเวลา + screen enter", True),
