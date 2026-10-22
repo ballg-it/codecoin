@@ -21,7 +21,7 @@ print/      Final/*.pdf (ไฟล์ส่งโรงพิมพ์) · qr_ou
             codecoin_cards_rev3_1.html (การ์ด 16 ใบ) · banknotes/ (ธนบัตร 5 ราคา) · final_boss_card/
 box_demo/   codecoin_box_demo_v4.html + demo_assets/                   ← เดโมกล่อง 3 มิติ
             codecoin_box_demo_standalone.html (ไฟล์เดียวจบ ส่งต่อได้)
-tools/      hotspot_picker.html · motherboard.svg · dashboard.html     ← เครื่องมือทีม content / สถานะโปรเจค
+tools/      hotspot_picker.html · motherboard.svg     ← เครื่องมือทีม content / สถานะโปรเจค
 ```
 
 | ไฟล์หลัก | หน้าที่ |
