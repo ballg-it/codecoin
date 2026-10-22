@@ -40,8 +40,8 @@ def build_progress(t, log_ready):
             T("คำถาม 81 ข้อ (L1–L4 ทุกช่อง)", t["questions"] >= 81),
             T("Events 20 ใบ (โซนละ 5)", t["events"] >= 20),
             T("Bug Jam 19 โจทย์", t["bugjam"] >= 19),
-            T("ทีม content review hint Bug Jam hard 4 ข้อ", False),
-            T("แก้ Excel ต้นทาง (คอลัมน์ hint + apostrophe ที่ office_02_L1_01)", False),
+            T("review hint Bug Jam hard 4 ข้อ (bug_16–19 มี hint ครบ ตรวจแล้ว)", True),
+            T("แก้ Excel ต้นทาง (คอลัมน์ hint + office_02_L1_01 เก็บเป็นข้อความถูกต้อง)", True),
         ]),
         ("เว็บเกม (ฟีเจอร์)", "index.html + GitHub Pages", [
             T("ระบบหลัก: ซื้อ / อัปเกรด / ค่าเช่า ผ่าน QR", True),
