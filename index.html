@@ -216,7 +216,7 @@
   /* ---------- modal ยืนยันโหมดมั่นใจ + countdown ---------- */
   .confirm-overlay {
     position:fixed; inset:0; z-index:80; display:flex; align-items:center; justify-content:center;
-    background:rgba(5,16,12,.82); padding:20px; animation:fxFade2 .2s ease-out;
+    background:rgba(5,16,12,.82); padding:20px; animation:fxFade2 var(--dur-enter) ease-out;
   }
   @keyframes fxFade2 { from { opacity:0; } to { opacity:1; } }
   .confirm-modal {
@@ -374,7 +374,7 @@
   .hit-fx {
     position:fixed; inset:0; z-index:65; display:flex; align-items:center; justify-content:center;
     pointer-events:none; font-family:'Kanit',sans-serif; font-size:46px; color:var(--gold);
-    text-shadow:0 4px 20px rgba(0,0,0,.7); animation:hitPop .5s ease-out forwards;
+    text-shadow:0 4px 20px rgba(0,0,0,.7); animation:hitPop var(--dur-cheer) ease-out forwards;
   }
   @keyframes hitPop {
     0% { transform:scale(.5); opacity:0; } 22% { transform:scale(1.14); opacity:1; }
@@ -392,13 +392,13 @@
   }
   .pick.on { border-color:var(--gold); background:var(--bg-active); color:var(--gold); }
   .big-num { font-family:'Kanit',sans-serif; font-size:56px; color:var(--gold); text-align:center; line-height:1.15; }
-  .countdown-big { font-family:'Kanit',sans-serif; font-size:74px; color:var(--gold); text-align:center; margin:6px 0; animation:resultPop .4s ease-out; }
+  .countdown-big { font-family:'Kanit',sans-serif; font-size:74px; color:var(--gold); text-align:center; margin:6px 0; animation:resultPop var(--dur-state) var(--ease-out); }
 
   /* ---------- ปุ่มเลขผู้เล่น (มุมขวาล่าง เหนือปุ่ม mute) ----------
      ต้องเล็กและจาง — เห็นได้ทุกหน้าแต่ห้ามแย่งสายตาจากคำถาม/ปุ่มตอบ
-     วางชิดขวาเหนือ mute (bottom 66 = 14 + สูงปุ่ม 44 + ช่องไฟ 8) เลี่ยงป้ายออฟไลน์ที่อยู่ซ้าย */
+     วางชิดขวาเหนือ mute (bottom 70 = 14 + สูงปุ่ม 48 + ช่องไฟ 8) เลี่ยงป้ายออฟไลน์ที่อยู่ซ้าย */
   .player-btn {
-    position:fixed; right:14px; bottom:66px; z-index:70;
+    position:fixed; right:14px; bottom:70px; z-index:70;
     background:var(--chrome); border:1px solid var(--line); border-radius:20px;
     color:var(--muted); font-family:'Kanit',sans-serif; font-size:11.5px;
     padding:5px 11px; cursor:pointer; opacity:.85; line-height:1;
@@ -412,15 +412,15 @@
     padding:16px; width:100%; max-width:380px; }
 
   /* ---------- ปุ่มลอยมุมขวาล่าง: mute + ลดการเคลื่อนไหว ----------
-     ปุ่มลดการเคลื่อนไหวอยู่ "ซ้ายของ mute" (right 66 = 14 + กว้างปุ่ม 44 + ช่องไฟ 8)
-     ไม่วางซ้อนขึ้นข้างบน เพราะ .player-btn จองที่ bottom:66px ไว้แล้ว */
+     ปุ่มลดการเคลื่อนไหวอยู่ "ซ้ายของ mute" (right 70 = 14 + กว้างปุ่ม 48 + ช่องไฟ 8)
+     ไม่วางซ้อนขึ้นข้างบน เพราะ .player-btn จองที่ bottom:70px ไว้แล้ว */
   .mute-btn, .motion-btn {
     position:fixed; right:14px; bottom:14px; z-index:70;
-    width:44px; height:44px; border-radius:50%; cursor:pointer;
+    width:48px; height:48px; border-radius:50%; cursor:pointer;
     background:var(--chrome); border:1.5px solid var(--gold); color:var(--gold);
     font-size:19px; line-height:1; opacity:.92;
   }
-  .motion-btn { right:66px; }
+  .motion-btn { right:70px; }
   .mute-btn.off, .motion-btn.off { border-color:var(--line); color:var(--muted); }
 
   /* ---------- ป้ายบอกสถานะออฟไลน์ (มุมซ้ายล่าง — ไม่ชนปุ่ม mute) ---------- */
@@ -433,14 +433,14 @@
 
   /* ---------- เอฟเฟกต์กะพริบเต็มจอ (โปร่งใส ไม่รับคลิก ไม่แตะ layout) ---------- */
   .fx-flash { position:fixed; inset:0; pointer-events:none; z-index:50; opacity:0; }
-  .fx-flash.green { background:#4ADE80; animation:fxFade .35s ease-out; }
-  .fx-flash.red   { background:#F87171; animation:fxFade .35s ease-out; }
-  .fx-flash.gold  { background:#FBBF24; animation:fxFadeStrong .55s ease-out; }
+  .fx-flash.green { background:#4ADE80; animation:fxFade var(--dur-state) ease-out; }
+  .fx-flash.red   { background:#F87171; animation:fxFade var(--dur-state) ease-out; }
+  .fx-flash.gold  { background:#FBBF24; animation:fxFadeStrong var(--dur-cheer) ease-out; }
   @keyframes fxFade       { 0% { opacity:.22; } 100% { opacity:0; } }
   @keyframes fxFadeStrong { 0% { opacity:.38; } 100% { opacity:0; } }
 
   /* กล่องผลลัพธ์เด้งรับ highlight moment (โหมดมั่นใจ) */
-  .result.pop { animation:resultPop .45s cubic-bezier(.34,1.56,.64,1); }
+  .result.pop { animation:resultPop var(--dur-state) var(--ease-pop); }
   @keyframes resultPop { 0% { transform:scale(.9); } 60% { transform:scale(1.06); } 100% { transform:scale(1); } }
 
   /* ---------- confetti (transform ล้วน — GPU, ไม่กระตุก) ---------- */
@@ -761,6 +761,14 @@ function easeVar(name) {
   catch (e) { return "ease"; }
 }
 
+// อ่านค่า duration จาก token (--dur-*) เป็นตัวเลข ms — WAAPI ไม่รู้จัก var() เหมือน easeVar()
+function durVar(name, fallback) {
+  try {
+    const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
+    return v > 0 ? v : fallback;
+  } catch (e) { return fallback; }
+}
+
 // เหมือน easeVar() แต่สำหรับสี — ใช้ตอนวาด SVG ด้วย attribute ตรง ๆ (setAttribute ไม่รู้จัก var() แน่นอนทุกเบราว์เซอร์
 // ต่างจาก inline style ที่ resolve var() ได้เอง) จึงต้องอ่านค่าจริงจาก :root มาเป็นสตริง hex ก่อนใส่ attribute
 function colorVar(name) {
@@ -825,8 +833,8 @@ function enterScreen() {
    ห้ามใช้กับ speed (จับเวลา 15 วิ ต้องโผล่ 0ms) — renderEvent() คัดกรองก่อนเรียกแล้ว
    เนื้อการ์ดจริงเรนเดอร์ไว้ก่อนแล้วทั้งหมด (ปุ่ม/handler ผูกครบ) ฟังก์ชันนี้แค่ซ่อนไว้ชั่วคราว
    ด้วย rotateY แล้วพลิกเผยออกมา — ไม่แตะเนื้อหาข้างในเลยสักบรรทัด
-   ลำดับ: cover (มองเห็น) rotateY 0→-90° 220ms → ลบทิ้งตอน onfinish →
-          การ์ดจริง (ซ่อนอยู่ที่ 90°) rotateY 90°→0° 260ms เริ่มหลัง delay 220ms (พอดีกับคิวคิวคอฟเวอร์) */
+   ลำดับ: cover (มองเห็น) rotateY 0→-90° --dur-enter (180ms) → ลบทิ้งตอน onfinish →
+          การ์ดจริง (ซ่อนอยู่ที่ 90°) rotateY 90°→0° --dur-state (300ms) เริ่มหลัง delay เท่า --dur-enter (พอดีกับคิวคอฟเวอร์) */
 function playEventCardFlip(cardEl) {
   if (!cardEl) return;
   renderToken++;   // นับเป็นหน้าใหม่เหมือน enterScreen() — invalidate rAF/onfinish ค้างจากหน้าก่อน
@@ -840,12 +848,12 @@ function playEventCardFlip(cardEl) {
 
   const coverAnim = MOTION.run(cover,
     [{ transform: "rotateY(0deg)" }, { transform: "rotateY(-90deg)" }],
-    { duration: 220, easing: easeVar("--ease-io") });
+    { duration: durVar("--dur-enter", 180), easing: easeVar("--ease-io") });
   coverAnim.addEventListener("finish", () => { if (myToken === renderToken) cover.remove(); });
 
   MOTION.run(cardEl,
     [{ transform: "rotateY(90deg)" }, { transform: "rotateY(0deg)" }],
-    { duration: 260, delay: MOTION.d(220), fill: "forwards", easing: easeVar("--ease-out") });
+    { duration: durVar("--dur-state", 300), delay: MOTION.d(durVar("--dur-enter", 180)), fill: "forwards", easing: easeVar("--ease-out") });
 }
 
 /* =====================================================================
@@ -860,6 +868,27 @@ const upgradeParam = params.get("upgrade");
 // โหมดทดสอบ (&test=1) — โชว์ปุ่ม "สุ่มใหม่" บนการ์ดเหตุการณ์ เฉพาะตอนเปิดจากเมนูทดสอบ
 // QR จริงไม่มีพารามิเตอร์นี้ → ผู้เล่นไม่เห็นปุ่ม (เดิมโชว์ทุกครั้ง เด็กกดหนีการ์ดที่ไม่ชอบได้ ข้ามระบบกันสแกนซ้ำ)
 const TEST_MODE = params.get("test") === "1";
+
+/* ป้าย fps สด (Motion Stage 5) — โผล่เฉพาะเมื่อมี &fps=1 ใช้วัด Roulette บนมือถือจริง
+   นับเฟรมจาก rAF ต่อเนื่อง แสดง fps ปัจจุบัน + ต่ำสุดใน 10 วิล่าสุด ไม่แตะ layout (fixed, pointer-events:none) */
+if (params.get("fps") === "1") {
+  const box = document.createElement("div");
+  box.style.cssText = "position:fixed;top:6px;left:6px;z-index:99;background:rgba(0,0,0,.75);color:#4ADE80;font:12px monospace;padding:4px 8px;border-radius:6px;pointer-events:none";
+  document.body.appendChild(box);
+  let frames = 0, last = performance.now(); const hist = [];
+  const tick = now => {
+    frames++;
+    if (now - last >= 1000) {
+      const f = Math.round(frames * 1000 / (now - last));
+      hist.push(f); if (hist.length > 10) hist.shift();
+      box.textContent = "fps " + f + " · min10s " + Math.min(...hist);
+      box.style.color = f >= 50 ? "#4ADE80" : "#F87171";
+      frames = 0; last = now;
+    }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
 
 // ---------- โหลดข้อมูลจาก data.json → ถ้าพลาดใช้ FALLBACK ----------
 async function loadData() {
@@ -2630,7 +2659,7 @@ function renderQuiz(q, onDone, timeout_fail, sess) {
           { transform: "rotate(-90deg) scale(1)" },
           { transform: "rotate(-90deg) scale(1.05)" },
           { transform: "rotate(-90deg) scale(1)" },
-        ], { duration: 260, easing: easeVar("--ease-pop") });
+        ], { duration: durVar("--dur-state", 300), easing: easeVar("--ease-pop") });
       }
     }, 1000);
   }
@@ -2661,7 +2690,7 @@ function drawCheckmark(anchorEl, myToken) {
   if (!path.animate) return;
   const a = path.animate(
     [{ strokeDashoffset: len }, { strokeDashoffset: 0 }],
-    { duration: MOTION.d(240), delay: 20, fill: "forwards", easing: easeVar("--ease-out") }
+    { duration: MOTION.d(durVar("--dur-enter", 180)), delay: 20, fill: "forwards", easing: easeVar("--ease-out") }
   );
   a.onfinish = () => { if (myToken !== renderToken) return; };   // เผื่ออนาคตต่อยอด — ตอนนี้แค่จบเฉย ๆ
 }
@@ -2675,13 +2704,13 @@ function playAnswerFx(correct, chosenEl) {
   if (correct) {
     MOTION.run(chosenEl, [
       { transform: "scale(1)" }, { transform: "scale(1.04)" }, { transform: "scale(1)" },
-    ], { duration: 260, easing: easeVar("--ease-pop") });
+    ], { duration: durVar("--dur-state", 300), easing: easeVar("--ease-pop") });
     drawCheckmark(chosenEl, myToken);
   } else {
     MOTION.run(chosenEl, [
       { transform: "translateX(0)" }, { transform: "translateX(-5px)" },
       { transform: "translateX(5px)" }, { transform: "translateX(-5px)" }, { transform: "translateX(0)" },
-    ], { duration: 280, easing: easeVar("--ease-io") });
+    ], { duration: durVar("--dur-state", 300), easing: easeVar("--ease-io") });
   }
 
   // เฉลยข้อถูก: fade เขียวเข้ามาหน่วง 180ms — เฉพาะ renderer ที่มี marker แบบ class ให้หา
@@ -3566,7 +3595,7 @@ function renderMeltdownFight(st) {
     shakeAnim = MOTION.run(screen, [
       { transform: "translateX(0)" }, { transform: "translateX(-3px)" },
       { transform: "translateX(3px)" }, { transform: "translateX(0)" },
-    ], { id: "screen-shake", duration: 150, easing: easeVar("--ease-io") });
+    ], { id: "screen-shake", duration: durVar("--dur-press", 120), easing: easeVar("--ease-io") });
   };
 
   // เอฟเฟกต์ฟันโดน — เสียง + แฟลช + สั่น + ตัวใหญ่กลางจอ (ความรู้สึก "สู้ร่วมกัน" มาจากเสียงในห้อง)
