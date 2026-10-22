@@ -20,8 +20,6 @@ ZONE_TH = {"coding": "Coding", "office": "Office", "design": "Design", "hardware
 BACKLOG = [
     {"id": "D", "title": "งานกล่อง/สิ่งพิมพ์ 14 ข้อ (docs/BOX_DEMO.md)", "level": "block",
      "note": "ตัวบล็อกส่งโรงพิมพ์: เลขจำนวนคำถาม 3 แผงไม่ตรง, ถาดไม่ลงช่อง, คู่มือ A4 ล้นกล่อง, ยังไม่มีโทเค็น/คลิป (ธนบัตรเสร็จแล้ว)"},
-    {"id": "C", "title": "Motion Stage 5 — วัด fps Roulette บนมือถือจริง", "level": "mid",
-     "note": "โค้ดยืนยันแล้ว เหลือวัดบนเครื่องจริง — เปิดเว็บด้วย &fps=1 จะมีป้าย fps สด"},
     {"id": "A", "title": "เก็บสถิติผ่าน Apps Script (optional)", "level": "low",
      "note": "มี hook CONFIG.log_url รอไว้ใน index.html"},
 ]
@@ -64,7 +62,7 @@ def build_progress(t, log_ready):
             T("Motion Stage 4: roulette / boss shake / การ์ดพลิก / HP", True),
             T("Design Stage V0–V1: ตรวจสภาพ + CSS color token", True),
             T("Design Stage V2–V3b: แก้ล้นจอมือถือ + แยกความหมายสีแดง", True),
-            T("Motion Stage 5: วัด fps Roulette บนมือถือจริง", False),
+            T("Motion Stage 5: วัด fps Roulette บนมือถือจริง (60 fps, min 59)", True),
             T("Design Stage V4: duration / ปุ่มลอย 48px / fx เข้า token (CACHE v27)", True),
         ]),
         ("สื่อสิ่งพิมพ์", "กระดาน การ์ด QR คู่มือ", [
