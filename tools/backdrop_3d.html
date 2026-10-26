@@ -104,7 +104,7 @@ h1{font-family:'Kanit',sans-serif;font-weight:800;font-size:clamp(20px,2.4vw,26p
 .flat .cap{font-size:11.5px;color:var(--muted);margin:0 0 12px;line-height:1.6}
 .flat + .flat{margin-top:14px}
 .sheets{display:flex;gap:12px;flex-wrap:wrap}
-.sheets figure{margin:0;width:150px}
+.sheets figure{margin:0;width:190px}
 .sheets img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:4px;background:#fff}
 .sheets figcaption{font-size:10.5px;color:var(--muted);margin-top:5px;text-align:center}
 footer{margin-top:22px;border-top:1px solid var(--line);padding-top:12px;font-size:11.5px;color:var(--muted);line-height:1.7}
@@ -160,7 +160,7 @@ code{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--green)}
 
       <section id="view2d" role="tabpanel" aria-labelledby="tab2d" hidden>
         <div class="flat" id="a4Box" hidden>
-          <p class="cap">ชุดแผ่น A4 — พิมพ์แนวตั้ง 100% แล้วแปะตามผังด้านล่าง</p>
+          <p class="cap" id="a4Cap">—</p>
           <div class="sheets" id="a4Gallery"></div>
         </div>
         <div class="flat">
@@ -208,7 +208,7 @@ code{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--green)}
         <label for="bTeam" style="display:block;font-size:12px;margin:10px 0 5px">บรรทัดผู้จัดทำ</label>
         <input type="text" class="txt" id="bTeam" value="ผู้จัดทำ: (ใส่ชื่อ–ห้อง)" maxlength="46">
         <p class="note" id="styleNote" style="margin-top:9px">สไตล์ 1 · การ์ดขาว–ทอง พิมพ์ไวนิลแผ่นเดียวจบ</p>
-        <div class="btns" style="margin-top:10px"><button class="btn" data-export="a4">ไฟล์สั่งพิมพ์ A4 (6 แผ่น)</button></div>
+        <div class="btns" style="margin-top:10px"><button class="btn" data-export="a4">ไฟล์สั่งพิมพ์ A4</button></div>
         <p class="note">เนื้อหาในการ์ดทั้ง 3 แผงดึงมาจาก <code>docs/PROJECT_SUMMARY.md</code> ของโปรเจคจริง — แก้ข้อความอื่นได้ที่ตัวแปร <code>BOARD</code> ในไฟล์นี้</p>
       </div>
 
@@ -945,212 +945,160 @@ function styleTech(ctx, i, G){
   }
 }
 
-/* ---------- สไตล์ 3: ชุดแผ่น A4 (โรงเรียนพิมพ์ได้แค่ A4) ----------
-   วาดเนื้อหาหนึ่งแผ่นในระบบพิกัด มม. ขนาด 210×297 — ใช้ทั้งตอนแปะบนแผงและตอนออกไฟล์พิมพ์ */
-const A4 = { w:210, h:297, gap:24 };
-const SHEETS = [
-  { id:'title',   title:'ปกโครงงาน' },
-  { id:'qr',      title:'สแกนเล่นเลย' },
-  { id:'why',     title:'ที่มาและความสำคัญ' },
-  { id:'goals',   title:'วัตถุประสงค์ · จุดเด่น' },
-  { id:'systems', title:'ระบบในเกม' },
-  { id:'stats',   title:'ตัวเลขในชุดเกม' }
-];
-const PANEL_SHEETS = [['why','goals'], ['title','qr'], ['systems','stats']];
+/* ---------- สไตล์ 3: A4 ตัดประกอบ ----------
+   หน้าตาเหมือนสไตล์ 1 แต่ทุกชิ้นพิมพ์ลง A4 แล้วตัดตามเส้นมาต่อกันบนแผง */
+const TILE = { w:278, h:184, bleed:2.5 };        // พื้นที่ใช้งานต่อแผ่น A4 แนวนอน
+const PIECE_LABEL = ['ซ้าย', 'กลาง', 'ขวา'];
+const tileGrid = (w, h) => ({
+  cols: Math.max(1, Math.ceil(w/TILE.w - 1e-6)),
+  rows: Math.max(1, Math.ceil(h/TILE.h - 1e-6))
+});
 
-function sheetHead(ctx, title, no){
-  ctx.fillStyle = '#0B2B22'; ctx.fillRect(0, 0, A4.w, 30);
-  ctx.fillStyle = GOLD; ctx.fillRect(0, 30, A4.w, 2.4);
-  ctx.fillStyle = '#FFFFFF'; ctx.font = kanit(9, 600); ctx.textBaseline = 'middle';
-  ctx.fillText(title, 13, 15.5);
-  ctx.font = '500 6px "IBM Plex Mono", monospace'; ctx.fillStyle = '#7FD9A8';
-  ctx.textAlign = 'right'; ctx.fillText(no, A4.w - 13, 15.5);
-  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-}
-function sheetFoot(ctx, idx){
-  ctx.strokeStyle = '#D9DED7'; ctx.lineWidth = 0.4;
-  ctx.beginPath(); ctx.moveTo(13, A4.h - 16); ctx.lineTo(A4.w - 13, A4.h - 16); ctx.stroke();
-  ctx.font = '400 4.6px "IBM Plex Mono", monospace'; ctx.fillStyle = '#8A948A';
-  ctx.fillText(BOARD.url, 13, A4.h - 10);
-  ctx.textAlign = 'right';
-  ctx.fillText('A4 ' + (idx+1) + '/' + SHEETS.length, A4.w - 13, A4.h - 10);
-  ctx.textAlign = 'left';
+/* การ์ดกระดาษหนึ่งใบ (พิกัดภายในชิ้น) */
+function pcCard(ctx, w, h, title, body){
+  ctx.fillStyle = PAPER; rr(ctx, 0, 0, w, h, 12); ctx.fill();
+  ctx.fillStyle = GOLD; rr(ctx, 0, 0, w, 28, 12); ctx.fill(); ctx.fillRect(0, 16, w, 12);
+  ctx.fillStyle = INK; ctx.font = kanit(18, 700); ctx.textBaseline = 'middle';
+  ctx.fillText(title, 14, 15); ctx.textBaseline = 'alphabetic';
+  body(ctx, 14, 28 + 24, w - 28, h - 28 - 24);
 }
 
-function drawSheet(ctx, id){
-  const idx = SHEETS.findIndex(s2 => s2.id === id), meta = SHEETS[idx];
-  ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, A4.w, A4.h);
-  const M = 13, cw = A4.w - M*2;
+function boardPieces(i, G){
+  const { w, hTot, M, top, cw } = G;
+  const gap = 16, avail = hTot - M - top;
+  const put = [];
+  let y = top;
+  const add = (h, label, draw, pw) => {
+    const ww = Math.min(pw || cw, cw);
+    put.push({ x:M + (cw - ww)/2, y, w:ww, h, label, draw }); y += h + gap;
+  };
 
-  if (id === 'title'){
-    ctx.fillStyle = '#0B2B22'; ctx.fillRect(0, 0, A4.w, 8);
-    ctx.textAlign = 'center';
-    ctx.font = '500 5px "IBM Plex Mono", monospace'; ctx.fillStyle = '#5c6b5e';
-    ctx.fillText('BOARD GAME x QR SYSTEM', A4.w/2, 56);
-    ctx.font = kanit(30, 800); ctx.fillStyle = '#0B2B22';
-    ctx.fillText(P.boardTitle, A4.w/2, 90);
-    ctx.font = kanit(8.5, 500); ctx.fillStyle = '#3f5247';
-    ctx.fillText(BOARD.sub, A4.w/2, 104);
-    ctx.fillStyle = GOLD; ctx.fillRect(A4.w/2 - 26, 114, 52, 2.2);
-
-    ctx.font = sarabun(6.4, 600);
-    let cy = 134;
-    for (let r=0;r<2;r++){
-      const row = BOARD.subjects.slice(r*2, r*2+2);
-      const ws = row.map(t => ctx.measureText(t).width + 11);
-      let x = A4.w/2 - (ws.reduce((a,b)=>a+b,0) + 5)/2;
-      row.forEach((t, k) => {
-        ctx.strokeStyle = '#C8A24A'; ctx.lineWidth = 0.5;
-        rr(ctx, x, cy, ws[k], 11, 5.5); ctx.stroke();
-        ctx.fillStyle = '#0B2B22'; ctx.fillText(t, x + ws[k]/2, cy + 7.4);
-        x += ws[k] + 5;
+  if (i === 0){
+    const u = (avail - gap*2)/100;
+    add(u*34, 'ที่มา', (c, W, H) => pcCard(c, W, H, 'ที่มาและความสำคัญ', (c2, x, y2, bw) => {
+      c2.fillStyle = INK; c2.font = sarabun(15.5, 400); para(c2, BOARD.why, x, y2, bw, 23);
+    }));
+    add(u*30, 'วัตถุประสงค์', (c, W, H) => pcCard(c, W, H, 'วัตถุประสงค์', (c2, x, y2, bw) => {
+      let ly = y2;
+      BOARD.goals.forEach((g, k) => {
+        c2.fillStyle = GOLD; c2.font = kanit(15, 700); c2.fillText((k+1) + '.', x, ly);
+        c2.fillStyle = INK; c2.font = sarabun(15, 400);
+        ly = para(c2, g, x + 22, ly, bw - 22, 21) + 6;
       });
-      cy += 14;
-    }
-    ctx.font = sarabun(6.2, 400); ctx.fillStyle = '#5c6b5e';
-    let ty = 178;
-    for (const l of wrap(ctx, 'เล่นคู่กับเว็บผ่าน QR บนมือถือของผู้เล่นเอง ไม่ต้องติดตั้งแอปและไม่ต้องล็อกอิน', cw - 24)){
-      ctx.fillText(l, A4.w/2, ty); ty += 9.4;
-    }
-    // แถบตัวเลขสรุป
-    const sy = 206, sw = cw/4;
-    ctx.strokeStyle = '#E2E6DF'; ctx.lineWidth = 0.5;
-    ctx.beginPath(); ctx.moveTo(M, sy - 12); ctx.lineTo(A4.w - M, sy - 12); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(M, sy + 30); ctx.lineTo(A4.w - M, sy + 30); ctx.stroke();
-    BOARD.stats.forEach(([n, l], k) => {
-      const sx = M + sw*k + sw/2;
-      if (k){ ctx.beginPath(); ctx.moveTo(M + sw*k, sy - 6); ctx.lineTo(M + sw*k, sy + 24); ctx.stroke(); }
-      ctx.fillStyle = '#0B2B22'; ctx.font = kanit(13, 800); ctx.fillText(n, sx, sy + 8);
-      ctx.fillStyle = '#5c6b5e'; ctx.font = sarabun(4.9, 500); ctx.fillText(l, sx, sy + 19);
-    });
-    ctx.fillStyle = '#0B2B22'; rr(ctx, M, A4.h - 48, cw, 18, 4); ctx.fill();
-    ctx.fillStyle = '#FFFFFF'; ctx.font = sarabun(6.4, 600);
-    ctx.fillText(P.boardTeam, A4.w/2, A4.h - 36);
-    ctx.textAlign = 'left';
+    }));
+    add(u*36, 'จุดเด่น', (c, W, H) => pcCard(c, W, H, 'จุดเด่น', (c2, x, y2, bw) => {
+      let ly = y2;
+      BOARD.strong.forEach(t => {
+        c2.fillStyle = GOLD; c2.beginPath(); c2.arc(x + 4, ly - 5, 4, 0, 7); c2.fill();
+        c2.fillStyle = INK; c2.font = sarabun(15, 400);
+        ly = para(c2, t, x + 18, ly, bw - 18, 21) + 6;
+      });
+    }));
 
-  } else if (id === 'qr'){
-    sheetHead(ctx, meta.title, '02');
-    const qs = 128;
-    qrOnto(ctx, 'https://' + BOARD.url + '/', A4.w/2 - qs/2, 58, qs);
-    ctx.strokeStyle = '#D9DED7'; ctx.lineWidth = 0.5;
-    rr(ctx, A4.w/2 - qs/2 - 6, 52, qs + 12, qs + 12, 5); ctx.stroke();
-    ctx.textAlign = 'center';
-    ctx.font = kanit(11, 700); ctx.fillStyle = '#0B2B22';
-    ctx.fillText('สแกนเล่นได้เลย', A4.w/2, 212);
-    ctx.font = sarabun(6.2, 400); ctx.fillStyle = '#5c6b5e';
-    ctx.fillText('เปิดด้วยกล้องมือถือ ไม่ต้องติดตั้งแอป ไม่ต้องล็อกอิน', A4.w/2, 224);
-    ctx.font = '400 5.4px "IBM Plex Mono", monospace'; ctx.fillStyle = '#3f5247';
-    ctx.fillText(BOARD.url, A4.w/2, 236);
-    ctx.textAlign = 'left';
-    sheetFoot(ctx, idx);
-
-  } else if (id === 'why'){
-    sheetHead(ctx, meta.title, '03');
-    ctx.fillStyle = '#1D211C'; ctx.font = sarabun(6.6, 400);
-    let y = para(ctx, BOARD.why, M, 52, cw, 10.4) + 12;
-    ctx.fillStyle = GOLD; ctx.fillRect(M, y, 26, 1.6); y += 16;
-    ctx.font = kanit(8, 700); ctx.fillStyle = '#0B2B22';
-    ctx.fillText('ครอบคลุม 4 วิชา', M, y); y += 13;
-    ctx.font = sarabun(6.4, 500);
-    BOARD.subjects.forEach(t => {
-      ctx.fillStyle = GOLD; ctx.fillRect(M + 1, y - 3.4, 3.4, 3.4);
-      ctx.fillStyle = '#1D211C'; ctx.fillText(t, M + 9, y); y += 11;
+  } else if (i === 1){
+    const teamH = 46, bannerH = Math.min(176, avail*0.33);
+    add(bannerH, 'ป้ายชื่อ', (c, W, H) => {
+      c.fillStyle = PAPER; rr(c, 0, 0, W, H, 12); c.fill();
+      c.textAlign = 'center';
+      c.fillStyle = INK; c.font = kanit(Math.min(62, W*0.125), 800);
+      c.fillText(P.boardTitle, W/2, H*0.46);
+      c.fillStyle = GOLD; c.fillRect(W/2 - 40, H*0.52, 80, 4);
+      c.fillStyle = '#3f5247'; c.font = kanit(19, 500);
+      c.fillText(BOARD.sub, W/2, H*0.70);
+      c.font = sarabun(13, 600);
+      const ws = BOARD.subjects.map(t => c.measureText(t).width + 20);
+      let cx = W/2 - (ws.reduce((a, b) => a + b, 0) + 24)/2;
+      BOARD.subjects.forEach((t, k) => {
+        c.strokeStyle = '#C8A24A'; c.lineWidth = 1.2;
+        rr(c, cx, H*0.78, ws[k], 24, 11); c.stroke();
+        c.fillStyle = INK; c.fillText(t, cx + ws[k]/2, H*0.78 + 16);
+        cx += ws[k] + 8;
+      });
+      c.textAlign = 'left';
     });
-    sheetFoot(ctx, idx);
-
-  } else if (id === 'goals'){
-    sheetHead(ctx, meta.title, '04');
-    let y = 52;
-    ctx.font = kanit(8, 700); ctx.fillStyle = '#0B2B22'; ctx.fillText('วัตถุประสงค์', M, y); y += 13;
-    BOARD.goals.forEach((g, k) => {
-      ctx.fillStyle = GOLD; ctx.font = kanit(6.6, 700); ctx.fillText((k+1) + '.', M, y);
-      ctx.fillStyle = '#1D211C'; ctx.font = sarabun(6.4, 400);
-      y = para(ctx, g, M + 10, y, cw - 10, 9.6) + 5;
-    });
-    y += 10;
-    ctx.fillStyle = GOLD; ctx.fillRect(M, y - 8, 26, 1.6);
-    ctx.font = kanit(8, 700); ctx.fillStyle = '#0B2B22'; ctx.fillText('จุดเด่น', M, y + 6); y += 19;
-    BOARD.strong.forEach(t => {
-      ctx.fillStyle = GOLD; ctx.beginPath(); ctx.arc(M + 2, y - 2, 1.8, 0, 7); ctx.fill();
-      ctx.fillStyle = '#1D211C'; ctx.font = sarabun(6.4, 400);
-      y = para(ctx, t, M + 8, y, cw - 8, 9.6) + 5;
-    });
-    sheetFoot(ctx, idx);
-
-  } else if (id === 'systems'){
-    sheetHead(ctx, meta.title, '05');
-    let y = 50;
-    BOARD.systems.forEach(([n, d], k) => {
-      ctx.fillStyle = '#F3F5F1'; rr(ctx, M, y - 8, cw, 30, 4); ctx.fill();
-      ctx.fillStyle = GOLD; rr(ctx, M, y - 8, 2.6, 30, 1.3); ctx.fill();
-      ctx.fillStyle = '#5c6b5e'; ctx.font = '500 5px "IBM Plex Mono", monospace';
-      ctx.fillText(String(k+1).padStart(2, '0'), M + 8, y);
-      ctx.fillStyle = '#0B2B22'; ctx.font = kanit(7, 700); ctx.fillText(n, M + 20, y);
-      ctx.fillStyle = '#5c6b5e'; ctx.font = sarabun(5.6, 400);
-      ctx.fillText(wrap(ctx, d, cw - 26)[0], M + 20, y + 9);
-      y += 36;
-    });
-    sheetFoot(ctx, idx);
+    const qrH = avail - bannerH - teamH - gap*2;
+    add(qrH, 'QR', (c, W, H) => {
+      c.fillStyle = PAPER; rr(c, 0, 0, W, H, 12); c.fill();
+      const qs = Math.min(W - 54, H - 86);
+      qrOnto(c, 'https://' + BOARD.url + '/', W/2 - qs/2, 20, qs);
+      c.textAlign = 'center';
+      c.fillStyle = INK; c.font = kanit(17, 700);
+      c.fillText('สแกนเล่นได้เลย ไม่ต้องติดตั้งแอป', W/2, H - 34);
+      c.font = '400 11px "IBM Plex Mono", monospace'; c.fillStyle = '#5c6b5e';
+      c.fillText(BOARD.url, W/2, H - 14);
+      c.textAlign = 'left';
+    }, 272);
+    add(teamH, 'ผู้จัดทำ', (c, W, H) => {
+      c.fillStyle = INK; rr(c, 0, 0, W, H, 10); c.fill();
+      c.textAlign = 'center'; c.fillStyle = PAPER; c.font = sarabun(15, 600);
+      c.fillText(P.boardTeam, W/2, H/2 + 5); c.textAlign = 'left';
+    }, 272);
 
   } else {
-    sheetHead(ctx, meta.title, '06');
-    const gw = (cw - 10)/2, gh = 52;
-    BOARD.stats.forEach(([n, l], k) => {
-      const gx = M + (k%2)*(gw+10), gy = 52 + Math.floor(k/2)*(gh+10);
-      ctx.fillStyle = '#F3F5F1'; rr(ctx, gx, gy, gw, gh, 5); ctx.fill();
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#0B2B22'; ctx.font = kanit(20, 800);
-      ctx.fillText(n, gx + gw/2, gy + 30);
-      ctx.fillStyle = '#5c6b5e'; ctx.font = sarabun(5.6, 500);
-      ctx.fillText(l, gx + gw/2, gy + 43);
-      ctx.textAlign = 'left';
+    const statsH = Math.min(150, avail*0.30);
+    add(avail - statsH - gap, 'ระบบในเกม', (c, W, H) => pcCard(c, W, H, 'ระบบในเกม', (c2, x, y2, bw, bh) => {
+      const step = bh/BOARD.systems.length;
+      let ly = y2;
+      BOARD.systems.forEach(([n, d]) => {
+        c2.fillStyle = GOLD; rr(c2, x, ly - 11, 5, 26, 2.5); c2.fill();
+        c2.fillStyle = INK; c2.font = kanit(16, 700); c2.fillText(n, x + 14, ly);
+        c2.fillStyle = '#5c6b5e'; c2.font = sarabun(13, 400);
+        c2.fillText(wrap(c2, d, bw - 14)[0], x + 14, ly + 17);
+        ly += step;
+      });
+    }));
+    add(statsH, 'ตัวเลข', (c, W, H) => {
+      const gw = (W - 12*3)/4;
+      BOARD.stats.forEach(([n, l], k) => {
+        const gx = k*(gw + 12);
+        c.fillStyle = PAPER; rr(c, gx, 0, gw, H, 10); c.fill();
+        c.textAlign = 'center';
+        c.fillStyle = INK; c.font = kanit(Math.min(40, H*0.42), 800);
+        c.fillText(n, gx + gw/2, H*0.54);
+        c.fillStyle = '#5c6b5e'; c.font = sarabun(12.5, 500);
+        c.fillText(l, gx + gw/2, H*0.80);
+        c.textAlign = 'left';
+      });
     });
-    let y = 52 + gh*2 + 26;
-    ctx.fillStyle = GOLD; ctx.fillRect(M, y - 10, 26, 1.6);
-    ctx.font = kanit(8, 700); ctx.fillStyle = '#0B2B22'; ctx.fillText('ทีมผู้จัดทำ', M, y + 4);
-    ctx.font = sarabun(6.4, 400); ctx.fillStyle = '#1D211C';
-    para(ctx, P.boardTeam, M, y + 18, cw, 9.6);
-    sheetFoot(ctx, idx);
   }
+  return put;
 }
 
-/* จัดแผ่น A4 ลงบนแผง — คืนตำแหน่งที่วางจริง */
-function a4Slots(G){
-  const { M, top, cw, hTot } = G;
-  const ah = hTot - M - top, out = [];
-  const cols = Math.floor((cw + A4.gap)/(A4.w + A4.gap));
-  const rows = Math.floor((ah + A4.gap)/(A4.h + A4.gap));
-  if (cols >= 2){
-    const tw = A4.w*2 + A4.gap, x0 = M + (cw - tw)/2, y0 = top + Math.min(26, (ah - A4.h)/2);
-    out.push([x0, y0], [x0 + A4.w + A4.gap, y0]);
-  } else if (rows >= 2 && cols >= 1){
-    const th = A4.h*2 + A4.gap, x0 = M + (cw - A4.w)/2, y0 = top + Math.min(20, (ah - th)/2);
-    out.push([x0, y0], [x0, y0 + A4.h + A4.gap]);
-  } else if (cols >= 1 && ah >= A4.h){
-    out.push([M + (cw - A4.w)/2, top + (ah - A4.h)/2]);
-  }
+/* รายการแผ่นที่ต้องพิมพ์ทั้งบอร์ด */
+function allTiles(){
+  const out = [];
+  panelSpecs().forEach((sp, i) => {
+    const hC = (P.pattern === 'plain') ? 0 : P.hC, hTot = P.hB + hC;
+    const M = Math.max(22, sp.w*0.052);
+    const top = hC + (P.cutouts && hC ? Math.max(M, hC*0.19 + 30) : M);
+    const G = { w:sp.w, hB:P.hB, hC, hTot, M, top, cw:sp.w - M*2 };
+    boardPieces(i, G).forEach((pc, k) => {
+      const g = tileGrid(pc.w, pc.h);
+      for (let r=0;r<g.rows;r++) for (let c=0;c<g.cols;c++)
+        out.push({ piece:pc, panel:i, idx:k, r, c, grid:g,
+          name:`${PIECE_LABEL[i]}-${k+1} ${pc.label}`,
+          part:g.cols*g.rows > 1 ? `แผ่น ${r*g.cols + c + 1}/${g.cols*g.rows}` : 'แผ่นเดียวจบ' });
+    });
+  });
   return out;
 }
 
-function styleA4(ctx, i, G){
-  const slots = a4Slots(G);
-  if (!slots.length){
-    ctx.fillStyle = '#FFFFFF'; ctx.font = kanit(17, 600); ctx.textAlign = 'center';
-    ctx.fillText('แผงเล็กกว่ากระดาษ A4', G.w/2, G.top + 40);
-    ctx.font = sarabun(13, 400);
-    ctx.fillText('ขยายแผงให้กว้าง ≥ 240 มม. สูง ≥ 320 มม.', G.w/2, G.top + 62);
-    ctx.textAlign = 'left'; return;
-  }
-  const ids = PANEL_SHEETS[i];
-  slots.forEach(([sx, sy], k) => {
-    const id = ids[k] || ids[0];
+function styleCutPaste(ctx, i, G){
+  const pieces = boardPieces(i, G);
+  for (const pc of pieces){
     ctx.save();
-    ctx.fillStyle = 'rgba(11,43,34,.30)'; rr(ctx, sx + 2.5, sy + 3.5, A4.w, A4.h, 2); ctx.fill();
-    ctx.translate(sx, sy);
-    ctx.beginPath(); ctx.rect(0, 0, A4.w, A4.h); ctx.clip();
-    drawSheet(ctx, id);
+    ctx.fillStyle = 'rgba(11,43,34,.22)'; rr(ctx, pc.x + 2.5, pc.y + 3.5, pc.w, pc.h, 12); ctx.fill();
+    ctx.translate(pc.x, pc.y);
+    ctx.beginPath(); ctx.rect(0, 0, pc.w, pc.h); ctx.clip();
+    pc.draw(ctx, pc.w, pc.h);
+    // เส้นประ = รอยต่อระหว่างแผ่น A4
+    const g = tileGrid(pc.w, pc.h);
+    ctx.setLineDash([7, 6]); ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(11,43,34,.30)';
+    for (let c=1;c<g.cols;c++){ ctx.beginPath(); ctx.moveTo(c*TILE.w, 0); ctx.lineTo(c*TILE.w, pc.h); ctx.stroke(); }
+    for (let r=1;r<g.rows;r++){ ctx.beginPath(); ctx.moveTo(0, r*TILE.h); ctx.lineTo(pc.w, r*TILE.h); ctx.stroke(); }
+    ctx.setLineDash([]);
     ctx.restore();
-  });
+  }
 }
 
 function artworkCanvas(i, spec){
@@ -1171,7 +1119,7 @@ function artworkCanvas(i, spec){
   const cw = w - M*2;
 
   const G = { w, hB, hC, hTot, M, top, cw };
-  (P.style === 3 ? styleA4 : P.style === 2 ? styleTech : styleCard)(ctx, i, G);
+  (P.style === 3 ? styleCutPaste : P.style === 2 ? styleTech : styleCard)(ctx, i, G);
 
   const out = { canvas:cv, url:cv.toDataURL('image/png'), w, h:hTot };
   artCache.set(key, out);
@@ -1462,7 +1410,7 @@ function renderShopList(){
   if (D.edge) items.push([`เทปกากเพชรเดินขอบ ม้วนละ 10 ม. (ใช้ ~${(cutStats.len/1000).toFixed(0)} ม.)`, Math.ceil(cutStats.len/10000), 45]);
   if (D.sign && P.signText.trim()) items.push(['ป้ายชื่อ สติกเกอร์ติดโฟมบอร์ด A3', 1, 60]);
   if (D.flower) items.push([`กระดาษย่นทำดอกไม้ (${flowerCount} ดอก)`, Math.max(1, Math.ceil(flowerCount/12)), 15]);
-  if (P.artwork && P.style === 3) items.push(['กระดาษ A4 พิมพ์สี (ชุดเนื้อหา)', SHEETS.length, 10]);
+  if (P.artwork && P.style === 3) items.push(['กระดาษ A4 พิมพ์สี (ตัดประกอบ)', allTiles().length, 10]);
   if (D.cloth) items.push(['ผ้าปูโต๊ะ 150×200 ซม.', 1, 120]);
   if (items.length) items.push(['เทปกาวสองหน้า + กาวแท่ง', 1, 35]);
 
@@ -1678,51 +1626,82 @@ function toOBJ(){
   return lines.join('\n') + '\n';
 }
 
-const sheetImgCache = new Map();
-function sheetImage(id, px){
-  const k = id + '|' + px + '|' + P.boardTitle + '|' + P.boardTeam;
-  if (sheetImgCache.has(k)) return sheetImgCache.get(k);
+/* ---- ไฟล์สั่งพิมพ์ A4 แนวนอน: หนึ่งแผ่น = หนึ่งชิ้นส่วนที่ตัดมาต่อกัน ---- */
+const PAGE = { w:297, h:210 };
+function tileCanvas(t, px){
   const cv = document.createElement('canvas');
-  cv.width = Math.round(A4.w*px); cv.height = Math.round(A4.h*px);
-  const c = cv.getContext('2d'); c.setTransform(px, 0, 0, px, 0, 0);
-  drawSheet(c, id);
-  const url = cv.toDataURL('image/png');
-  sheetImgCache.set(k, url);
-  if (sheetImgCache.size > 24) sheetImgCache.delete(sheetImgCache.keys().next().value);
+  cv.width = Math.round(PAGE.w*px); cv.height = Math.round(PAGE.h*px);
+  const c = cv.getContext('2d');
+  c.setTransform(px, 0, 0, px, 0, 0);
+  c.fillStyle = '#FFFFFF'; c.fillRect(0, 0, PAGE.w, PAGE.h);
+  const ox = (PAGE.w - TILE.w)/2, oy = (PAGE.h - TILE.h)/2;
+  const B = TILE.bleed;
+
+  c.save();                                   // เนื้อชิ้นงาน + เผื่อตัด
+  c.beginPath(); c.rect(ox - B, oy - B, TILE.w + B*2, TILE.h + B*2); c.clip();
+  c.translate(ox - t.c*TILE.w, oy - t.r*TILE.h);
+  t.piece.draw(c, t.piece.w, t.piece.h);
+  c.restore();
+
+  c.strokeStyle = '#C9CFC8'; c.lineWidth = 0.3;   // เส้นตัด
+  c.setLineDash([3, 2]); c.strokeRect(ox, oy, TILE.w, TILE.h); c.setLineDash([]);
+  c.strokeStyle = '#6E776E'; c.lineWidth = 0.4;   // มุมตัด
+  [[ox, oy, 1, 1], [ox + TILE.w, oy, -1, 1], [ox, oy + TILE.h, 1, -1], [ox + TILE.w, oy + TILE.h, -1, -1]]
+    .forEach(([x, y, sx, sy]) => {
+      c.beginPath(); c.moveTo(x, y - sy*7); c.lineTo(x, y); c.lineTo(x - sx*7, y); c.stroke();
+    });
+
+  c.fillStyle = '#4b544b'; c.font = '500 4.4px "IBM Plex Mono", monospace';
+  c.fillText(`${t.name} · ${t.part}`, ox + 2, oy - B - 4);
+  c.font = sarabun(4.4, 400); c.fillStyle = '#6E776E';
+  const join = [];
+  if (t.c < t.grid.cols - 1) join.push('ต่อแผ่นถัดไปทางขวา');
+  if (t.r < t.grid.rows - 1) join.push('ต่อแผ่นถัดไปด้านล่าง');
+  c.textAlign = 'right';
+  c.fillText(join.length ? join.join(' · ') : 'ตัดตามเส้นประแล้วแปะได้เลย', ox + TILE.w - 2, oy - B - 4);
+  c.textAlign = 'left';
+  return cv.toDataURL('image/png');
+}
+
+const tileImgCache = new Map();
+function tileImage(t, px){
+  const k = [t.panel, t.idx, t.r, t.c, px, P.boardTitle, P.boardTeam, P.wC, P.wS, P.hB, P.hC, P.pattern].join('|');
+  if (tileImgCache.has(k)) return tileImgCache.get(k);
+  const url = tileCanvas(t, px);
+  tileImgCache.set(k, url);
+  if (tileImgCache.size > 40) tileImgCache.delete(tileImgCache.keys().next().value);
   return url;
 }
 function drawA4Gallery(){
   const on = P.artwork && P.style === 3 && !$('view2d').hidden;
   $('a4Box').hidden = !on;
   if (!on) return;
-  $('a4Gallery').innerHTML = SHEETS.map((sh, k) =>
-    `<figure><img src="${sheetImage(sh.id, 2.2)}" alt="${sh.title}">` +
-    `<figcaption>${k+1}. ${sh.title}</figcaption></figure>`).join('');
+  const tiles = allTiles();
+  $('a4Cap').textContent =
+    `ชุดแผ่นพิมพ์ ${tiles.length} แผ่น (A4 แนวนอน) — พิมพ์ 100% ตัดตามเส้นประ แล้วต่อกันบนแผงตามชื่อชิ้น`;
+  $('a4Gallery').innerHTML = tiles.map(t =>
+    `<figure><img src="${tileImage(t, 2.0)}" alt="${t.name}">` +
+    `<figcaption>${t.name}<br>${t.part}</figcaption></figure>`).join('');
 }
 
 function toA4HTML(){
-  const dpi = 150, sc = dpi/25.4;
-  const pages = SHEETS.map(sh => {
-    const cv = document.createElement('canvas');
-    cv.width = Math.round(A4.w*sc); cv.height = Math.round(A4.h*sc);
-    const c = cv.getContext('2d');
-    c.setTransform(sc, 0, 0, sc, 0, 0);
-    drawSheet(c, sh.id);
-    return `<img src="${cv.toDataURL('image/png')}" alt="${sh.title}">`;
-  }).join('\n');
+  const sc = 140/25.4;
+  const tiles = allTiles();
+  const pages = tiles.map(t => `<img src="${tileImage(t, sc)}" alt="${t.name} ${t.part}">`).join('\n');
   return `<!doctype html>
 <html lang="th"><meta charset="utf-8">
-<title>${P.boardTitle} — ชุดแผ่น A4</title>
+<title>${P.boardTitle} — ชุดแผ่นพิมพ์ A4 ตัดประกอบ</title>
 <style>
-@page{size:A4 portrait;margin:0}
+@page{size:A4 landscape;margin:0}
 html,body{margin:0;padding:0;background:#53574f;font-family:system-ui,sans-serif}
-.tip{color:#fff;font-size:14px;padding:14px 18px;line-height:1.7}
-img{display:block;width:210mm;height:297mm;margin:0 auto 10mm;background:#fff;
+.tip{color:#fff;font-size:14px;padding:14px 18px;line-height:1.8}
+img{display:block;width:297mm;height:210mm;margin:0 auto 10mm;background:#fff;
   box-shadow:0 6px 24px rgba(0,0,0,.35);page-break-after:always;break-after:page}
 img:last-child{page-break-after:auto;break-after:auto}
 @media print{.tip{display:none}html,body{background:#fff}img{margin:0;box-shadow:none}}
 </style>
-<div class="tip">สั่งพิมพ์ A4 แนวตั้ง · ขนาด 100% (ห้ามย่อให้พอดีหน้า) · ขอบกระดาษ 0 — ได้ ${SHEETS.length} แผ่น แล้วแปะบนแผงตามผัง</div>
+<div class="tip">สั่งพิมพ์ <b>A4 แนวนอน · ขนาด 100%</b> (ห้ามย่อให้พอดีหน้า) — ได้ ${tiles.length} แผ่น<br>
+ตัดตามเส้นประของแต่ละแผ่น แล้วต่อชนกันตามชื่อชิ้นที่มุมบน (เช่น ซ้าย-1 แผ่น 1/2 ต่อกับ 2/2 ทางขวา) ติดเทปกาวด้านหลัง แล้วแปะลงแผง</div>
 ${pages}
 `;
 }
@@ -1735,7 +1714,7 @@ const EX = {
   obj: { name:'codecoin-backdrop.obj', mime:'model/obj', make:toOBJ,
          note:'โมเดล 3 มิติพับตามมุมปัจจุบัน · เปิดใน Blender / SketchUp / 3D Viewer' },
   a4:  { name:'codecoin-board-a4.html', mime:'text/html', make:toA4HTML, big:true,
-         note:'เปิดไฟล์แล้วสั่งพิมพ์ A4 แนวตั้ง 100% ได้ 6 แผ่น พร้อมแปะบนแผง (สไตล์ 3)' }
+         note:'เปิดไฟล์แล้วสั่งพิมพ์ A4 แนวนอน 100% ตัดตามเส้นประแล้วต่อเป็นการ์ดใหญ่ (สไตล์ 3)' }
 };
 let current = null;
 function openExport(kind){
@@ -1885,7 +1864,7 @@ document.querySelectorAll('[data-style]').forEach(b => b.addEventListener('click
     applyMats(); drawFlat(); renderShopList();
     $('styleNote').textContent = ['', 'สไตล์ 1 · การ์ดขาว–ทอง พิมพ์ไวนิลแผ่นเดียวจบ',
       'สไตล์ 2 · แผงวงจร ธีมเดียวกับกระดานเกม',
-      'สไตล์ 3 · ชุดแผ่น A4 ' + SHEETS.length + ' แผ่น (ดูแผ่นจริงได้ที่แท็บ “แบบตัด 2 มิติ”)'][P.style];
+      'สไตล์ 3 · A4 ตัดประกอบ ' + allTiles().length + ' แผ่น (ดูทุกแผ่นได้ที่แท็บ “แบบตัด 2 มิติ”)'][P.style];
     showStage();
   }, 0));
 }));
