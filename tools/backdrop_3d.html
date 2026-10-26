@@ -237,6 +237,10 @@ code{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--green)}
           <label class="chk"><input type="checkbox" id="dSign"> ป้ายชื่อบูธ</label>
           <label class="chk"><input type="checkbox" id="dFlower"> ดอกไม้กระดาษย่น</label>
           <label class="chk"><input type="checkbox" id="dCloth" checked> ผ้าปูโต๊ะ</label>
+          <label class="chk"><input type="checkbox" id="dKanok" checked> ขอบลายกนกกระดาษทอง (ตัดแปะ)</label>
+          <label class="chk"><input type="checkbox" id="dBunting"> ธงราวกระดาษพาดด้านบน</label>
+          <label class="chk"><input type="checkbox" id="dTassel"> พู่กระดาษห้อยใต้ยอดลาย</label>
+          <label class="chk"><input type="checkbox" id="dProps" checked> วางของจริงจากเกมหน้าบอร์ด</label>
         </div>
         <div class="swatches" style="margin-top:11px">
           <button class="sw bk" data-back="#FBBF24" style="background:#FBBF24" aria-pressed="true" title="สีแผ่นรองหลัง — ทอง"></button>
@@ -310,7 +314,8 @@ const P = {
   pattern:'tree', dens:4, cutouts:true, sameAll:false,
   color:'#1C9CD8', finish:'gloss',
   shadow:true, a4:true, dim:false, spin:false,
-  deco:{ back:true, lights:true, edge:false, sign:true, flower:false, cloth:true },
+  deco:{ back:true, lights:true, edge:false, sign:true, flower:false, cloth:true,
+         kanok:true, bunting:false, tassel:false, props:true },
   backColor:'#FBBF24', signText:'CodeCoin',
   artwork:true, style:1, boardTitle:'CodeCoin', boardTeam:'ผู้จัดทำ: (ใส่ชื่อ–ห้อง)'
 };
@@ -1272,11 +1277,110 @@ function applyFold(){
 /* ============================================================
    3.1 ตกแต่งด้วยวัสดุหาง่าย (ทุกชิ้นเกาะไปกับแผง พับตามมุมเอง)
    ============================================================ */
+const decoWorld = new THREE.Group(); scene.add(decoWorld);
 const bulbGeo = new THREE.SphereGeometry(5.5, 10, 8);
 const bulbMat = new THREE.MeshBasicMaterial({ color:0xffe2a6 });
 const paperMat = () => new THREE.MeshStandardMaterial({ color:new THREE.Color(P.backColor), roughness:0.95, metalness:0, side:THREE.DoubleSide });
 const tapeMat = new THREE.LineBasicMaterial({ color:0xE8C56A });
 let bulbCount = 0, flowerCount = 0;
+
+/* ขอบลายกนกตัดจากกระดาษการ์ดสีทอง — ใช้ตัวสร้างลายตัวเดียวกับยอดฉาก */
+function kanokStripTexture(wmm, hmm){
+  const sc = 3;
+  const cv = document.createElement('canvas');
+  cv.width = Math.round(wmm*sc); cv.height = Math.round(hmm*sc);
+  const c = cv.getContext('2d');
+  c.setTransform(sc, 0, 0, -sc, 0, hmm*sc);        // มม. แกน y ขึ้น
+  c.fillStyle = '#E3AE3C';
+  c.fillRect(0, 0, wmm, hmm*0.22);                  // เส้นฐานของลาย
+  const n = Math.max(4, Math.round(wmm/46));
+  for (let i=0;i<n;i++){
+    const dir = (i % 2) ? 1 : -1;
+    kranok(c, {
+      x:(i + 0.5)*wmm/n, y:hmm*0.17, ang:Math.PI/2 - dir*0.62,
+      len:hmm*1.0, turn:5.4, w:Math.max(3, hmm*0.21),
+      dir, taper:0.50, shrink:0.58
+    }, 1);
+  }
+  const t = new THREE.CanvasTexture(cv);
+  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  return t;
+}
+
+function makeTassel(len){
+  const g = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color:0xF2D27A, roughness:0.9, side:THREE.DoubleSide });
+  for (let k=0;k<9;k++){
+    const a = (k/9)*Math.PI*2;
+    const strip = new THREE.Mesh(new THREE.PlaneGeometry(3, len), mat);
+    strip.position.set(Math.cos(a)*3.5, -len/2 - 6, Math.sin(a)*3.5);
+    strip.rotation.y = a;
+    g.add(strip);
+  }
+  const knot = new THREE.Mesh(new THREE.SphereGeometry(6, 10, 8),
+    new THREE.MeshStandardMaterial({ color:0xC8912F, roughness:0.6, metalness:0.2 }));
+  g.add(knot);
+  return g;
+}
+
+/* ธงราวกระดาษพาดจากปลายแผงซ้าย ผ่านกลาง ไปปลายแผงขวา */
+function buildBunting(){
+  const a = P.fold*Math.PI/180, H = (P.pattern === 'plain') ? 0 : P.hC;
+  const topY = P.hB + H*0.42;
+  const L = new THREE.Vector3(-P.wC/2 - P.wS*Math.cos(a), topY, P.wS*Math.sin(a) + P.th);
+  const C = new THREE.Vector3(0, P.hB + H*0.70, P.th + 10);
+  const R = new THREE.Vector3(P.wC/2 + P.wS*Math.cos(a), topY, P.wS*Math.sin(a) + P.th);
+  const curve = new THREE.CatmullRomCurve3([
+    L, L.clone().lerp(C, 0.5).setY(topY - 55), C,
+    C.clone().lerp(R, 0.5).setY(topY - 55), R
+  ]);
+  const pts = curve.getPoints(160);
+  decoWorld.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({ color:0x6b5a3a })));
+
+  const cols = [0xFBBF24, 0x4ADE80, 0xD85A30, 0xF4F1EA, 0x1C9CD8];
+  const flag = new THREE.Shape();
+  flag.moveTo(-21, 0); flag.lineTo(21, 0); flag.lineTo(0, -52); flag.closePath();
+  const fg = new THREE.ShapeGeometry(flag);
+  const N = 22;
+  for (let i=1;i<N;i++){
+    const t = i/N, p = curve.getPointAt(t), d = curve.getTangentAt(t);
+    const m = new THREE.Mesh(fg, new THREE.MeshStandardMaterial({
+      color:cols[i % cols.length], roughness:0.92, side:THREE.DoubleSide }));
+    m.position.copy(p);
+    m.rotation.y = Math.atan2(d.z, d.x) + Math.PI/2;
+    m.rotation.z = -d.y*0.35;
+    decoWorld.add(m);
+  }
+}
+
+/* ของจริงจากโปรเจควางหน้าบอร์ด — กล่องเกม การ์ด 63×88 มม. และธนบัตร */
+function buildProps(){
+  const boxMat = new THREE.MeshStandardMaterial({ color:0x0B2B22, roughness:0.55 });
+  const box = new THREE.Mesh(new THREE.BoxGeometry(290, 68, 290), boxMat);
+  box.position.set(-P.wC*0.52, 34, 500); box.rotation.y = 0.22;
+  box.castShadow = true; box.receiveShadow = true; decoWorld.add(box);
+
+  const lid = new THREE.Mesh(new THREE.PlaneGeometry(250, 250),
+    new THREE.MeshStandardMaterial({ map:signTexture(P.boardTitle), roughness:0.75 }));
+  lid.rotation.x = -Math.PI/2; lid.rotation.z = -0.22;
+  lid.position.set(box.position.x, 68.6, box.position.z); decoWorld.add(lid);
+
+  const cardMat = new THREE.MeshStandardMaterial({ color:0xF4F1EA, roughness:0.85 });
+  for (let k=0;k<4;k++){
+    const card = new THREE.Mesh(new THREE.BoxGeometry(63, 0.6, 88), cardMat);
+    card.position.set(P.wC*0.16 + k*26, 0.6 + k*0.7, 470 - k*8);
+    card.rotation.y = -0.5 + k*0.22; card.castShadow = true;
+    decoWorld.add(card);
+  }
+  const noteMat = new THREE.MeshStandardMaterial({ color:0x9BD6B4, roughness:0.9, side:THREE.DoubleSide });
+  for (let k=0;k<3;k++){
+    const n = new THREE.Mesh(new THREE.PlaneGeometry(140, 66), noteMat);
+    n.rotation.x = -Math.PI/2; n.rotation.z = 0.5 - k*0.3;
+    n.position.set(P.wC*0.56 + k*12, 0.8 + k*0.4, 360 + k*18);
+    decoWorld.add(n);
+  }
+}
 
 function signTexture(text){
   const c = document.createElement('canvas'); c.width = 1024; c.height = 320;
@@ -1372,6 +1476,25 @@ function buildDeco(){
       m.add(sign);
     }
 
+    // ขอบลายกนกกระดาษทอง แปะพาดด้านล่างแผง
+    if (D.kanok){
+      const bh = Math.max(48, hB*0.11);
+      const strip = new THREE.Mesh(new THREE.PlaneGeometry(w - 8, bh),
+        new THREE.MeshStandardMaterial({ map:kanokStripTexture(w - 8, bh), transparent:true,
+          alphaTest:0.45, side:THREE.DoubleSide, roughness:0.55, metalness:0.25 }));
+      strip.position.set(w/2, bh/2 + 6, zf + 0.6);
+      m.add(strip);
+    }
+
+    // พู่กระดาษห้อยใต้ยอดลาย
+    if (D.tassel && H > 0){
+      for (const tx of [w*0.22, w*0.78]){
+        const t = makeTassel(Math.max(85, H*0.42));
+        t.position.set(tx, hB - 10, zf + 5);
+        m.add(t);
+      }
+    }
+
     // ดอกไม้กระดาษย่น ติดมุมล่างสองข้าง
     if (D.flower){
       const r = 30;
@@ -1386,6 +1509,9 @@ function buildDeco(){
     }
   });
 
+  decoWorld.clear();
+  if (D.bunting) buildBunting();
+  if (D.props) buildProps();
   cloth.visible = D.cloth;
   table.visible = true;
   glow.intensity = D.lights ? 1.5e5 : 0;
@@ -1411,6 +1537,9 @@ function renderShopList(){
   if (D.sign && P.signText.trim()) items.push(['ป้ายชื่อ สติกเกอร์ติดโฟมบอร์ด A3', 1, 60]);
   if (D.flower) items.push([`กระดาษย่นทำดอกไม้ (${flowerCount} ดอก)`, Math.max(1, Math.ceil(flowerCount/12)), 15]);
   if (P.artwork && P.style === 3) items.push(['กระดาษ A4 พิมพ์สี (ตัดประกอบ)', allTiles().length, 10]);
+  if (D.kanok) items.push(['กระดาษการ์ดสีทอง A4 (ตัดลายกนกขอบล่าง)', Math.ceil((P.wC + P.wS*2)/297), 8]);
+  if (D.bunting) items.push(['กระดาษสีทำธงราว + เชือก', 1, 35]);
+  if (D.tassel) items.push(['กระดาษแก้ว/กระดาษย่นทำพู่', 1, 15]);
   if (D.cloth) items.push(['ผ้าปูโต๊ะ 150×200 ซม.', 1, 120]);
   if (items.length) items.push(['เทปกาวสองหน้า + กาวแท่ง', 1, 35]);
 
@@ -1833,7 +1962,8 @@ function pickColor(hex){
 document.querySelectorAll('#swatches .sw').forEach(s => s.addEventListener('click', () => pickColor(s.dataset.color)));
 $('customColor').addEventListener('input', e => pickColor(e.target.value));
 // --- ของตกแต่ง ---
-for (const [id, k] of Object.entries({ dBack:'back', dLights:'lights', dEdge:'edge', dSign:'sign', dFlower:'flower', dCloth:'cloth' }))
+for (const [id, k] of Object.entries({ dBack:'back', dLights:'lights', dEdge:'edge', dSign:'sign',
+  dFlower:'flower', dCloth:'cloth', dKanok:'kanok', dBunting:'bunting', dTassel:'tassel', dProps:'props' }))
   $(id).addEventListener('change', e => { P.deco[k] = e.target.checked; buildDeco(); });
 function pickBack(hex){
   P.backColor = hex;
