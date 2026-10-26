@@ -102,6 +102,11 @@ h1{font-family:'Kanit',sans-serif;font-weight:800;font-size:clamp(20px,2.4vw,26p
 .flat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;overflow-x:auto}
 .flat svg{display:block;max-width:100%;height:auto}
 .flat .cap{font-size:11.5px;color:var(--muted);margin:0 0 12px;line-height:1.6}
+.flat + .flat{margin-top:14px}
+.sheets{display:flex;gap:12px;flex-wrap:wrap}
+.sheets figure{margin:0;width:150px}
+.sheets img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:4px;background:#fff}
+.sheets figcaption{font-size:10.5px;color:var(--muted);margin-top:5px;text-align:center}
 footer{margin-top:22px;border-top:1px solid var(--line);padding-top:12px;font-size:11.5px;color:var(--muted);line-height:1.7}
 code{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--green)}
 .list{display:flex;flex-direction:column;gap:7px;font-size:12px}
@@ -154,6 +159,10 @@ code{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--green)}
       </section>
 
       <section id="view2d" role="tabpanel" aria-labelledby="tab2d" hidden>
+        <div class="flat" id="a4Box" hidden>
+          <p class="cap">ชุดแผ่น A4 — พิมพ์แนวตั้ง 100% แล้วแปะตามผังด้านล่าง</p>
+          <div class="sheets" id="a4Gallery"></div>
+        </div>
         <div class="flat">
           <p class="cap" id="flatCap">—</p>
           <div id="flatSvg"></div>
@@ -198,7 +207,8 @@ code{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--green)}
         <input type="text" class="txt" id="bTitle" value="CodeCoin" maxlength="18">
         <label for="bTeam" style="display:block;font-size:12px;margin:10px 0 5px">บรรทัดผู้จัดทำ</label>
         <input type="text" class="txt" id="bTeam" value="ผู้จัดทำ: (ใส่ชื่อ–ห้อง)" maxlength="46">
-        <div class="btns" style="margin-top:12px"><button class="btn" data-export="a4">ไฟล์สั่งพิมพ์ A4 (6 แผ่น)</button></div>
+        <p class="note" id="styleNote" style="margin-top:9px">สไตล์ 1 · การ์ดขาว–ทอง พิมพ์ไวนิลแผ่นเดียวจบ</p>
+        <div class="btns" style="margin-top:10px"><button class="btn" data-export="a4">ไฟล์สั่งพิมพ์ A4 (6 แผ่น)</button></div>
         <p class="note">เนื้อหาในการ์ดทั้ง 3 แผงดึงมาจาก <code>docs/PROJECT_SUMMARY.md</code> ของโปรเจคจริง — แก้ข้อความอื่นได้ที่ตัวแปร <code>BOARD</code> ในไฟล์นี้</p>
       </div>
 
@@ -1668,8 +1678,30 @@ function toOBJ(){
   return lines.join('\n') + '\n';
 }
 
+const sheetImgCache = new Map();
+function sheetImage(id, px){
+  const k = id + '|' + px + '|' + P.boardTitle + '|' + P.boardTeam;
+  if (sheetImgCache.has(k)) return sheetImgCache.get(k);
+  const cv = document.createElement('canvas');
+  cv.width = Math.round(A4.w*px); cv.height = Math.round(A4.h*px);
+  const c = cv.getContext('2d'); c.setTransform(px, 0, 0, px, 0, 0);
+  drawSheet(c, id);
+  const url = cv.toDataURL('image/png');
+  sheetImgCache.set(k, url);
+  if (sheetImgCache.size > 24) sheetImgCache.delete(sheetImgCache.keys().next().value);
+  return url;
+}
+function drawA4Gallery(){
+  const on = P.artwork && P.style === 3 && !$('view2d').hidden;
+  $('a4Box').hidden = !on;
+  if (!on) return;
+  $('a4Gallery').innerHTML = SHEETS.map((sh, k) =>
+    `<figure><img src="${sheetImage(sh.id, 2.2)}" alt="${sh.title}">` +
+    `<figcaption>${k+1}. ${sh.title}</figcaption></figure>`).join('');
+}
+
 function toA4HTML(){
-  const dpi = 180, sc = dpi/25.4;
+  const dpi = 150, sc = dpi/25.4;
   const pages = SHEETS.map(sh => {
     const cv = document.createElement('canvas');
     cv.width = Math.round(A4.w*sc); cv.height = Math.round(A4.h*sc);
@@ -1718,7 +1750,15 @@ function openExport(kind){
     `${e.name} · ${(new Blob([text]).size/1024).toFixed(0)} KB — ${e.note}`;
 }
 document.querySelectorAll('[data-export]').forEach(b =>
-  b.addEventListener('click', () => openExport(b.dataset.export)));
+  b.addEventListener('click', () => {
+    const label = b.textContent;
+    b.textContent = 'กำลังสร้างไฟล์…'; b.disabled = true;
+    requestAnimationFrame(() => setTimeout(() => {
+      try { openExport(b.dataset.export); }
+      finally { b.textContent = label; b.disabled = false; }
+      document.getElementById('exportBox').scrollIntoView({ block:'nearest' });
+    }, 0));
+  }));
 document.getElementById('closeExport').addEventListener('click', () =>
   document.getElementById('exportBox').hidden = true);
 document.getElementById('copyExport').addEventListener('click', async e => {
@@ -1830,10 +1870,24 @@ $('signText').addEventListener('input', e => {
   clearTimeout(signTimer); signTimer = setTimeout(buildDeco, 220);
 });
 // --- เนื้อหานำเสนอ ---
+function showStage(){
+  if (innerWidth > 1000) return;                       // จอกว้างเห็นอยู่แล้ว
+  const smooth = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const el = $('view2d').hidden ? document.querySelector('.stage') : document.querySelector('#view2d .flat:not([hidden])');
+  if (el) el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block:'center' });
+}
 document.querySelectorAll('[data-style]').forEach(b => b.addEventListener('click', () => {
   P.style = +b.dataset.style;
   document.querySelectorAll('[data-style]').forEach(o => o.setAttribute('aria-pressed', String(o === b)));
-  applyMats(); drawFlat(); renderShopList();
+  if (!P.artwork){ P.artwork = true; $('artOn').checked = true; }   // เลือกสไตล์ = ต้องเห็นเนื้อหา
+  $('styleNote').textContent = 'กำลังเรนเดอร์สไตล์ ' + P.style + '…';
+  requestAnimationFrame(() => setTimeout(() => {
+    applyMats(); drawFlat(); renderShopList();
+    $('styleNote').textContent = ['', 'สไตล์ 1 · การ์ดขาว–ทอง พิมพ์ไวนิลแผ่นเดียวจบ',
+      'สไตล์ 2 · แผงวงจร ธีมเดียวกับกระดานเกม',
+      'สไตล์ 3 · ชุดแผ่น A4 ' + SHEETS.length + ' แผ่น (ดูแผ่นจริงได้ที่แท็บ “แบบตัด 2 มิติ”)'][P.style];
+    showStage();
+  }, 0));
 }));
 $('artOn').addEventListener('change', e => { P.artwork = e.target.checked; applyMats(); drawFlat(); renderShopList(); });
 let artTimer = 0;
@@ -1858,6 +1912,7 @@ tabs.forEach(([t, v]) => $(t).addEventListener('click', () => {
 
 function drawFlat(){
   if ($('view2d').hidden) return;
+  drawA4Gallery();
   const L = flatLayout();
   $('flatSvg').innerHTML = toSVG({ preview:true });
   $('flatCap').textContent =
