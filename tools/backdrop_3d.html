@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="th">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!--ARTIFACT-START-->
+<title>ฉากหลังลายไทย 3 ตอน</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;800&family=Sarabun:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* เลย์เอาต์: เวทีโมเดลเต็มพื้นที่ซ้าย + แถบตั้งค่าขวา (ซ้อนเป็นคอลัมน์เดียวบนจอแคบ) */
+:root{
+  --bg:#141513; --panel:#1b1d1a; --panel-2:#222521; --line:#2e332e;
+  --ink:#E6EFE6; --muted:#8CA093; --gold:#FBBF24; --green:#4ADE80; --cut:#F2545B;
+  --stage-a:#24261f; --stage-b:#101210; --table:#3a3d38;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme:light){
+  :root:not([data-theme="dark"]){
+    --bg:#F3F2EC; --panel:#FFFFFF; --panel-2:#F7F7F1; --line:#DEDDD2;
+    --ink:#1D211C; --muted:#5F6B5F; --gold:#A66A00; --green:#1F7A46; --cut:#C62B33;
+    --stage-a:#EFEFE7; --stage-b:#D8D9CF; --table:#E7E7DE;
+    color-scheme:light;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#F3F2EC; --panel:#FFFFFF; --panel-2:#F7F7F1; --line:#DEDDD2;
+  --ink:#1D211C; --muted:#5F6B5F; --gold:#A66A00; --green:#1F7A46; --cut:#C62B33;
+  --stage-a:#EFEFE7; --stage-b:#D8D9CF; --table:#E7E7DE;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Sarabun',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.app{max-width:1440px;margin:0 auto;padding-block:22px 54px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+header.top{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:flex-end;justify-content:space-between;
+  border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:18px}
+h1{font-family:'Kanit',sans-serif;font-weight:800;font-size:clamp(20px,2.4vw,26px);margin:0;letter-spacing:-.3px;color:var(--gold);text-wrap:balance}
+.sub{color:var(--muted);font-size:12.5px;line-height:1.6;margin:6px 0 0;max-width:62ch}
+.rev{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1.3px;color:var(--muted);
+  border:1px solid var(--line);border-radius:20px;padding:6px 13px;white-space:nowrap}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 352px;gap:20px;align-items:start}
+@media(max-width:1000px){.layout{grid-template-columns:minmax(0,1fr)}}
+
+.tabs{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:4px;width:fit-content;margin-bottom:12px}
+.tab{font-family:'Kanit',sans-serif;font-weight:600;font-size:13px;color:var(--muted);background:none;border:0;padding:7px 16px;border-radius:8px;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--gold);color:#17180f}
+.tab:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+
+.stage{position:relative;border:1px solid var(--line);border-radius:14px;overflow:hidden;
+  background:radial-gradient(circle at 50% 28%,var(--stage-a),var(--stage-b));height:min(74vh,720px);min-height:420px}
+#gl{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#gl:active{cursor:grabbing}
+.hud{position:absolute;left:14px;top:12px;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.chip{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.3px;color:var(--ink);
+  background:color-mix(in srgb,var(--panel) 82%,transparent);border:1px solid var(--line);border-radius:7px;padding:5px 9px;width:fit-content}
+.chip b{color:var(--gold);font-weight:500}
+.views{position:absolute;right:12px;top:12px;display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:60%}
+.views button{font-family:'Kanit',sans-serif;font-size:11.5px;font-weight:500;color:var(--ink);cursor:pointer;
+  background:color-mix(in srgb,var(--panel) 86%,transparent);border:1px solid var(--line);border-radius:7px;padding:5px 10px}
+.views button:hover{border-color:var(--gold);color:var(--gold)}
+.loading{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;font-size:10.5px;
+  color:var(--muted);background:color-mix(in srgb,var(--panel) 88%,transparent);border:1px solid var(--line);border-radius:20px;padding:5px 13px}
+.hint{position:absolute;left:14px;bottom:12px;font-size:11px;color:var(--muted);pointer-events:none}
+
+.side{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:14px 15px}
+.card h2{font-family:'Kanit',sans-serif;font-size:12px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;
+  color:var(--muted);margin:0 0 11px}
+.row{display:grid;grid-template-columns:1fr 62px;gap:9px;align-items:center;margin-bottom:9px}
+.row:last-child{margin-bottom:0}
+.row label{font-size:12.5px;color:var(--ink)}
+.row .val{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--gold);text-align:right;font-variant-numeric:tabular-nums}
+.row input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--gold);margin:0}
+.seg{display:flex;gap:4px;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:3px}
+.seg button{flex:1;min-width:0;font-family:'Kanit',sans-serif;font-size:12px;font-weight:500;color:var(--muted);
+  background:none;border:0;border-radius:6px;padding:6px 4px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--gold);color:#17180f}
+.swatches{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.sw{width:30px;height:30px;border-radius:8px;border:2px solid transparent;cursor:pointer;padding:0}
+.sw[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 2px var(--panel) inset}
+.swatches input[type=color]{width:34px;height:30px;padding:0;border:1px solid var(--line);border-radius:8px;background:none;cursor:pointer}
+.checks{display:flex;flex-direction:column;gap:8px}
+.chk{display:flex;align-items:center;gap:9px;font-size:12.5px;cursor:pointer}
+.chk input{accent-color:var(--green);width:15px;height:15px;margin:0}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:12px}
+.facts dt{color:var(--muted)}
+.facts dd{margin:0;font-family:'IBM Plex Mono',monospace;color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
+.btns{display:flex;gap:7px;flex-wrap:wrap}
+.btn{font-family:'Kanit',sans-serif;font-size:12.5px;font-weight:500;color:var(--ink);background:var(--panel-2);
+  border:1px solid var(--line);border-radius:9px;padding:8px 13px;cursor:pointer}
+.btn:hover{border-color:var(--gold);color:var(--gold)}
+.btn.primary{background:var(--gold);color:#17180f;border-color:var(--gold)}
+.note{font-size:11.5px;color:var(--muted);line-height:1.6;margin:10px 0 0}
+#exportBox{margin-top:11px}
+#exportBox textarea{width:100%;height:120px;font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.5;
+  background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:9px;resize:vertical}
+
+.flat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;overflow-x:auto}
+.flat svg{display:block;max-width:100%;height:auto}
+.flat .cap{font-size:11.5px;color:var(--muted);margin:0 0 12px;line-height:1.6}
+footer{margin-top:22px;border-top:1px solid var(--line);padding-top:12px;font-size:11.5px;color:var(--muted);line-height:1.7}
+code{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--green)}
+@media(max-width:620px){
+  .views{top:auto;bottom:38px;right:10px;max-width:none}
+  .hud{right:10px}
+  .hint{bottom:12px;font-size:10.5px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="app">
+  <header class="top">
+    <div>
+      <h1>ฉากหลังลายไทย 3 ตอน</h1>
+      <p class="sub">โมเดล 3 มิติของฉากพับตั้งโต๊ะสำหรับบูธ CodeCoin — ปรับขนาด มุมพับ ความหนา และลายกนกบนยอดได้ แล้วดึงเส้นตัดจริง (SVG / DXF) ไปสั่งตัดเลเซอร์ ทุกค่าเป็นมิลลิเมตรขนาดเท่าของจริง</p>
+    </div>
+    <span class="rev" id="revChip">MM · 1:1</span>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab3d" aria-selected="true" aria-controls="view3d">โมเดล 3 มิติ</button>
+    <button class="tab" role="tab" id="tab2d" aria-selected="false" aria-controls="view2d">แบบตัด 2 มิติ</button>
+  </div>
+
+  <div class="layout">
+    <div>
+      <section id="view3d" role="tabpanel" aria-labelledby="tab3d">
+        <div class="stage">
+          <canvas id="gl"></canvas>
+          <div class="hud">
+            <div class="chip">รวม <b id="hudW">—</b> × สูง <b id="hudH">—</b> × ลึก <b id="hudD">—</b> มม.</div>
+            <div class="chip">มุมพับ <b id="hudA">—</b>° · หนา <b id="hudT">—</b> มม.</div>
+          </div>
+          <div class="views">
+            <button data-view="iso">มุมเฉียง</button>
+            <button data-view="front">หน้าตรง</button>
+            <button data-view="top">มุมบน</button>
+            <button data-view="detail">ซูมยอดลาย</button>
+          </div>
+          <div class="loading" id="loading" hidden>กำลังสร้างลาย…</div>
+          <p class="hint">ลากเพื่อหมุน · สกรอลล์หรือหนีบนิ้วเพื่อซูม</p>
+        </div>
+      </section>
+
+      <section id="view2d" role="tabpanel" aria-labelledby="tab2d" hidden>
+        <div class="flat">
+          <p class="cap" id="flatCap">—</p>
+          <div id="flatSvg"></div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="side">
+      <div class="card">
+        <h2>ขนาด (มม.)</h2>
+        <div class="row"><label for="wC">กว้าง แผงกลาง</label><span class="val" id="wCv"></span><input type="range" id="wC" min="300" max="900" step="10"></div>
+        <div class="row"><label for="wS">กว้าง แผงข้าง</label><span class="val" id="wSv"></span><input type="range" id="wS" min="250" max="800" step="10"></div>
+        <div class="row"><label for="hB">สูง ตัวแผง</label><span class="val" id="hBv"></span><input type="range" id="hB" min="300" max="900" step="10"></div>
+        <div class="row"><label for="hC">สูง ยอดลาย</label><span class="val" id="hCv"></span><input type="range" id="hC" min="0" max="420" step="10"></div>
+        <div class="row"><label for="th">หนาวัสดุ</label><span class="val" id="thv"></span><input type="range" id="th" min="2" max="12" step="1"></div>
+        <div class="row"><label for="fold">มุมพับ</label><span class="val" id="foldv"></span><input type="range" id="fold" min="0" max="90" step="1"></div>
+      </div>
+
+      <div class="card">
+        <h2>ลายไทยบนยอด</h2>
+        <div class="seg" role="group" aria-label="รูปแบบลาย">
+          <button data-pattern="tree" aria-pressed="true">ช่อกลาง</button>
+          <button data-pattern="flame" aria-pressed="false">เปลวกนก</button>
+          <button data-pattern="plain" aria-pressed="false">เรียบ</button>
+        </div>
+        <div class="row" style="margin-top:11px"><label for="dens">จำนวนตัวกนก (ต่อข้าง)</label><span class="val" id="densv"></span><input type="range" id="dens" min="2" max="6" step="1"></div>
+        <div class="checks" style="margin-top:4px">
+          <label class="chk"><input type="checkbox" id="cutouts" checked> เจาะลายหยดน้ำใต้ยอด</label>
+          <label class="chk"><input type="checkbox" id="sameAll"> ใช้ลายช่อกลางทั้ง 3 แผง</label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>วัสดุ &amp; สี</h2>
+        <div class="swatches" id="swatches">
+          <button class="sw" data-color="#1C9CD8" style="background:#1C9CD8" aria-pressed="true" title="ฟ้าตามตัวอย่าง"></button>
+          <button class="sw" data-color="#FBBF24" style="background:#FBBF24" aria-pressed="false" title="ทอง CodeCoin"></button>
+          <button class="sw" data-color="#0B2B22" style="background:#0B2B22" aria-pressed="false" title="เขียวเข้ม CodeCoin"></button>
+          <button class="sw" data-color="#D85A30" style="background:#D85A30" aria-pressed="false" title="ส้มอิฐ"></button>
+          <button class="sw" data-color="#F4F1EA" style="background:#F4F1EA" aria-pressed="false" title="ขาวงาช้าง"></button>
+          <input type="color" id="customColor" value="#1C9CD8" aria-label="เลือกสีเอง">
+        </div>
+        <div class="seg" style="margin-top:11px" role="group" aria-label="ผิววัสดุ">
+          <button data-finish="gloss" aria-pressed="true">อะคริลิกเงา</button>
+          <button data-finish="matte" aria-pressed="false">พลาสวูดด้าน</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>มุมมอง</h2>
+        <div class="checks">
+          <label class="chk"><input type="checkbox" id="optShadow" checked> เงาบนโต๊ะ</label>
+          <label class="chk"><input type="checkbox" id="optA4" checked> วางกระดาษ A4 เทียบขนาด</label>
+          <label class="chk"><input type="checkbox" id="optDim"> เส้นบอกขนาด</label>
+          <label class="chk"><input type="checkbox" id="optSpin"> หมุนช้า ๆ</label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>สรุปงานสั่งตัด</h2>
+        <dl class="facts">
+          <dt>ขนาดกางแบน</dt><dd id="fFlat">—</dd>
+          <dt>ขนาดตั้งจริง</dt><dd id="fSet">—</dd>
+          <dt>พื้นที่วัสดุ</dt><dd id="fArea">—</dd>
+          <dt>ความยาวเส้นตัด</dt><dd id="fCut">—</dd>
+          <dt>จำนวนรูเจาะ</dt><dd id="fHoles">—</dd>
+        </dl>
+        <div class="btns" style="margin-top:12px">
+          <button class="btn primary" data-export="svg">ไฟล์ตัด SVG</button>
+          <button class="btn" data-export="dxf">DXF</button>
+          <button class="btn" data-export="obj">โมเดล OBJ</button>
+        </div>
+        <div id="exportBox" hidden>
+          <div class="btns" style="margin-bottom:8px">
+            <button class="btn" id="copyExport">คัดลอกโค้ด</button>
+            <button class="btn" id="dlExport">ดาวน์โหลดไฟล์</button>
+            <button class="btn" id="closeExport">ปิด</button>
+          </div>
+          <textarea id="exportText" readonly spellcheck="false"></textarea>
+          <p class="note" id="exportNote"></p>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <footer>
+    เส้นตัดสร้างจากการวาดลายจริงแล้วไล่ขอบ (marching squares) ขนาด 1:1 มม. — ไฟล์ SVG/DXF เปิดกับเครื่องตัดเลเซอร์ได้ตรง ๆ เส้นสีแดงคือเส้นตัด
+    · แผ่นวัสดุมาตรฐานพลาสวูด/อะคริลิก <code>1220 × 2440</code> มม. · ไฟล์นี้อยู่ที่ <code>tools/backdrop_3d.html</code>
+  </footer>
+</div>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+/* ============================================================
+   1. พารามิเตอร์
+   ============================================================ */
+const P = {
+  wC:600, wS:520, hB:620, hC:280, th:5, fold:55,
+  pattern:'tree', dens:4, cutouts:true, sameAll:false,
+  color:'#1C9CD8', finish:'gloss',
+  shadow:true, a4:true, dim:false, spin:false
+};
+
+/* ============================================================
+   2. วาดลาย (หน่วย มม. แกน y ชี้ขึ้น) แล้วไล่ขอบเป็นเส้นตัด
+   ============================================================ */
+const PAD = 6;            // ขอบกันชนรอบผืนผ้าใบ (มม.)
+const PXMM = 1.5;         // ความละเอียดตอนไล่ขอบ (พิกเซลต่อ มม.)
+
+function fillPoly(ctx, pts){
+  ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0], pts[i][1]);
+  ctx.closePath(); ctx.fill();
+}
+
+/* ตัวกนก: ริบบิ้นเรียวที่ม้วนปลายเป็นก้นหอย คืนค่าแนวสันไว้แตกตัวลูก */
+function ribbon(ctx, o){
+  const N = 54, L = [], R = [], spine = [];
+  let px = o.x, py = o.y, a = o.ang;
+  const wts = [];
+  for (let i=0;i<N;i++){ const t=i/N; wts.push(0.16 + 2.6*t*t); }
+  const wsum = wts.reduce((s,v)=>s+v,0);
+  for (let i=0;i<=N;i++){
+    const t = i/N;
+    // ด้านท้อง (ในโค้ง) อวบกว่าด้านหลัง ปลายจึงเรียวแหลมแบบกนกจริง
+    const belly = Math.max(0.3, o.w * Math.pow(1-t, o.taper ?? 0.55));
+    const back  = Math.max(0.3, o.w * Math.pow(1-t, o.back ?? (o.taper ?? 0.55)*2.6));
+    const wl = o.dir > 0 ? belly : back, wr = o.dir > 0 ? back : belly;
+    const nx = Math.cos(a + Math.PI/2), ny = Math.sin(a + Math.PI/2);
+    L.push([px + nx*wl, py + ny*wl]);
+    R.push([px - nx*wr, py - ny*wr]);
+    spine.push([px, py, a, t]);
+    if (i === N) break;
+    const step = (o.len/N) * (1 - (o.shrink ?? 0.55)*t);
+    px += Math.cos(a)*step; py += Math.sin(a)*step;
+    a += o.dir * o.turn * (wts[i]/wsum);
+  }
+  fillPoly(ctx, L.concat(R.reverse()));
+  return spine;
+}
+
+/* กนกสามตัว: ตัวแม่ + ตัวลูกแตกออกจากสัน */
+function kranok(ctx, o, depth){
+  const spine = ribbon(ctx, o);
+  if (depth <= 0) return spine;
+  const branches = [[0.20, 0.52], [0.48, 0.36]];
+  for (const [t, sc] of branches){
+    const k = spine[Math.round(t*(spine.length-1))];
+    kranok(ctx, {
+      x:k[0], y:k[1], ang:k[2] - o.dir*0.72,
+      len:o.len*sc*1.15, turn:o.turn*0.92, w:Math.max(MINW*0.7, o.w*sc*1.30),
+      dir:o.dir, taper:o.taper, shrink:o.shrink
+    }, depth-1);
+  }
+  return spine;
+}
+
+/* กระจัง (พัดเล็กที่โคนช่อ) */
+function fan(ctx, x, y, h, w, n){
+  for (let k=-(n-1)/2;k<=(n-1)/2;k+=1){
+    ribbon(ctx, {x, y, ang:Math.PI/2 + k*0.33, len:h*(1-0.16*Math.abs(k)),
+      turn:k*0.25, w:w*(1-0.1*Math.abs(k)), dir:1, taper:1.35, shrink:0.2});
+  }
+}
+
+/* หยดน้ำสำหรับเจาะ (วาดตอน destination-out) */
+function droplet(ctx, x, y, r){
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+  fillPoly(ctx, [[x-r*0.74, y+r*0.42],[x+r*0.74, y+r*0.42],[x, y+r*2.7]]);
+}
+
+/* โค้งยอด (สันลายที่พาดตลอดแผง) */
+function archY(x, w, hB, H, peak){
+  const g = Math.exp(-Math.pow((x - peak*w)/(0.46*w), 2));
+  return hB + H*(0.045 + 0.24*g);
+}
+/* ความกว้างขั้นต่ำของเส้นลาย กันชิ้นงานเปราะตอนตัดเลเซอร์ */
+const MINW = 7;
+
+function drawPanel(ctx, p){
+  const { w, hB, H, pattern, dens, cutouts, peak } = p;
+  ctx.fillStyle = '#fff';
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillRect(0, 0, w, hB);                        // ตัวแผง
+  if (pattern === 'plain' || H <= 0) { addCutouts(); return; }
+
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0, -5, w, hB + H + 5); ctx.clip();   // ลายต้องอยู่ในกรอบแผงเสมอ
+
+  // แถบสันโค้งที่ลายทุกตัวงอกออกมา
+  const band = [];
+  for (let i=0;i<=120;i++){ const x = w*i/120; band.push([x, archY(x, w, hB, H, peak)]); }
+  band.push([w, hB-12],[0, hB-12]);
+  fillPoly(ctx, band);
+
+  const spire = (pattern === 'tree');
+  const px = peak*w;
+  const n = dens;
+
+  for (const s of [-1, 1]){
+    const extent = (s > 0 ? (w - px) : px) * 0.88;
+    for (let i=0;i<n;i++){
+      const u = i/(n - 0.001);                       // 0 = ตัวในสุด, ~1 = ตัวริมสุด
+      const x = px + s*(0.17 + 0.83*u)*extent;
+      const y = archY(x, w, hB, H, peak) - H*0.035;
+      // ตัวในตั้งชัน ตัวริมเอนออกไปตามขอบ
+      const tilt = 1.20 - 0.66*u;
+      const ang = s > 0 ? tilt : (Math.PI - tilt);
+      kranok(ctx, {
+        x, y, ang,
+        len: H*(1.14 - 0.38*u) * (spire ? 0.96 : 1.06),
+        turn: 6.4 - 0.7*u,
+        w: Math.max(MINW, H*(0.108 - 0.030*u)),
+        dir: s, taper:0.45, shrink:0.72
+      }, u < 0.45 ? 2 : 1);
+
+      // ตัวลูกเล็กแทรกระหว่างตัวใหญ่ ให้ลายแน่นแบบลายไทย
+      if (i < n-1){
+        const xu = px + s*(0.14 + 0.86*(u + 0.5/n))*extent;
+        const yu = archY(xu, w, hB, H, peak) - H*0.02;
+        kranok(ctx, {
+          x:xu, y:yu, ang: s > 0 ? (tilt - 0.30) : (Math.PI - tilt + 0.30),
+          len: H*(0.58 - 0.13*u), turn: 6.2,
+          w: Math.max(MINW*0.75, H*0.046), dir:s, taper:0.50, shrink:0.72
+        }, 1);
+      }
+    }
+  }
+
+  if (spire){
+    // ช่อกลาง: ยอดแหลม + เม็ดทรงข้าวหลามตัด + ก้นหอยประกบสองชั้น
+    const by = archY(px, w, hB, H, peak);
+    ribbon(ctx, {x:px, y:by - H*0.03, ang:Math.PI/2, len:H*0.76, turn:0,
+      w:Math.max(MINW, H*0.100), dir:1, taper:0.80, back:0.80, shrink:0.10});
+    fillPoly(ctx, [[px, by + H*0.34],[px + H*0.085, by + H*0.14],[px, by - H*0.04],[px - H*0.085, by + H*0.14]]);
+    for (const s of [-1, 1]){
+      kranok(ctx, {x:px + s*H*0.045, y:by + H*0.26, ang:Math.PI/2 - s*0.66,
+        len:H*0.62, turn:6.2, w:Math.max(MINW, H*0.066), dir:s, taper:0.48, shrink:0.72}, 1);
+      kranok(ctx, {x:px + s*H*0.035, y:by + H*0.02, ang:Math.PI/2 - s*1.05,
+        len:H*0.58, turn:6.3, w:Math.max(MINW, H*0.058), dir:s, taper:0.48, shrink:0.72}, 1);
+    }
+    fan(ctx, px, hB + H*0.01, H*0.20, Math.max(MINW*0.55, H*0.030), 5);
+  } else {
+    const by = archY(px, w, hB, H, peak);
+    for (const s of [-1, 1]){
+      kranok(ctx, {x:px + s*H*0.04, y:by + H*0.02, ang:Math.PI/2 - s*0.48,
+        len:H*0.92, turn:6.3, w:Math.max(MINW, H*0.080), dir:s, taper:0.46, shrink:0.72}, 2);
+    }
+    fan(ctx, px, hB + H*0.01, H*0.16, Math.max(MINW*0.55, H*0.028), 3);
+  }
+
+  ctx.restore();
+  addCutouts();
+
+  function addCutouts(){
+    if (!cutouts || H <= 0) return;
+    ctx.globalCompositeOperation = 'destination-out';
+    const r = Math.max(5, H*0.032);
+    for (const cx of [w*0.17, w*0.83]){
+      droplet(ctx, cx,         hB - H*0.12,  r);
+      droplet(ctx, cx - r*2.6, hB - H*0.19,  r*0.78);
+      droplet(ctx, cx + r*2.6, hB - H*0.19,  r*0.78);
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  }
+}
+
+/* ---- ไล่ขอบจากภาพที่วาด (marching squares ที่ระดับ 0.5) ---- */
+function contoursFromField(f, W, H, lvl){
+  const segs = [];
+  const ip = (x1,y1,v1,x2,y2,v2)=>{ const t=(lvl-v1)/((v2-v1)||1e-9); return [x1+(x2-x1)*t, y1+(y2-y1)*t]; };
+  for (let y=0;y<H-1;y++){
+    for (let x=0;x<W-1;x++){
+      const a=f[y*W+x], b=f[y*W+x+1], c=f[(y+1)*W+x+1], d=f[(y+1)*W+x];
+      let m=0; if(a>lvl)m|=8; if(b>lvl)m|=4; if(c>lvl)m|=2; if(d>lvl)m|=1;
+      if (m===0 || m===15) continue;
+      const T=()=>ip(x,y,a,x+1,y,b), R=()=>ip(x+1,y,b,x+1,y+1,c),
+            B=()=>ip(x+1,y+1,c,x,y+1,d), L=()=>ip(x,y+1,d,x,y,a);
+      const put=(p,q)=>segs.push([p[0],p[1],q[0],q[1]]);
+      switch(m){
+        case 1: put(L(),B()); break;
+        case 2: put(B(),R()); break;
+        case 3: put(L(),R()); break;
+        case 4: put(R(),T()); break;
+        case 5: if((a+b+c+d)/4>lvl){put(L(),B());put(R(),T());}else{put(L(),T());put(R(),B());} break;
+        case 6: put(B(),T()); break;
+        case 7: put(L(),T()); break;
+        case 8: put(T(),L()); break;
+        case 9: put(T(),B()); break;
+        case 10: if((a+b+c+d)/4>lvl){put(T(),R());put(B(),L());}else{put(T(),L());put(B(),R());} break;
+        case 11: put(T(),R()); break;
+        case 12: put(R(),L()); break;
+        case 13: put(R(),B()); break;
+        case 14: put(B(),L()); break;
+      }
+    }
+  }
+  const key = (x,y)=> Math.round(x*4096) + ',' + Math.round(y*4096);
+  const from = new Map();
+  segs.forEach((s,i)=>{ const k=key(s[0],s[1]); (from.get(k) ?? from.set(k,[]).get(k)).push(i); });
+  const used = new Uint8Array(segs.length), loops = [];
+  for (let i=0;i<segs.length;i++){
+    if (used[i]) continue;
+    const loop = []; let cur = i;
+    while (cur !== -1 && !used[cur]){
+      used[cur] = 1;
+      const s = segs[cur]; loop.push([s[0], s[1]]);
+      const nx = from.get(key(s[2], s[3])); let nxt = -1;
+      if (nx) for (const j of nx) if (!used[j]) { nxt = j; break; }
+      cur = nxt;
+    }
+    if (loop.length >= 8) loops.push(loop);
+  }
+  return loops;
+}
+
+function rdp(pts, eps){
+  if (pts.length < 4) return pts;
+  const keep = new Uint8Array(pts.length); keep[0]=1; keep[pts.length-1]=1;
+  const stack = [[0, pts.length-1]];
+  while (stack.length){
+    const [i, j] = stack.pop();
+    if (j <= i+1) continue;
+    const [x1,y1] = pts[i], [x2,y2] = pts[j];
+    const dx = x2-x1, dy = y2-y1, len = Math.hypot(dx,dy) || 1e-9;
+    let best = -1, bd = eps;
+    for (let k=i+1;k<j;k++){
+      const d = Math.abs(dy*(pts[k][0]-x1) - dx*(pts[k][1]-y1)) / len;
+      if (d > bd){ bd = d; best = k; }
+    }
+    if (best > 0){ keep[best]=1; stack.push([i,best],[best,j]); }
+  }
+  return pts.filter((_,k)=>keep[k]);
+}
+
+const area2 = (p)=>{ let a=0; for(let i=0,j=p.length-1;i<p.length;j=i++) a += (p[j][0]+p[i][0])*(p[j][1]-p[i][1]); return a/2; };
+function inside(pt, poly){
+  let c = false;
+  for (let i=0,j=poly.length-1;i<poly.length;j=i++){
+    const [xi,yi] = poly[i], [xj,yj] = poly[j];
+    if ((yi > pt[1]) !== (yj > pt[1]) && pt[0] < (xj-xi)*(pt[1]-yi)/((yj-yi)||1e-9) + xi) c = !c;
+  }
+  return c;
+}
+
+/* สร้างรูปร่าง (เส้นนอก + รูเจาะ) ของแผงหนึ่งใบ */
+const contourCache = new Map();
+function panelContours(p){
+  const ck = JSON.stringify(p);
+  if (contourCache.has(ck)) return contourCache.get(ck);
+
+  const hTot = p.hB + (p.pattern === 'plain' ? 0 : p.H*1.15);
+  const s = PXMM;
+  const cw = Math.ceil((p.w + PAD*2)*s), chh = Math.ceil((hTot + PAD*2)*s);
+  const cv = document.createElement('canvas'); cv.width = cw; cv.height = chh;
+  const ctx = cv.getContext('2d', { willReadFrequently:true });
+  ctx.setTransform(s, 0, 0, -s, PAD*s, (hTot + PAD)*s);
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  drawPanel(ctx, p);
+
+  const img = ctx.getImageData(0, 0, cw, chh).data;
+  const f = new Float32Array(cw*chh);
+  for (let i=0;i<f.length;i++) f[i] = img[i*4+3]/255;
+
+  const loops = contoursFromField(f, cw, chh, 0.5)
+    .map(l => rdp(l.map(([gx,gy]) => [gx/s - PAD, (hTot + PAD) - gy/s]), 0.32))
+    .filter(l => l.length >= 6 && Math.abs(area2(l)) > 4);
+
+  // จัดชั้น: ชั้นคู่ = ชิ้นงาน, ชั้นคี่ = รูเจาะ
+  const depth = loops.map((l,i) => loops.reduce((d,o,j) => (j!==i && Math.abs(area2(o)) > Math.abs(area2(l)) && inside(l[0], o)) ? d+1 : d, 0));
+  const shapes = [];
+  loops.forEach((l,i)=>{ if (depth[i] % 2 === 0) shapes.push({ outer:l, holes:[] }); });
+  loops.forEach((l,i)=>{
+    if (depth[i] % 2 === 0) return;
+    let host = null, ha = Infinity;
+    for (const sh of shapes){
+      const a = Math.abs(area2(sh.outer));
+      if (a < ha && inside(l[0], sh.outer)) { host = sh; ha = a; }
+    }
+    (host ?? shapes[0])?.holes.push(l);
+  });
+  shapes.sort((a,b)=> Math.abs(area2(b.outer)) - Math.abs(area2(a.outer)));
+  const out = { shapes, w:p.w, h:hTot };
+  contourCache.set(ck, out);
+  if (contourCache.size > 24) contourCache.delete(contourCache.keys().next().value);
+  return out;
+}
+
+function panelSpecs(){
+  const peakSide = 0.46;
+  const mid = { w:P.wC, hB:P.hB, H:P.hC, pattern:P.pattern, dens:P.dens, cutouts:P.cutouts, peak:0.5 };
+  const sidePat = P.sameAll ? P.pattern : (P.pattern === 'plain' ? 'plain' : 'flame');
+  const left  = { w:P.wS, hB:P.hB, H:P.hC, pattern:sidePat, dens:Math.max(2,P.dens-1), cutouts:P.cutouts, peak:P.sameAll?0.5:1-peakSide };
+  const right = { ...left, peak:P.sameAll?0.5:peakSide };
+  return [left, mid, right];
+}
+
+/* ============================================================
+   3. ฉาก 3 มิติ
+   ============================================================ */
+const canvas = document.getElementById('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, preserveDrawingBuffer:false });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(32, 1, 10, 20000);
+
+const css = (n, fb) => (getComputedStyle(document.documentElement).getPropertyValue(n).trim() || fb);
+function applyTheme(){
+  scene.background = new THREE.Color(css('--stage-b', '#101210'));
+  if (table) table.material.color.set(css('--table', '#3a3d38'));
+  if (fogCol) scene.fog = new THREE.Fog(scene.background, 2600, 9000);
+}
+
+const key = new THREE.DirectionalLight(0xfff4e2, 2.6);
+key.position.set(900, 1700, 1500);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+Object.assign(key.shadow.camera, { left:-1600, right:1600, top:1600, bottom:-1200, near:200, far:5200 });
+key.shadow.bias = -0.0012;
+key.shadow.camera.updateProjectionMatrix();
+scene.add(key);
+scene.add(new THREE.DirectionalLight(0xbdd6ff, 0.75).translateX(-1400).translateY(600).translateZ(-900));
+scene.add(new THREE.HemisphereLight(0xcfe3ff, 0x2b2d26, 0.85));
+
+let fogCol = true, table;
+const tableGeo = new THREE.PlaneGeometry(9000, 9000);
+table = new THREE.Mesh(tableGeo, new THREE.MeshStandardMaterial({ color:0x3a3d38, roughness:0.92, metalness:0 }));
+table.rotation.x = -Math.PI/2; table.receiveShadow = true;
+scene.add(table);
+
+const a4 = new THREE.Mesh(new THREE.PlaneGeometry(210, 297),
+  new THREE.MeshStandardMaterial({ color:0xf5f5ef, roughness:0.95 }));
+a4.rotation.x = -Math.PI/2; a4.position.set(0, 0.6, 420); a4.receiveShadow = true;
+scene.add(a4);
+
+const rig = new THREE.Group(); scene.add(rig);
+const material = new THREE.MeshPhysicalMaterial({
+  color:new THREE.Color(P.color), roughness:0.34, metalness:0.0,
+  clearcoat:0.55, clearcoatRoughness:0.25, side:THREE.FrontSide
+});
+const dimGroup = new THREE.Group(); scene.add(dimGroup);
+
+function toShape(sh){
+  const s = new THREE.Shape(sh.outer.map(([x,y]) => new THREE.Vector2(x, y)));
+  for (const h of sh.holes) s.holes.push(new THREE.Path(h.map(([x,y]) => new THREE.Vector2(x, y))));
+  return s;
+}
+
+let panelMeshes = [], cutStats = { len:0, holes:0, geo:[] };
+
+function buildPanels(){
+  rig.clear(); panelMeshes = [];
+  const specs = panelSpecs();
+  const data = specs.map(panelContours);
+  cutStats = { len:0, holes:0, geo:data };
+  for (const d of data){
+    for (const sh of d.shapes){
+      cutStats.holes += sh.holes.length;
+      for (const ring of [sh.outer, ...sh.holes]){
+        for (let i=0;i<ring.length;i++){
+          const a = ring[i], b = ring[(i+1)%ring.length];
+          cutStats.len += Math.hypot(b[0]-a[0], b[1]-a[1]);
+        }
+      }
+    }
+  }
+  const geos = data.map(d => {
+    const g = new THREE.ExtrudeGeometry(d.shapes.map(toShape),
+      { depth:P.th, bevelEnabled:false, curveSegments:4 });
+    g.computeVertexNormals();
+    return g;
+  });
+
+  const [gL, gM, gR] = geos;
+  const mid = new THREE.Mesh(gM, material);
+  mid.position.set(-P.wC/2, 0, 0);
+  const mg = new THREE.Group(); mg.add(mid); rig.add(mg);
+
+  const lp = new THREE.Group(); lp.position.set(-P.wC/2, 0, 0);
+  const lm = new THREE.Mesh(gL, material); lm.position.set(-P.wS, 0, 0);
+  lp.add(lm); rig.add(lp);
+
+  const rp = new THREE.Group(); rp.position.set(P.wC/2, 0, 0);
+  const rm = new THREE.Mesh(gR, material);
+  rp.add(rm); rig.add(rp);
+
+  panelMeshes = [lm, mid, rm];
+  rig.userData = { lp, rp };
+  for (const m of [lm, mid, rm]) { m.castShadow = true; m.receiveShadow = true; }
+  applyFold();
+}
+
+function applyFold(){
+  const a = P.fold * Math.PI/180;
+  const { lp, rp } = rig.userData;
+  if (lp) lp.rotation.y = a;
+  if (rp) rp.rotation.y = -a;
+}
+
+/* ---- เส้นบอกขนาด ---- */
+function makeLabel(text){
+  const c = document.createElement('canvas'), g = c.getContext('2d');
+  const F = 52; g.font = `600 ${F}px Kanit, sans-serif`;
+  c.width = Math.ceil(g.measureText(text).width) + 40; c.height = F + 30;
+  const h = c.getContext('2d');
+  h.font = `600 ${F}px Kanit, sans-serif`;
+  h.fillStyle = 'rgba(20,21,19,.85)';
+  h.beginPath(); h.roundRect(0, 0, c.width, c.height, 14); h.fill();
+  h.fillStyle = '#FBBF24'; h.textBaseline = 'middle';
+  h.fillText(text, 20, c.height/2 + 2);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:t, depthTest:false, transparent:true }));
+  sp.scale.set(c.width*0.62, c.height*0.62, 1);
+  return sp;
+}
+function lineBetween(a, b, col){
+  const g = new THREE.BufferGeometry().setFromPoints([a, b]);
+  return new THREE.Line(g, new THREE.LineBasicMaterial({ color:col, depthTest:false, transparent:true, opacity:0.9 }));
+}
+function buildDims(){
+  dimGroup.clear();
+  if (!P.dim) return;
+  const d = dims();
+  const z = d.depth + 150, col = 0xFBBF24;
+  const yb = 6;
+  dimGroup.add(lineBetween(new THREE.Vector3(-d.width/2, yb, z), new THREE.Vector3(d.width/2, yb, z), col));
+  dimGroup.add(lineBetween(new THREE.Vector3(-d.width/2, yb, z-60), new THREE.Vector3(-d.width/2, yb, z+60), col));
+  dimGroup.add(lineBetween(new THREE.Vector3(d.width/2, yb, z-60), new THREE.Vector3(d.width/2, yb, z+60), col));
+  const lw = makeLabel(`${Math.round(d.width)} มม.`); lw.position.set(0, 70, z); dimGroup.add(lw);
+  const x = -d.width/2 - 90;
+  dimGroup.add(lineBetween(new THREE.Vector3(x, 0, 0), new THREE.Vector3(x, d.height, 0), col));
+  const lh = makeLabel(`${Math.round(d.height)} มม.`); lh.position.set(x - 20, d.height/2, 0); dimGroup.add(lh);
+}
+
+function dims(){
+  const a = P.fold * Math.PI/180;
+  const hTot = P.hB + (P.pattern === 'plain' ? 0 : P.hC);
+  return {
+    width: P.wC + 2*P.wS*Math.cos(a),
+    depth: P.wS*Math.sin(a) + P.th,
+    height: hTot,
+    flatW: P.wC + 2*P.wS,
+    flatH: hTot
+  };
+}
+
+/* ---- กล้องแบบลากเอง ---- */
+let az = 0.42, pol = 1.16, dist = 2600;
+const target = new THREE.Vector3(0, 420, 0);
+function updCam(){
+  pol = Math.min(Math.max(pol, 0.08), Math.PI/2 + 0.08);
+  dist = Math.min(Math.max(dist, 420), 9000);
+  camera.position.set(
+    target.x + dist*Math.sin(pol)*Math.sin(az),
+    target.y + dist*Math.cos(pol),
+    target.z + dist*Math.sin(pol)*Math.cos(az));
+  camera.lookAt(target);
+}
+const ptrs = new Map(); let pinch = 0;
+canvas.addEventListener('pointerdown', e => { canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, e); });
+canvas.addEventListener('pointerup', e => { ptrs.delete(e.pointerId); pinch = 0; });
+canvas.addEventListener('pointercancel', e => { ptrs.delete(e.pointerId); pinch = 0; });
+canvas.addEventListener('pointermove', e => {
+  if (!ptrs.has(e.pointerId)) return;
+  const prev = ptrs.get(e.pointerId); ptrs.set(e.pointerId, e);
+  if (ptrs.size === 1){
+    az -= (e.clientX - prev.clientX) * 0.006;
+    pol -= (e.clientY - prev.clientY) * 0.006;
+    autoFramed = false;
+    updCam();
+  } else if (ptrs.size === 2){
+    const [a, b] = [...ptrs.values()];
+    const d = Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY);
+    if (pinch) { dist *= pinch/d; updCam(); }
+    pinch = d;
+  }
+});
+canvas.addEventListener('wheel', e => { e.preventDefault(); autoFramed = false; dist *= 1 + Math.sign(e.deltaY)*0.09; updCam(); }, { passive:false });
+
+const VIEWS = {
+  iso:    { az:0.30, pol:1.21, dist:2600, ty:420 },
+  front:  { az:0.00, pol:1.50, dist:2500, ty:450 },
+  top:    { az:0.00, pol:0.20, dist:2500, ty:120 },
+  detail: { az:0.18, pol:1.25, dist:1050, ty:P.hB + P.hC*0.55 }
+};
+let lastView = 'iso', autoFramed = true;
+function fitDistance(w, h){
+  const t = 2*Math.tan(camera.fov*Math.PI/360);
+  return Math.max(h*1.30/t, w*1.18/(t*Math.max(camera.aspect, 0.4))) + 260;
+}
+function setView(k){
+  const v = { ...VIEWS[k] }, d = dims();
+  lastView = k; autoFramed = true;
+  if (k === 'detail'){
+    v.ty = P.hB + P.hC*0.55;
+    v.dist = fitDistance(P.wC*0.95, P.hC*1.5);
+  } else {
+    v.ty = d.height*0.54;
+    v.dist = fitDistance(d.width, d.height);
+  }
+  az = v.az; pol = v.pol; dist = v.dist; target.set(0, v.ty, 0); updCam();
+}
+
+function resize(){
+  const r = canvas.getBoundingClientRect();
+  if (!r.width || !r.height) return;
+  renderer.setSize(r.width, r.height, false);
+  camera.aspect = r.width / r.height; camera.updateProjectionMatrix();
+  if (autoFramed && panelMeshes.length) setView(lastView);
+}
+new ResizeObserver(resize).observe(canvas.parentElement);
+
+let last = performance.now();
+renderer.setAnimationLoop(() => {
+  const now = performance.now(), dt = (now - last)/1000; last = now;
+  if (P.spin) { az += dt*0.22; updCam(); }
+  renderer.render(scene, camera);
+});
+
+/* ============================================================
+   4. ส่งออกไฟล์
+   ============================================================ */
+const LAYOUT_GAP = 20;
+function flatLayout(){
+  const data = cutStats.geo;
+  let x = 0; const placed = [];
+  for (const d of data){ placed.push({ d, x }); x += d.w + LAYOUT_GAP; }
+  return { placed, w:Math.max(0, x - LAYOUT_GAP), h:Math.max(...data.map(d => d.h)) };
+}
+const fmt = n => (Math.round(n*100)/100).toString();
+
+function toSVG({ preview=false } = {}){
+  const L = flatLayout();
+  const paths = [];
+  for (const { d, x } of L.placed){
+    for (const sh of d.shapes){
+      for (const ring of [sh.outer, ...sh.holes]){
+        paths.push('M' + ring.map(([px,py]) => `${fmt(px+x)},${fmt(L.h-py)}`).join('L') + 'Z');
+      }
+    }
+  }
+  const body = paths.map(p => `<path d="${p}"/>`).join('\n  ');
+  const style = preview
+    ? 'fill="none" stroke="currentColor" stroke-width="1.2" vector-effect="non-scaling-stroke"'
+    : 'fill="none" stroke="#FF0000" stroke-width="0.1"';
+  const head = preview
+    ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-5 -5 ${fmt(L.w+10)} ${fmt(L.h+10)}" style="width:100%;height:auto;color:var(--cut)">`
+    : `<svg xmlns="http://www.w3.org/2000/svg" width="${fmt(L.w)}mm" height="${fmt(L.h)}mm" viewBox="0 0 ${fmt(L.w)} ${fmt(L.h)}">`;
+  return `${head}\n<g ${style}>\n  ${body}\n</g>\n</svg>`;
+}
+
+function toDXF(){
+  const L = flatLayout(); const o = [];
+  const p = (c, v) => { o.push(c, v); };
+  p(0,'SECTION'); p(2,'ENTITIES');
+  for (const { d, x } of L.placed){
+    for (const sh of d.shapes){
+      for (const ring of [sh.outer, ...sh.holes]){
+        p(0,'POLYLINE'); p(8,'CUT'); p(66,1); p(70,1);
+        for (const [px,py] of ring){ p(0,'VERTEX'); p(8,'CUT'); p(10, fmt(px+x)); p(20, fmt(py)); p(30,'0.0'); }
+        p(0,'SEQEND'); p(8,'CUT');
+      }
+    }
+  }
+  p(0,'ENDSEC'); p(0,'EOF');
+  return o.join('\n') + '\n';
+}
+
+function toOBJ(){
+  const lines = ['# CodeCoin backdrop — ' + new Date().toISOString().slice(0,10), '# หน่วย: มิลลิเมตร'];
+  let off = 1;
+  const a = P.fold * Math.PI/180;
+  const place = [
+    { rot:a,  px:-P.wC/2, ox:-P.wS },
+    { rot:0,  px:-P.wC/2, ox:0 },
+    { rot:-a, px:P.wC/2,  ox:0 }
+  ];
+  panelMeshes.forEach((m, i) => {
+    const g = m.geometry, pos = g.getAttribute('position'), idx = g.getIndex();
+    const { rot, px, ox } = place[i];
+    lines.push(`o panel_${['left','center','right'][i]}`);
+    for (let v=0; v<pos.count; v++){
+      const lx = pos.getX(v) + ox, ly = pos.getY(v), lz = pos.getZ(v);
+      const wx = px + lx*Math.cos(rot) + lz*Math.sin(rot);
+      const wz = -lx*Math.sin(rot) + lz*Math.cos(rot);
+      lines.push(`v ${fmt(wx)} ${fmt(ly)} ${fmt(wz)}`);
+    }
+    if (idx) for (let t=0;t<idx.count;t+=3)
+      lines.push(`f ${idx.getX(t)+off} ${idx.getX(t+1)+off} ${idx.getX(t+2)+off}`);
+    else for (let t=0;t<pos.count;t+=3) lines.push(`f ${t+off} ${t+1+off} ${t+2+off}`);
+    off += pos.count;
+  });
+  return lines.join('\n') + '\n';
+}
+
+const EX = {
+  svg: { name:'codecoin-backdrop-cut.svg', mime:'image/svg+xml', make:()=>toSVG(),
+         note:'เส้นสีแดง = เส้นตัด ขนาด 1:1 มม. · เปิดใน Illustrator / Inkscape / RDWorks ได้เลย' },
+  dxf: { name:'codecoin-backdrop-cut.dxf', mime:'application/dxf', make:toDXF,
+         note:'DXF R12 เลเยอร์ CUT หน่วยมิลลิเมตร · ส่งโรงงานตัดเลเซอร์ได้ตรง ๆ' },
+  obj: { name:'codecoin-backdrop.obj', mime:'model/obj', make:toOBJ,
+         note:'โมเดล 3 มิติพับตามมุมปัจจุบัน · เปิดใน Blender / SketchUp / 3D Viewer' }
+};
+let current = null;
+function openExport(kind){
+  const e = EX[kind]; const text = e.make();
+  current = { ...e, text };
+  const box = document.getElementById('exportBox');
+  box.hidden = false;
+  document.getElementById('exportText').value = text;
+  document.getElementById('exportNote').textContent =
+    `${e.name} · ${(new Blob([text]).size/1024).toFixed(0)} KB — ${e.note} ถ้าปุ่มดาวน์โหลดไม่ทำงาน (หน้าตัวอย่างบล็อกไว้) ให้กดคัดลอกโค้ดแล้ววางลงไฟล์เปล่าแทน`;
+}
+document.querySelectorAll('[data-export]').forEach(b =>
+  b.addEventListener('click', () => openExport(b.dataset.export)));
+document.getElementById('closeExport').addEventListener('click', () =>
+  document.getElementById('exportBox').hidden = true);
+document.getElementById('copyExport').addEventListener('click', async e => {
+  const ta = document.getElementById('exportText');
+  try { await navigator.clipboard.writeText(current.text); e.target.textContent = 'คัดลอกแล้ว'; }
+  catch { ta.focus(); ta.select(); e.target.textContent = 'เลือกข้อความแล้ว กด Ctrl+C'; }
+  setTimeout(() => e.target.textContent = 'คัดลอกโค้ด', 2200);
+});
+document.getElementById('dlExport').addEventListener('click', e => {
+  const b = new Blob([current.text], { type:current.mime });
+  const u = URL.createObjectURL(b), a = document.createElement('a');
+  a.href = u; a.download = current.name; a.click();
+  setTimeout(() => URL.revokeObjectURL(u), 4000);
+  e.target.textContent = 'สั่งดาวน์โหลดแล้ว';
+  setTimeout(() => e.target.textContent = 'ดาวน์โหลดไฟล์', 2200);
+});
+
+/* ============================================================
+   5. เชื่อม UI
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const RASTER = new Set(['wC','wS','hB','hC','pattern','dens','cutouts','sameAll']);
+const sliders = [
+  ['wC','wC', v=>v+' มม.'], ['wS','wS', v=>v+' มม.'], ['hB','hB', v=>v+' มม.'],
+  ['hC','hC', v=>v+' มม.'], ['th','th', v=>v+' มม.'], ['fold','fold', v=>v+'°'], ['dens','dens', v=>v+' ตัว']
+];
+
+function syncLabels(){
+  for (const [id, k, f] of sliders){ $(id).value = P[k]; $(id+'v').textContent = f(P[k]); }
+  const d = dims();
+  $('hudW').textContent = Math.round(d.width).toLocaleString();
+  $('hudH').textContent = Math.round(d.height).toLocaleString();
+  $('hudD').textContent = Math.round(d.depth).toLocaleString();
+  $('hudA').textContent = P.fold;
+  $('hudT').textContent = P.th;
+  $('fFlat').textContent = `${Math.round(d.flatW + LAYOUT_GAP*2).toLocaleString()} × ${Math.round(d.flatH).toLocaleString()} มม.`;
+  $('fSet').textContent  = `${Math.round(d.width).toLocaleString()} × ${Math.round(d.height).toLocaleString()} × ${Math.round(d.depth).toLocaleString()} มม.`;
+  $('fArea').textContent = `${((d.flatW*d.flatH)/1e6).toFixed(2)} ตร.ม.`;
+  $('fCut').textContent  = `${(cutStats.len/1000).toFixed(1)} ม.`;
+  $('fHoles').textContent = `${cutStats.holes} รู`;
+}
+
+let pending = 0;
+function refresh(heavy){
+  if (heavy){
+    $('loading').hidden = false;
+    clearTimeout(pending);
+    pending = setTimeout(() => {
+      buildPanels(); buildDims(); syncLabels(); drawFlat();
+      if (autoFramed) setView(lastView);
+      $('loading').hidden = true;
+    }, 70);
+  } else {
+    applyFold(); buildDims(); syncLabels();
+  }
+}
+
+for (const [id, k] of sliders){
+  $(id).addEventListener('input', e => {
+    P[k] = +e.target.value;
+    if (k === 'th'){ refresh(true); return; }
+    refresh(RASTER.has(k));
+  });
+}
+document.querySelectorAll('[data-pattern]').forEach(b => b.addEventListener('click', () => {
+  P.pattern = b.dataset.pattern;
+  document.querySelectorAll('[data-pattern]').forEach(o => o.setAttribute('aria-pressed', String(o === b)));
+  refresh(true);
+}));
+document.querySelectorAll('[data-finish]').forEach(b => b.addEventListener('click', () => {
+  P.finish = b.dataset.finish;
+  document.querySelectorAll('[data-finish]').forEach(o => o.setAttribute('aria-pressed', String(o === b)));
+  const gloss = P.finish === 'gloss';
+  material.roughness = gloss ? 0.34 : 0.72;
+  material.clearcoat = gloss ? 0.55 : 0.05;
+}));
+function pickColor(hex){
+  P.color = hex; material.color.set(hex);
+  document.querySelectorAll('.sw').forEach(s => s.setAttribute('aria-pressed', String(s.dataset.color.toLowerCase() === hex.toLowerCase())));
+  $('customColor').value = hex;
+}
+document.querySelectorAll('.sw').forEach(s => s.addEventListener('click', () => pickColor(s.dataset.color)));
+$('customColor').addEventListener('input', e => pickColor(e.target.value));
+$('cutouts').addEventListener('change', e => { P.cutouts = e.target.checked; refresh(true); });
+$('sameAll').addEventListener('change', e => { P.sameAll = e.target.checked; refresh(true); });
+$('optShadow').addEventListener('change', e => { P.shadow = e.target.checked; renderer.shadowMap.enabled = P.shadow; panelMeshes.forEach(m => m.castShadow = P.shadow); scene.traverse(o => { if (o.isMesh) o.material.needsUpdate = true; }); });
+$('optA4').addEventListener('change', e => { P.a4 = e.target.checked; a4.visible = P.a4; });
+$('optDim').addEventListener('change', e => { P.dim = e.target.checked; buildDims(); });
+$('optSpin').addEventListener('change', e => { P.spin = e.target.checked; });
+document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+
+const tabs = [['tab3d','view3d'], ['tab2d','view2d']];
+tabs.forEach(([t, v]) => $(t).addEventListener('click', () => {
+  tabs.forEach(([tt, vv]) => { $(tt).setAttribute('aria-selected', String(tt === t)); $(vv).hidden = (tt !== t); });
+  if (v === 'view3d') resize(); else drawFlat();
+}));
+
+function drawFlat(){
+  if ($('view2d').hidden) return;
+  const L = flatLayout();
+  $('flatSvg').innerHTML = toSVG({ preview:true });
+  $('flatCap').textContent =
+    `ผังวางชิ้นงานสำหรับตัด — ${Math.round(L.w).toLocaleString()} × ${Math.round(L.h).toLocaleString()} มม. ` +
+    `(เว้นระหว่างชิ้น ${LAYOUT_GAP} มม.) · เส้นตัดรวม ${(cutStats.len/1000).toFixed(1)} ม. · รูเจาะ ${cutStats.holes} รู · ` +
+    `หนา ${P.th} มม. ${P.finish === 'gloss' ? 'อะคริลิก' : 'พลาสวูด'}`;
+}
+
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+new MutationObserver(applyTheme).observe(document.documentElement, { attributes:true, attributeFilter:['data-theme'] });
+
+applyTheme();
+a4.visible = P.a4;
+buildPanels(); syncLabels(); resize(); setView('iso');
+</script>
+<!--ARTIFACT-END-->

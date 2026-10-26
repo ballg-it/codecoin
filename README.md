@@ -22,6 +22,7 @@ print/      Final/*.pdf (ไฟล์ส่งโรงพิมพ์) · qr_ou
 box_demo/   codecoin_box_demo_v4.html + demo_assets/                   ← เดโมกล่อง 3 มิติ
             codecoin_box_demo_standalone.html (ไฟล์เดียวจบ ส่งต่อได้)
 tools/      hotspot_picker.html · motherboard.svg     ← เครื่องมือทีม content / สถานะโปรเจค
+            backdrop_3d.html (ฉากหลังลายไทย 3 ตอน — โมเดล 3 มิติ + ไฟล์ตัดเลเซอร์)
 ```
 
 | ไฟล์หลัก | หน้าที่ |
@@ -33,6 +34,7 @@ tools/      hotspot_picker.html · motherboard.svg     ← เครื่อง
 | `scripts/build_data.py` | แปลง Excel → `data.json` (รันทุกครั้งหลังทีม content แก้ Excel) |
 | `data.json` | ฐานข้อมูลที่เว็บใช้จริง — **อย่าแก้มือ ให้แก้ Excel แล้วรัน build_data.py** |
 | `scripts/gen_qr.py` | สคริปต์ gen QR ทั้งชุดเป็น PNG (ลงโฟลเดอร์ `print/qr_output/`) |
+| `tools/backdrop_3d.html` | ออกแบบฉากหลังพับ 3 ตอนลายไทยของบูธ — ปรับขนาด/มุมพับ/ลายกนกแล้วส่งออก SVG · DXF (เส้นตัดเลเซอร์ 1:1 มม.) และ OBJ |
 
 > สคริปต์ทุกตัวอ้าง path จากรากโปรเจคเสมอ (ผ่าน `__file__`) รันจากโฟลเดอร์ไหนก็ได้
 
