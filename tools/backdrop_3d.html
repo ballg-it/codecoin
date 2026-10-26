@@ -187,6 +187,16 @@ code{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--green)}
       </div>
 
       <div class="card">
+        <h2>เนื้อหานำเสนอบนบอร์ด</h2>
+        <label class="chk"><input type="checkbox" id="artOn" checked> แสดงเนื้อหาตัวอย่างบนแผง</label>
+        <label for="bTitle" style="display:block;font-size:12px;margin:12px 0 5px">ชื่อบนบอร์ด</label>
+        <input type="text" class="txt" id="bTitle" value="CodeCoin" maxlength="18">
+        <label for="bTeam" style="display:block;font-size:12px;margin:10px 0 5px">บรรทัดผู้จัดทำ</label>
+        <input type="text" class="txt" id="bTeam" value="ผู้จัดทำ: (ใส่ชื่อ–ห้อง)" maxlength="46">
+        <p class="note">เนื้อหาในการ์ดทั้ง 3 แผงดึงมาจาก <code>docs/PROJECT_SUMMARY.md</code> ของโปรเจคจริง — แก้ข้อความอื่นได้ที่ตัวแปร <code>BOARD</code> ในไฟล์นี้</p>
+      </div>
+
+      <div class="card">
         <h2>วัสดุ &amp; สี</h2>
         <div class="swatches" id="swatches">
           <button class="sw" data-color="#1C9CD8" style="background:#1C9CD8" aria-pressed="true" title="ฟ้าตามตัวอย่าง"></button>
@@ -208,7 +218,7 @@ code{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--green)}
           <label class="chk"><input type="checkbox" id="dBack" checked> แผ่นรองหลังลาย (กระดาษสา/ฟิวเจอร์บอร์ด)</label>
           <label class="chk"><input type="checkbox" id="dLights" checked> ไฟหยดน้ำ LED เดินตามขอบลาย</label>
           <label class="chk"><input type="checkbox" id="dEdge"> เทปกากเพชรเดินขอบ</label>
-          <label class="chk"><input type="checkbox" id="dSign" checked> ป้ายชื่อบูธ</label>
+          <label class="chk"><input type="checkbox" id="dSign"> ป้ายชื่อบูธ</label>
           <label class="chk"><input type="checkbox" id="dFlower"> ดอกไม้กระดาษย่น</label>
           <label class="chk"><input type="checkbox" id="dCloth" checked> ผ้าปูโต๊ะ</label>
         </div>
@@ -272,6 +282,7 @@ code{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--green)}
   </footer>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 
@@ -284,7 +295,37 @@ const P = {
   color:'#1C9CD8', finish:'gloss',
   shadow:true, a4:true, dim:false, spin:false,
   deco:{ back:true, lights:true, edge:false, sign:true, flower:false, cloth:true },
-  backColor:'#FBBF24', signText:'CodeCoin'
+  backColor:'#FBBF24', signText:'CodeCoin',
+  artwork:true, boardTitle:'CodeCoin', boardTeam:'ผู้จัดทำ: (ใส่ชื่อ–ห้อง)'
+};
+P.deco.sign = false;
+
+/* เนื้อหาจริงของโครงงาน (ย่อจาก docs/PROJECT_SUMMARY.md) */
+const BOARD = {
+  sub:'บอร์ดเกมเพื่อการศึกษา × ระบบ QR',
+  url:'ballgamerzaman-code.github.io/codecoin',
+  subjects:['Coding','Microsoft Office','Graphic Design','ประกอบคอมพิวเตอร์'],
+  why:'ต่อยอดจาก Monopoly ให้เป็นบอร์ดเกมฝึกทักษะคอมพิวเตอร์ 4 วิชา ผู้เล่นใช้มือถือของตัวเองสแกน QR บนกระดานและการ์ด เนื้อหา คำถาม และมินิเกมทั้งหมดอยู่บนเว็บ จึงไม่ต้องติดตั้งแอปและไม่ต้องล็อกอิน',
+  goals:[
+    'ทบทวนเนื้อหา 4 วิชาผ่านการเล่นเป็นกลุ่ม',
+    'ฝึกแก้ปัญหาและสื่อสารในเวลาจำกัด',
+    'เป็นสื่อการสอนที่โรงเรียนอื่นนำไปใช้ต่อได้ฟรี'
+  ],
+  strong:[
+    'สแกนแล้วเล่นได้ทันที ไม่ต้องติดตั้งแอป',
+    'เล่นต่อได้แม้เน็ตหลุด (Service Worker)',
+    'มินิเกม 2 คน 2 มือถือ “กู้บั๊กด่วน” 4 ด่าน',
+    'บอสไฟต์ทั้งโต๊ะที่ “จุดพักเครื่อง”'
+  ],
+  systems:[
+    ['ช่องทรัพย์สิน','อ่านเนื้อหาสั้น + ตอบควิซ ถูกได้ส่วนลด 20%'],
+    ['ช่องเหตุการณ์','สุ่มการ์ด 20 ใบตามโซน มี 4 กลไก'],
+    ['ติดบั๊ก (Bug Jam)','แก้โจทย์ debug จับเวลาเพื่อออกจากคุก'],
+    ['อัปเกรดทรัพย์สิน','ตอบคำถาม L2/L3 ปลดค่าเช่าใหม่'],
+    ['จุดพักเครื่อง','บอสไฟต์ทั้งโต๊ะ ฟัน HP ร่วมกัน'],
+    ['กู้บั๊กด่วน','2 คน 2 มือถือ ผู้กด + ผู้อ่านคู่มือ']
+  ],
+  stats:[['28','ช่องบนกระดาน'],['81','คำถาม'],['20','การ์ดเหตุการณ์'],['23','QR ในชุด']]
 };
 
 /* ============================================================
@@ -581,6 +622,197 @@ function panelSpecs(){
   return [left, mid, right];
 }
 
+
+/* ============================================================
+   2.5 อาร์ตเวิร์กบนบอร์ด — เนื้อหานำเสนอ 1:1 มม. (ใช้เป็นภาพพิมพ์/สติกเกอร์)
+   ============================================================ */
+const ARTPX = 2;                    // พิกเซลต่อมิลลิเมตร
+const INK = '#0B2B22', GOLD = '#FBBF24', PAPER = '#FFFFFF';
+const artCache = new Map();
+
+function kanit(sz, w){ return `${w||600} ${sz}px Kanit, sans-serif`; }
+function sarabun(sz, w){ return `${w||400} ${sz}px Sarabun, sans-serif`; }
+
+function wrap(ctx, text, maxW){
+  const out = [];
+  for (const para of String(text).split('\n')){
+    let line = '';
+    for (const word of para.split(' ')){
+      const t = line ? line + ' ' + word : word;
+      if (ctx.measureText(t).width > maxW && line){ out.push(line); line = word; }
+      else line = t;
+    }
+    out.push(line);
+  }
+  return out;
+}
+function para(ctx, text, x, y, maxW, lh){
+  for (const l of wrap(ctx, text, maxW)){ ctx.fillText(l, x, y); y += lh; }
+  return y;
+}
+function rr(ctx, x, y, w, h, r){ ctx.beginPath(); ctx.roundRect(x, y, w, h, r); }
+
+/* การ์ดเนื้อหาสีขาว + แถบหัวข้อสีทอง คืนค่าขอบเขตด้านใน */
+function card(ctx, x, y, w, h, title){
+  ctx.fillStyle = 'rgba(11,43,34,.18)'; rr(ctx, x+3, y+4, w, h, 14); ctx.fill();
+  ctx.fillStyle = PAPER; rr(ctx, x, y, w, h, 14); ctx.fill();
+  ctx.fillStyle = GOLD; rr(ctx, x, y, w, 30, 14); ctx.fill();
+  ctx.fillRect(x, y+18, w, 12);
+  ctx.fillStyle = INK; ctx.font = kanit(19, 700); ctx.textBaseline = 'middle';
+  ctx.fillText(title, x+14, y+16);
+  ctx.textBaseline = 'alphabetic';
+  return { x:x+14, y:y+30+22, w:w-28 };
+}
+
+function qrOnto(ctx, text, x, y, size){
+  if (typeof qrcode === 'function'){
+    try {
+      const q = qrcode(0, 'H'); q.addData(text); q.make();
+      const n = q.getModuleCount(), c = size/(n+2);
+      ctx.fillStyle = PAPER; ctx.fillRect(x, y, size, size);
+      ctx.fillStyle = '#000';
+      for (let r=0;r<n;r++) for (let col=0;col<n;col++)
+        if (q.isDark(r, col)) ctx.fillRect(x + (col+1)*c, y + (r+1)*c, c+0.35, c+0.35);
+      return true;
+    } catch (e){ /* ตกไปใช้กรอบว่าง */ }
+  }
+  ctx.fillStyle = PAPER; ctx.fillRect(x, y, size, size);
+  ctx.strokeStyle = '#9aa79c'; ctx.lineWidth = 2; ctx.setLineDash([8, 7]);
+  ctx.strokeRect(x+5, y+5, size-10, size-10); ctx.setLineDash([]);
+  ctx.fillStyle = '#6d7a6f'; ctx.font = kanit(16, 600); ctx.textAlign = 'center';
+  ctx.fillText('วาง QR ที่นี่', x+size/2, y+size/2);
+  ctx.textAlign = 'left';
+  return false;
+}
+
+function artworkCanvas(i, spec){
+  const w = spec.w, hC = (P.pattern === 'plain') ? 0 : P.hC, hB = P.hB, hTot = hB + hC;
+  const key = [i, w, hB, hC, P.color, P.boardTitle, P.boardTeam].join('|');
+  if (artCache.has(key)) return artCache.get(key);
+
+  const cv = document.createElement('canvas');
+  cv.width = Math.round(w*ARTPX); cv.height = Math.round(hTot*ARTPX);
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(ARTPX, 0, 0, ARTPX, 0, 0);     // วาดเป็น มม. แกน y ชี้ลงจากขอบบนแผง
+  ctx.fillStyle = P.color; ctx.fillRect(0, 0, w, hTot);
+  ctx.textBaseline = 'alphabetic';
+
+  const M = Math.max(22, w*0.052);                 // ขอบใน
+  // เริ่มใต้ยอดลาย และต้องพ้นลายหยดน้ำที่เจาะไว้ด้วย
+  const top = hC + (P.cutouts && hC ? Math.max(M, hC*0.19 + 30) : M);
+  const cw = w - M*2;
+
+  if (i === 1){
+    /* ---------- แผงกลาง: หัวเรื่อง + QR ---------- */
+    let y = top + 42;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(11,43,34,.25)'; ctx.font = kanit(Math.min(78, w*0.135), 800);
+    ctx.fillText(P.boardTitle, w/2 + 3, y + 4);
+    ctx.fillStyle = PAPER; ctx.fillText(P.boardTitle, w/2, y);
+    y += 28;
+    ctx.font = kanit(20, 500); ctx.fillStyle = 'rgba(255,255,255,.92)';
+    ctx.fillText(BOARD.sub, w/2, y);
+    y += 30;
+
+    // ชิปรายวิชา 2 แถว
+    ctx.font = sarabun(14, 600);
+    const chips = BOARD.subjects, padX = 11, gap = 8, rowH = 25;
+    for (let r=0;r<2;r++){
+      const row = chips.slice(r*2, r*2+2);
+      const ws = row.map(t => ctx.measureText(t).width + padX*2);
+      let cx = w/2 - (ws.reduce((a,b)=>a+b,0) + gap)/2;
+      row.forEach((t, k) => {
+        ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 1.6;
+        rr(ctx, cx, y, ws[k], rowH-6, 10); ctx.stroke();
+        ctx.fillStyle = PAPER; ctx.textAlign = 'center';
+        ctx.fillText(t, cx + ws[k]/2, y + 14);
+        cx += ws[k] + gap;
+      });
+      y += rowH;
+    }
+    y += 12;
+
+    // การ์ด QR — เว้นที่ให้แถบผู้จัดทำด้านล่างเสมอ
+    const bottom = hTot - M - 48;
+    const ch = Math.max(170, bottom - y);
+    const qs = Math.min(cw - 80, ch - 84);
+    ctx.fillStyle = 'rgba(11,43,34,.18)'; rr(ctx, M+3, y+4, cw, ch, 14); ctx.fill();
+    ctx.fillStyle = PAPER; rr(ctx, M, y, cw, ch, 14); ctx.fill();
+    qrOnto(ctx, 'https://' + BOARD.url + '/', w/2 - qs/2, y + 18, qs);
+    ctx.fillStyle = INK; ctx.font = kanit(21, 700); ctx.textAlign = 'center';
+    ctx.fillText('สแกนเล่นได้เลย ไม่ต้องติดตั้งแอป', w/2, y + ch - 32);
+    ctx.font = sarabun(12.5, 500); ctx.fillStyle = '#5c6b5e';
+    ctx.fillText(BOARD.url, w/2, y + ch - 13);
+
+    // แถบผู้จัดทำ
+    ctx.fillStyle = 'rgba(11,43,34,.28)'; rr(ctx, M, hTot - M - 34, cw, 34, 10); ctx.fill();
+    ctx.fillStyle = PAPER; ctx.font = sarabun(15, 600);
+    ctx.fillText(P.boardTeam, w/2, hTot - M - 12);
+    ctx.textAlign = 'left';
+
+  } else if (i === 0){
+    /* ---------- แผงซ้าย: ที่มา · วัตถุประสงค์ ---------- */
+    let y = top;
+    const avail = hTot - M - y, h1 = avail*0.36, h2 = avail*0.28, h3 = avail*0.32;
+    let b = card(ctx, M, y, cw, h1, 'ที่มาและความสำคัญ');
+    ctx.fillStyle = INK; ctx.font = sarabun(15.5, 400);
+    para(ctx, BOARD.why, b.x, b.y, b.w, 23);
+    y += h1 + avail*0.02;
+
+    b = card(ctx, M, y, cw, h2, 'วัตถุประสงค์');
+    ctx.font = sarabun(15, 400);
+    let ly = b.y;
+    BOARD.goals.forEach((g, k) => {
+      ctx.fillStyle = GOLD; ctx.font = kanit(15, 700); ctx.fillText((k+1) + '.', b.x, ly);
+      ctx.fillStyle = INK; ctx.font = sarabun(15, 400);
+      ly = para(ctx, g, b.x + 22, ly, b.w - 22, 21) + 5;
+    });
+    y += h2 + avail*0.02;
+
+    b = card(ctx, M, y, cw, h3, 'จุดเด่น');
+    ly = b.y;
+    BOARD.strong.forEach(t => {
+      ctx.fillStyle = GOLD; ctx.beginPath(); ctx.arc(b.x+4, ly-5, 4, 0, 7); ctx.fill();
+      ctx.fillStyle = INK; ctx.font = sarabun(15, 400);
+      ly = para(ctx, t, b.x + 18, ly, b.w - 18, 21) + 5;
+    });
+
+  } else {
+    /* ---------- แผงขวา: ระบบในเกม · ตัวเลข ---------- */
+    let y = top;
+    const avail = hTot - M - y, h1 = avail*0.63, h2 = avail*0.33;
+    const b = card(ctx, M, y, cw, h1, 'ระบบในเกม');
+    let ly = b.y - 4;
+    const step = (h1 - 56)/BOARD.systems.length;
+    BOARD.systems.forEach(([n, d]) => {
+      ctx.fillStyle = GOLD; rr(ctx, b.x, ly - 11, 5, 26, 2.5); ctx.fill();
+      ctx.fillStyle = INK; ctx.font = kanit(16, 700); ctx.fillText(n, b.x + 13, ly);
+      ctx.fillStyle = '#5c6b5e'; ctx.font = sarabun(13, 400);
+      ctx.fillText(wrap(ctx, d, b.w - 13)[0], b.x + 13, ly + 17);
+      ly += step;
+    });
+    y += h1 + avail*0.04;
+
+    // ไทล์ตัวเลข 2×2
+    const gw = (cw - 12)/2, gh = (h2 - 12)/2;
+    BOARD.stats.forEach(([n, l], k) => {
+      const gx = M + (k%2)*(gw+12), gy = y + Math.floor(k/2)*(gh+12);
+      ctx.fillStyle = 'rgba(255,255,255,.93)'; rr(ctx, gx, gy, gw, gh, 12); ctx.fill();
+      ctx.textAlign = 'center';
+      ctx.fillStyle = INK; ctx.font = kanit(Math.min(38, gh*0.46), 800);
+      ctx.fillText(n, gx + gw/2, gy + gh*0.56);
+      ctx.fillStyle = '#5c6b5e'; ctx.font = sarabun(12.5, 500);
+      ctx.fillText(l, gx + gw/2, gy + gh*0.82);
+      ctx.textAlign = 'left';
+    });
+  }
+
+  const out = { canvas:cv, url:cv.toDataURL('image/png'), w, h:hTot };
+  artCache.set(key, out);
+  if (artCache.size > 12) artCache.delete(artCache.keys().next().value);
+  return out;
+}
+
 /* ============================================================
    3. ฉาก 3 มิติ
    ============================================================ */
@@ -640,6 +872,30 @@ const material = new THREE.MeshPhysicalMaterial({
 });
 const dimGroup = new THREE.Group(); scene.add(dimGroup);
 
+let panelMats = [];
+function panelMat(i){
+  const gloss = P.finish === 'gloss';
+  const m = new THREE.MeshPhysicalMaterial({
+    color:0xffffff, roughness:gloss ? 0.34 : 0.72, metalness:0,
+    clearcoat:gloss ? 0.55 : 0.05, clearcoatRoughness:0.25, side:THREE.FrontSide
+  });
+  if (P.artwork){
+    const a = artworkCanvas(i, panelSpecs()[i]);
+    const t = new THREE.CanvasTexture(a.canvas);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.repeat.set(1/a.w, 1/a.h);          // UV ของ ExtrudeGeometry = พิกัด มม. ตรง ๆ
+    t.anisotropy = 8;
+    m.map = t;
+  } else m.color.set(P.color);
+  return m;
+}
+function applyMats(){
+  const old = panelMats;
+  panelMats = [0, 1, 2].map(panelMat);
+  panelMeshes.forEach((m, i) => { m.material = panelMats[i]; });
+  old.forEach(m => { if (m.map) m.map.dispose(); m.dispose(); });
+}
+
 function toShape(sh){
   const s = new THREE.Shape(sh.outer.map(([x,y]) => new THREE.Vector2(x, y)));
   for (const h of sh.holes) s.holes.push(new THREE.Path(h.map(([x,y]) => new THREE.Vector2(x, y))));
@@ -685,6 +941,7 @@ function buildPanels(){
   rp.add(rm); rig.add(rp);
 
   panelMeshes = [lm, mid, rm];
+  applyMats();
   rig.userData = { lp, rp };
   for (const m of [lm, mid, rm]) { m.castShadow = true; m.receiveShadow = true; }
   buildDeco();
@@ -985,13 +1242,21 @@ const fmt = n => (Math.round(n*100)/100).toString();
 function toSVG({ preview=false } = {}){
   const L = flatLayout();
   const paths = [];
-  for (const { d, x } of L.placed){
+  let defs = '', imgs = '';
+  L.placed.forEach(({ d, x }, i) => {
+    const rings = [];
     for (const sh of d.shapes){
       for (const ring of [sh.outer, ...sh.holes]){
-        paths.push('M' + ring.map(([px,py]) => `${fmt(px+x)},${fmt(L.h-py)}`).join('L') + 'Z');
+        const dd = 'M' + ring.map(([px,py]) => `${fmt(px+x)},${fmt(L.h-py)}`).join('L') + 'Z';
+        paths.push(dd); rings.push(dd);
       }
     }
-  }
+    if (preview && P.artwork){
+      const a = artworkCanvas(i, panelSpecs()[i]);
+      defs += `<clipPath id="pc${i}"><path clip-rule="evenodd" d="${rings.join(' ')}"/></clipPath>`;
+      imgs += `<image href="${a.url}" x="${fmt(x)}" y="${fmt(L.h - a.h)}" width="${fmt(a.w)}" height="${fmt(a.h)}" clip-path="url(#pc${i})" preserveAspectRatio="none"/>`;
+    }
+  });
   const body = paths.map(p => `<path d="${p}"/>`).join('\n  ');
   const style = preview
     ? 'fill="none" stroke="currentColor" stroke-width="1.2" vector-effect="non-scaling-stroke"'
@@ -999,7 +1264,7 @@ function toSVG({ preview=false } = {}){
   const head = preview
     ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-5 -5 ${fmt(L.w+10)} ${fmt(L.h+10)}" style="width:100%;height:auto;color:var(--cut)">`
     : `<svg xmlns="http://www.w3.org/2000/svg" width="${fmt(L.w)}mm" height="${fmt(L.h)}mm" viewBox="0 0 ${fmt(L.w)} ${fmt(L.h)}">`;
-  return `${head}\n<g ${style}>\n  ${body}\n</g>\n</svg>`;
+  return `${head}\n<defs>${defs}</defs>\n${imgs}\n<g ${style}>\n  ${body}\n</g>\n</svg>`;
 }
 
 function toDXF(){
@@ -1151,12 +1416,10 @@ document.querySelectorAll('[data-pattern]').forEach(b => b.addEventListener('cli
 document.querySelectorAll('[data-finish]').forEach(b => b.addEventListener('click', () => {
   P.finish = b.dataset.finish;
   document.querySelectorAll('[data-finish]').forEach(o => o.setAttribute('aria-pressed', String(o === b)));
-  const gloss = P.finish === 'gloss';
-  material.roughness = gloss ? 0.34 : 0.72;
-  material.clearcoat = gloss ? 0.55 : 0.05;
+  applyMats();
 }));
 function pickColor(hex){
-  P.color = hex; material.color.set(hex);
+  P.color = hex; material.color.set(hex); applyMats();
   document.querySelectorAll('#swatches .sw').forEach(s => s.setAttribute('aria-pressed', String(s.dataset.color.toLowerCase() === hex.toLowerCase())));
   $('customColor').value = hex;
 }
@@ -1178,6 +1441,14 @@ $('signText').addEventListener('input', e => {
   P.signText = e.target.value;
   clearTimeout(signTimer); signTimer = setTimeout(buildDeco, 220);
 });
+// --- เนื้อหานำเสนอ ---
+$('artOn').addEventListener('change', e => { P.artwork = e.target.checked; applyMats(); drawFlat(); });
+let artTimer = 0;
+const artField = (id, k) => $(id).addEventListener('input', e => {
+  P[k] = e.target.value;
+  clearTimeout(artTimer); artTimer = setTimeout(() => { applyMats(); drawFlat(); }, 260);
+});
+artField('bTitle', 'boardTitle'); artField('bTeam', 'boardTeam');
 $('cutouts').addEventListener('change', e => { P.cutouts = e.target.checked; refresh(true); });
 $('sameAll').addEventListener('change', e => { P.sameAll = e.target.checked; refresh(true); });
 $('optShadow').addEventListener('change', e => { P.shadow = e.target.checked; renderer.shadowMap.enabled = P.shadow; panelMeshes.forEach(m => m.castShadow = P.shadow); scene.traverse(o => { if (o.isMesh) o.material.needsUpdate = true; }); });
@@ -1207,7 +1478,7 @@ new MutationObserver(applyTheme).observe(document.documentElement, { attributes:
 
 applyTheme();
 a4.visible = P.a4;
-document.fonts && document.fonts.ready.then(() => { if (P.deco.sign) buildDeco(); });
+document.fonts && document.fonts.ready.then(() => { artCache.clear(); applyMats(); buildDeco(); drawFlat(); });
 buildPanels(); syncLabels(); resize(); setView('iso');
 </script>
 <!--ARTIFACT-END-->
