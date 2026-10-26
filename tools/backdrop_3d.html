@@ -189,6 +189,10 @@ code{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--green)}
       <div class="card">
         <h2>เนื้อหานำเสนอบนบอร์ด</h2>
         <label class="chk"><input type="checkbox" id="artOn" checked> แสดงเนื้อหาตัวอย่างบนแผง</label>
+        <div class="seg" style="margin-top:11px" role="group" aria-label="สไตล์บอร์ด">
+          <button data-style="1" aria-pressed="true">สไตล์ 1 · การ์ดขาว</button>
+          <button data-style="2" aria-pressed="false">สไตล์ 2 · แผงวงจร</button>
+        </div>
         <label for="bTitle" style="display:block;font-size:12px;margin:12px 0 5px">ชื่อบนบอร์ด</label>
         <input type="text" class="txt" id="bTitle" value="CodeCoin" maxlength="18">
         <label for="bTeam" style="display:block;font-size:12px;margin:10px 0 5px">บรรทัดผู้จัดทำ</label>
@@ -296,7 +300,7 @@ const P = {
   shadow:true, a4:true, dim:false, spin:false,
   deco:{ back:true, lights:true, edge:false, sign:true, flower:false, cloth:true },
   backColor:'#FBBF24', signText:'CodeCoin',
-  artwork:true, boardTitle:'CodeCoin', boardTeam:'ผู้จัดทำ: (ใส่ชื่อ–ห้อง)'
+  artwork:true, style:1, boardTitle:'CodeCoin', boardTeam:'ผู้จัดทำ: (ใส่ชื่อ–ห้อง)'
 };
 P.deco.sign = false;
 
@@ -685,23 +689,9 @@ function qrOnto(ctx, text, x, y, size){
   return false;
 }
 
-function artworkCanvas(i, spec){
-  const w = spec.w, hC = (P.pattern === 'plain') ? 0 : P.hC, hB = P.hB, hTot = hB + hC;
-  const key = [i, w, hB, hC, P.color, P.boardTitle, P.boardTeam].join('|');
-  if (artCache.has(key)) return artCache.get(key);
-
-  const cv = document.createElement('canvas');
-  cv.width = Math.round(w*ARTPX); cv.height = Math.round(hTot*ARTPX);
-  const ctx = cv.getContext('2d');
-  ctx.setTransform(ARTPX, 0, 0, ARTPX, 0, 0);     // วาดเป็น มม. แกน y ชี้ลงจากขอบบนแผง
-  ctx.fillStyle = P.color; ctx.fillRect(0, 0, w, hTot);
-  ctx.textBaseline = 'alphabetic';
-
-  const M = Math.max(22, w*0.052);                 // ขอบใน
-  // เริ่มใต้ยอดลาย และต้องพ้นลายหยดน้ำที่เจาะไว้ด้วย
-  const top = hC + (P.cutouts && hC ? Math.max(M, hC*0.19 + 30) : M);
-  const cw = w - M*2;
-
+/* ---------- สไตล์ 1: การ์ดขาว–ทอง ---------- */
+function styleCard(ctx, i, G){
+  const { w, hTot, M, top, cw } = G;
   if (i === 1){
     /* ---------- แผงกลาง: หัวเรื่อง + QR ---------- */
     let y = top + 42;
@@ -806,6 +796,162 @@ function artworkCanvas(i, spec){
       ctx.textAlign = 'left';
     });
   }
+}
+
+/* ---------- สไตล์ 2: แผงวงจร (ธีมเดียวกับกระดานเกม) ---------- */
+const TECH = { bg:'#0B2B22', trace:'#17513E', gold:'#FBBF24', line:'#C8A24A', ink:'#DCF5E6', dim:'#7FD9A8', green:'#4ADE80' };
+function rng(seed){
+  return function(){
+    seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function pcbPlate(ctx, x, y, w, h, seed){
+  ctx.save(); rr(ctx, x, y, w, h, 16); ctx.clip();
+  ctx.fillStyle = TECH.bg; ctx.fillRect(x, y, w, h);
+  const r = rng(seed);
+  ctx.strokeStyle = TECH.trace; ctx.lineWidth = 1.8; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  for (let k=0;k<30;k++){
+    let px = x + r()*w, py = y + r()*h;
+    ctx.beginPath(); ctx.moveTo(px, py);
+    const segs = 2 + Math.floor(r()*3);
+    for (let n=0;n<segs;n++){
+      const len = 18 + r()*70, d = Math.floor(r()*6);
+      if (d === 0) px += len; else if (d === 1) px -= len;
+      else if (d === 2) py += len; else if (d === 3) py -= len;
+      else { const q = len*0.7; px += (d === 4 ? q : -q); py += q; }
+      ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    ctx.fillStyle = TECH.trace; ctx.beginPath(); ctx.arc(px, py, 3.6, 0, 7); ctx.fill();
+    ctx.fillStyle = TECH.bg; ctx.beginPath(); ctx.arc(px, py, 1.6, 0, 7); ctx.fill();
+  }
+  ctx.restore();
+  ctx.strokeStyle = TECH.line; ctx.lineWidth = 1.4; rr(ctx, x+5, y+5, w-10, h-10, 12); ctx.stroke();
+}
+/* หัวข้อแบบป้ายวงจร: เลขโมโน + ชื่อไทย + เส้นคั่นทอง */
+function techHead(ctx, no, title, x, y, w){
+  ctx.font = '500 13px "IBM Plex Mono", monospace'; ctx.fillStyle = TECH.green;
+  ctx.fillText(no, x, y);
+  ctx.font = kanit(19, 600); ctx.fillStyle = TECH.gold;
+  ctx.fillText(title, x + 30, y);
+  ctx.strokeStyle = 'rgba(200,162,74,.45)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x, y + 11); ctx.lineTo(x + w, y + 11); ctx.stroke();
+  return y + 34;
+}
+function styleTech(ctx, i, G){
+  const { w, hTot, M, top, cw } = G;
+  const pad = 16;
+  pcbPlate(ctx, M - pad, top - pad, cw + pad*2, hTot - M - top + pad*2 - 6, 1337 + i*97);
+  const x = M, cwi = cw;
+
+  if (i === 1){
+    let y = top + 26;
+    ctx.textAlign = 'center';
+    ctx.font = '500 13px "IBM Plex Mono", monospace'; ctx.fillStyle = TECH.green;
+    ctx.fillText('// BOARD GAME x QR SYSTEM', w/2, y); y += 54;
+    ctx.font = kanit(Math.min(74, w*0.128), 800); ctx.fillStyle = TECH.gold;
+    ctx.fillText(P.boardTitle, w/2, y); y += 26;
+    ctx.font = kanit(18, 500); ctx.fillStyle = TECH.ink;
+    ctx.fillText(BOARD.sub, w/2, y); y += 26;
+
+    ctx.font = '400 12.5px "IBM Plex Mono", monospace'; ctx.fillStyle = TECH.dim;
+    ctx.fillText('[ ' + BOARD.subjects.slice(0,2).join(' ] [ ') + ' ]', w/2, y); y += 17;
+    ctx.font = sarabun(12.5, 500);
+    ctx.fillText('[ ' + BOARD.subjects.slice(2).join(' ] [ ') + ' ]', w/2, y); y += 22;
+
+    // QR บนแผ่นชิป มีขาทองสองข้าง
+    const bottom = hTot - M - 46;
+    const ch = Math.max(170, bottom - y), qs = Math.min(cwi - 110, ch - 76);
+    const cx = w/2 - qs/2 - 14, cy = y + 6;
+    ctx.fillStyle = TECH.gold;
+    for (let k=0;k<6;k++){
+      const py2 = cy + 16 + k*((qs + 28 - 32)/5);
+      ctx.fillRect(cx - 13, py2, 13, 7); ctx.fillRect(cx + qs + 28, py2, 13, 7);
+    }
+    ctx.fillStyle = '#0d1f19'; rr(ctx, cx, cy, qs + 28, qs + 28, 10); ctx.fill();
+    qrOnto(ctx, 'https://' + BOARD.url + '/', cx + 14, cy + 14, qs);
+    ctx.fillStyle = TECH.gold; ctx.font = kanit(20, 700);
+    ctx.fillText('สแกนเล่นได้เลย ไม่ต้องติดตั้งแอป', w/2, cy + qs + 54);
+    ctx.font = '400 12px "IBM Plex Mono", monospace'; ctx.fillStyle = TECH.dim;
+    ctx.fillText(BOARD.url, w/2, cy + qs + 71);
+
+    ctx.strokeStyle = 'rgba(200,162,74,.4)'; ctx.beginPath();
+    ctx.moveTo(M + 10, hTot - M - 40); ctx.lineTo(w - M - 10, hTot - M - 40); ctx.stroke();
+    ctx.fillStyle = TECH.ink; ctx.font = sarabun(14, 600);
+    ctx.fillText(P.boardTeam, w/2, hTot - M - 18);
+    ctx.textAlign = 'left';
+
+  } else if (i === 0){
+    let y = top + 24;
+    y = techHead(ctx, '01', 'ที่มาและความสำคัญ', x, y, cwi);
+    ctx.fillStyle = TECH.ink; ctx.font = sarabun(15, 400);
+    y = para(ctx, BOARD.why, x, y, cwi, 23) + 22;
+
+    y = techHead(ctx, '02', 'วัตถุประสงค์', x, y, cwi);
+    BOARD.goals.forEach((g, k) => {
+      ctx.fillStyle = TECH.green; ctx.font = '500 12.5px "IBM Plex Mono", monospace';
+      ctx.fillText('0' + (k+1), x, y);
+      ctx.fillStyle = TECH.ink; ctx.font = sarabun(14.5, 400);
+      y = para(ctx, g, x + 28, y, cwi - 28, 21) + 7;
+    });
+    y += 15;
+
+    y = techHead(ctx, '03', 'จุดเด่น', x, y, cwi);
+    BOARD.strong.forEach(t => {
+      ctx.fillStyle = TECH.gold; ctx.fillRect(x + 1, y - 8, 7, 7);
+      ctx.fillStyle = TECH.ink; ctx.font = sarabun(14.5, 400);
+      y = para(ctx, t, x + 18, y, cwi - 18, 21) + 7;
+    });
+
+  } else {
+    let y = top + 24;
+    y = techHead(ctx, '04', 'ระบบในเกม', x, y, cwi);
+    const step = Math.min(52, (hTot - M - y - 150)/BOARD.systems.length);
+    BOARD.systems.forEach(([n, d], k) => {
+      ctx.fillStyle = TECH.green; ctx.font = '500 12.5px "IBM Plex Mono", monospace';
+      ctx.fillText(String(k+1).padStart(2, '0'), x, y);
+      ctx.fillStyle = TECH.ink; ctx.font = kanit(15.5, 600); ctx.fillText(n, x + 28, y);
+      ctx.fillStyle = TECH.dim; ctx.font = sarabun(12.5, 400);
+      ctx.fillText(wrap(ctx, d, cwi - 28)[0], x + 28, y + 16);
+      y += step;
+    });
+
+    y = techHead(ctx, '05', 'ตัวเลขในชุดเกม', x, y + 8, cwi);
+    const gw = (cwi - 10)/2, gh = Math.min(62, (hTot - M - y - 10)/2);
+    BOARD.stats.forEach(([n, l], k) => {
+      const gx = x + (k%2)*(gw+10), gy = y + Math.floor(k/2)*(gh+10);
+      ctx.strokeStyle = 'rgba(127,217,168,.35)'; ctx.lineWidth = 1;
+      rr(ctx, gx, gy - 14, gw, gh, 9); ctx.stroke();
+      ctx.fillStyle = TECH.gold; ctx.font = '500 ' + Math.min(30, gh*0.48) + 'px "IBM Plex Mono", monospace';
+      ctx.fillText(n, gx + 12, gy + gh*0.42);
+      ctx.fillStyle = TECH.dim; ctx.font = sarabun(12, 500);
+      ctx.fillText(l, gx + 12, gy + gh*0.72);
+    });
+  }
+}
+
+function artworkCanvas(i, spec){
+  const w = spec.w, hC = (P.pattern === 'plain') ? 0 : P.hC, hB = P.hB, hTot = hB + hC;
+  const key = [i, w, hB, hC, P.color, P.style, P.boardTitle, P.boardTeam].join('|');
+  if (artCache.has(key)) return artCache.get(key);
+
+  const cv = document.createElement('canvas');
+  cv.width = Math.round(w*ARTPX); cv.height = Math.round(hTot*ARTPX);
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(ARTPX, 0, 0, ARTPX, 0, 0);     // วาดเป็น มม. แกน y ชี้ลงจากขอบบนแผง
+  ctx.fillStyle = P.color; ctx.fillRect(0, 0, w, hTot);
+  ctx.textBaseline = 'alphabetic';
+
+  const M = Math.max(22, w*0.052);                 // ขอบใน
+  // เริ่มใต้ยอดลาย และต้องพ้นลายหยดน้ำที่เจาะไว้ด้วย
+  const top = hC + (P.cutouts && hC ? Math.max(M, hC*0.19 + 30) : M);
+  const cw = w - M*2;
+
+  const G = { w, hB, hC, hTot, M, top, cw };
+  (P.style === 2 ? styleTech : styleCard)(ctx, i, G);
 
   const out = { canvas:cv, url:cv.toDataURL('image/png'), w, h:hTot };
   artCache.set(key, out);
@@ -1442,6 +1588,11 @@ $('signText').addEventListener('input', e => {
   clearTimeout(signTimer); signTimer = setTimeout(buildDeco, 220);
 });
 // --- เนื้อหานำเสนอ ---
+document.querySelectorAll('[data-style]').forEach(b => b.addEventListener('click', () => {
+  P.style = +b.dataset.style;
+  document.querySelectorAll('[data-style]').forEach(o => o.setAttribute('aria-pressed', String(o === b)));
+  applyMats(); drawFlat();
+}));
 $('artOn').addEventListener('change', e => { P.artwork = e.target.checked; applyMats(); drawFlat(); });
 let artTimer = 0;
 const artField = (id, k) => $(id).addEventListener('input', e => {
