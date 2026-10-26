@@ -14,6 +14,7 @@
 index.html  data.json  sw.js  qrcode.js  manifest.webmanifest  icon-192/512.png   ← เว็บจริง (ห้ามย้าย)
 codecoin_database.xlsx                                                 ← ต้นทางข้อมูลทีม content
 docs/       PROJECT_SUMMARY.md · BOX_DEMO.md · animation.md · DESIGN_AUDIT.md  ← เอกสารสรุป
+            BACKDROP_3D.md (บอร์ดนำเสนอ 3 มิติ — โครงไฟล์ วิธีแก้ กับดัก)
 scripts/    build_data.py · gen_qr.py · gen_icons.py                   ← สคริปต์ Python
             gen_demo_assets.py · make_standalone.py · gen_banknotes.py · gen_final_boss_card.py
             prepare_board_print.py · build_dashboard.py (+ dashboard_template.html)
