@@ -14,7 +14,7 @@ CodeCoin คือบอร์ดเกมเพื่อการศึกษ�
 | สกุลเงินในเกม | TechCoin (₮) |
 | สิ่งที่ต้องมีเพิ่ม | มือถือที่ต่อเน็ตได้อย่างน้อย 1 เครื่อง (ดีที่สุดคนละเครื่อง) ไม่ต้องติดตั้งแอป ไม่ต้องล็อกอิน |
 
-เว็บแอปของเกม: [ballgamerzaman-code.github.io/codecoin](https://ballgamerzaman-code.github.io/codecoin/)
+เว็บแอปของเกม: [ballg-it.github.io/codecoin](https://ballg-it.github.io/codecoin/)
 
 ## อุปกรณ์ในกล่อง
 

@@ -135,7 +135,7 @@ def main():
 
     out = {
         "generated": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "site": "https://ballgamerzaman-code.github.io/codecoin/",
+        "site": "https://ballg-it.github.io/codecoin/",
         "rev": rev.group(1) if rev else "?",
         "cache": int(cache.group(1)) if cache else None,
         "zones": [{"id": z, "name": ZONE_TH[z]} for z in ZONES],

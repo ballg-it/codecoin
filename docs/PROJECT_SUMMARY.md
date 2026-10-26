@@ -1,8 +1,8 @@
 # สรุปงานโปรเจค CodeCoin — QR System
 
 > อัปเดตล่าสุด: 21 ตุลาคม 2026 (เว็บ REV 2.5 + Debug Rescue ครบ 4 ด่าน + ห้องรอ (ทดสอบมือถือจริงผ่านแล้ว) · **รอบ debug เว็บเกม** · `sw.js` = `codecoin-v25`)
-> เว็บจริง: **https://ballgamerzaman-code.github.io/codecoin/**
-> Repo: **https://github.com/ballgamerzaman-code/codecoin**
+> เว็บจริง: **https://ballg-it.github.io/codecoin/**
+> Repo: **https://github.com/ballg-it/codecoin**
 > เอกสารอื่น: [`animation.md`](animation.md) (ระบบ animation ละเอียด) · [`BOX_DEMO.md`](BOX_DEMO.md) (เดโมกล่อง + เช็คลิสต์ก่อนพิมพ์) · [`DESIGN_AUDIT.md`](DESIGN_AUDIT.md) (ตรวจสี/เลย์เอาต์มือถือ Stage V0–V3b)
 
 ## ภาพรวมโปรเจค
@@ -49,7 +49,7 @@ CodeCoin คือบอร์ดเกมเพื่อการศึกษ�
 - workflow: แก้ `codecoin_database.xlsx` → `py scripts/build_data.py` → push (เว็บอัปเดตเองใน ~1 นาที)
 
 ### 3. QR และสื่อสิ่งพิมพ์
-- `scripts/gen_qr.py` สร้าง QR 21 ใบจาก data.json (16 ทรัพย์สิน + event 4 โซน + bugjam) ลงที่ `print/qr_output/`
+- `scripts/gen_qr.py` สร้าง QR 23 ใบจาก data.json (16 ทรัพย์สิน + event 4 โซน + bugjam + cooling + debug_rescue) ลงที่ `print/qr_output/`
 - การ์ดทรัพย์สิน `print/codecoin_cards_rev3_1.html`: QR ฝังเป็น data URI (เปิดไฟล์เดี่ยวได้ ไม่ต้องมีโฟลเดอร์ `qr_output/`) ค่าเช่า/ค่าอัปเกรดจริงจากฐานข้อมูล — ใช้ไฟล์นี้ export เป็น PDF ใน `print/Final/` ซึ่งเป็นตัวที่ส่งโรงพิมพ์จริง
 - ผังกระดาน: ตัวจริงคือ **`print/Final/CodeCoin-Board-50x50-Final1.pdf` (REV 2.4)** — ไฟล์ SVG รุ่นเก่า (`codecoin_board_rev2_3_canva.html`) ลบทิ้งแล้ว
 
@@ -295,13 +295,14 @@ docs/  scripts/  print/  box_demo/  tools/
 | ไฟล์ | หน้าที่ |
 |---|---|
 | `build_data.py` | แปลง Excel → `data.json` พร้อมตรวจความถูกต้อง (fail ตั้งแต่ build ถ้าข้อมูลผิด) |
-| `gen_qr.py` | สร้าง QR 21 ใบ → `print/qr_output/` (⚠️ ยังไม่รวม `cooling` / `debug_rescue` — 2 ใบนั้นอยู่ใน `qr_output/` แล้วแต่สร้างแยก รันสคริปต์ใหม่ไม่ลบทิ้ง) |
+| `gen_qr.py` | สร้าง QR 23 ใบ → `print/qr_output/` (รวม `cooling` / `debug_rescue`) — `BASE_URL` บนหัวไฟล์คือที่เดียวที่กำหนด URL เว็บ |
 | `gen_icons.py` | สร้างไอคอน PWA ลาย PCB → `icon-192/512.png` ที่ราก |
 | `gen_demo_assets.py` | ตัดรูปกระดาน + การ์ด 16 ใบ 2 หน้า ออกจาก PDF ใน `print/Final/` → `box_demo/demo_assets/` (WebP q90 รวม 0.72 MB) หาขอบด้วยการสแกนพิกเซล ไม่ฮาร์ดโค้ดพิกัด |
 | `make_standalone.py` | ฝังรูปทั้งหมดเป็น data URI → `box_demo/codecoin_box_demo_standalone.html` |
 | `gen_banknotes.py` | สร้างธนบัตร TechCoin 5 ราคา (SVG หน้า-หลัง) + แผ่นพิมพ์ A4 → `print/banknotes/` |
 | `gen_final_boss_card.py` | สร้างการ์ดกู้ระบบขั้นสุด → `print/final_boss_card/` ตัวเลขดึงจาก CONFIG `final_boss` ใน `index.html` (shebang → รันด้วย `py -3`) |
 | `prepare_board_print.py` | เติม trim/bleed box + crop marks ให้ PDF กระดาน → `print/Final/CodeCoin-Board-50x50-PRINT.pdf` |
+| `swap_board_qr.py` | เปลี่ยน QR 6 จุดบน `Final1.pdf` ให้ชี้ `BASE_URL` ปัจจุบัน (ใช้ตอนเปลี่ยนชื่อ GitHub/โดเมน) แล้วรัน `prepare_board_print.py` ต่อ |
 | `build_dashboard.py` | สร้าง `tools/dashboard.html` จาก `dashboard_template.html` + ตัวเลขจริงในโปรเจค (รายการงานค้างแก้ในสคริปต์) |
 
 ### `print/` — งานสิ่งพิมพ์

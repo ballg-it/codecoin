@@ -2,8 +2,8 @@
 
 ระบบ QR ประกอบบอร์ดเกมเพื่อการศึกษา CodeCoin (base จาก Monopoly) — Static ทั้งหมด host บน GitHub Pages
 
-**🌐 เว็บจริง:** https://ballgamerzaman-code.github.io/codecoin/
-**📦 Repo:** https://github.com/ballgamerzaman-code/codecoin (push ขึ้น main แล้วเว็บอัปเดตเองใน ~1 นาที)
+**🌐 เว็บจริง:** https://ballg-it.github.io/codecoin/
+**📦 Repo:** https://github.com/ballg-it/codecoin (push ขึ้น main แล้วเว็บอัปเดตเองใน ~1 นาที)
 
 ## โครงสร้างโปรเจค
 

@@ -19,7 +19,7 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
 from qrcode.constants import ERROR_CORRECT_H
 
 # ================== ตั้งค่าได้ที่นี่ที่เดียว ==================
-BASE_URL = "https://ballgamerzaman-code.github.io/codecoin"
+BASE_URL = "https://ballg-it.github.io/codecoin"
 ROOT = Path(__file__).resolve().parent.parent   # สคริปต์อยู่ scripts/ ข้อมูลอยู่รากโปรเจค
 DATA_FILE = ROOT / "data.json"
 OUT_DIR = ROOT / "print" / "qr_output"
@@ -47,10 +47,10 @@ def main():
     with open(DATA_FILE, encoding="utf-8") as f:
         data = json.load(f)
 
-    # รายการ QR: ทุกช่องทรัพย์สินใน data.json + event 4 โซน + bugjam
+    # รายการ QR: ทุกช่องทรัพย์สินใน data.json + event 4 โซน + bugjam + cooling/debug_rescue
     space_ids = list(data["spaces"].keys())
     space_ids += [f"event_{z}" for z in ZONES]
-    space_ids += ["bugjam"]
+    space_ids += ["bugjam", "cooling", "debug_rescue"]
 
     os.makedirs(OUT_DIR, exist_ok=True)
     for sid in space_ids:

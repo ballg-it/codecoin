@@ -24,7 +24,7 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "print", "final_boss_card")
-BASE_URL = "https://ballgamerzaman-code.github.io/codecoin"   # เดียวกับ scripts/gen_qr.py
+BASE_URL = "https://ballg-it.github.io/codecoin"   # เดียวกับ scripts/gen_qr.py
 QR_URL = f"{BASE_URL}/?space=debug_rescue&pattern=final_boss"  # เปิดหน้าเลือกด่านโดยเลือก final_boss ไว้ให้
 
 W, H, BLEED = 63.0, 88.0, 3.0
