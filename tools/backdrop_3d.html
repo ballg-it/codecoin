@@ -93,6 +93,18 @@ h1{font-family:'Kanit',sans-serif;font-weight:800;font-size:clamp(20px,2.4vw,26p
 .checks{display:flex;flex-direction:column;gap:8px}
 .chk{display:flex;align-items:center;gap:9px;font-size:12.5px;cursor:pointer}
 .chk input{accent-color:var(--green);width:15px;height:15px;margin:0}
+.gh{font-family:'Kanit',sans-serif;font-size:11.5px;font-weight:600;color:var(--gold);
+  letter-spacing:.2px;margin:9px 0 1px}
+.gh:first-child{margin-top:0}
+.plan{display:flex;flex-direction:column;gap:7px;margin:0 0 12px}
+.spot{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:11.5px;line-height:1.5;
+  background:var(--panel-2);border:1px solid var(--line);border-left:3px solid var(--line);
+  border-radius:9px;padding:7px 10px}
+.spot.on{border-left-color:var(--gold)}
+.spot b{font-family:'Kanit',sans-serif;font-weight:600;font-size:12px;color:var(--ink)}
+.spot span{grid-column:1/-1;color:var(--muted)}
+.spot em{font-family:'IBM Plex Mono',monospace;font-style:normal;font-size:10px;color:var(--muted);white-space:nowrap}
+.spot.on em{color:var(--green)}
 .facts{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:12px}
 .facts dt{color:var(--muted)}
 .facts dd{margin:0;font-family:'IBM Plex Mono',monospace;color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
@@ -116,11 +128,6 @@ h1{font-family:'Kanit',sans-serif;font-weight:800;font-size:clamp(20px,2.4vw,26p
 .sheets figcaption{font-size:10.5px;color:var(--muted);margin-top:5px;text-align:center}
 footer{margin-top:22px;border-top:1px solid var(--line);padding-top:12px;font-size:11.5px;color:var(--muted);line-height:1.7}
 code{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--green)}
-.list{display:flex;flex-direction:column;gap:7px;font-size:12px}
-.li{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:baseline}
-.li span:last-child{font-family:'IBM Plex Mono',monospace;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
-.li.sum{border-top:1px solid var(--line);padding-top:8px;margin-top:3px;font-weight:600}
-.li.sum span:last-child{color:var(--gold)}
 .txt{width:100%;font-family:'Sarabun',sans-serif;font-size:12.5px;color:var(--ink);background:var(--panel-2);
   border:1px solid var(--line);border-radius:9px;padding:7px 10px}
 @media(max-width:620px){
@@ -233,20 +240,32 @@ code{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--green)}
           <button data-preset="simple">เรียบ</button>
           <button data-preset="full">จัดเต็ม</button>
         </div>
+        <div class="plan" id="spotList"></div>
+        <label class="chk" style="margin:0 0 12px"><input type="checkbox" id="dSpots"> แสดงหมุดจุด ①–⑥ บนโมเดล</label>
         <div class="checks">
-          <label class="chk"><input type="checkbox" id="dBack"> แผ่นรองหลังลาย (กระดาษสา/ฟิวเจอร์บอร์ด)</label>
-          <label class="chk"><input type="checkbox" id="dLights" checked> ไฟหยดน้ำ LED เดินตามขอบลาย</label>
+          <div class="gh">① ยอดช่อกลาง</div>
+          <label class="chk"><input type="checkbox" id="dTassel" checked> พู่กระดาษห้อยใต้ยอดลาย</label>
+          <label class="chk"><input type="checkbox" id="dSeqEdge"> เลื่อมกลมแปะตามขอบลาย</label>
+          <label class="chk"><input type="checkbox" id="dLights"> ไฟหยดน้ำ LED เดินตามขอบลาย</label>
+          <div class="gh">② รอยพับซ้าย–ขวา</div>
+          <label class="chk"><input type="checkbox" id="dVineFold" checked> เถาวัลย์พันแนวตั้งตามรอยพับ</label>
+          <div class="gh">③ กรอบการ์ด QR</div>
+          <label class="chk"><input type="checkbox" id="dSeqQR" checked> เลื่อมล้อมกรอบการ์ด QR</label>
+          <label class="chk"><input type="checkbox" id="dSign"> ป้ายชื่อบูธกลางแผง</label>
+          <div class="gh">④ ขอบล่างทั้ง 3 แผง</div>
+          <label class="chk"><input type="checkbox" id="dKanok" checked> แถบลายกนกกระดาษทอง (ตัดแปะ)</label>
+          <label class="chk"><input type="checkbox" id="dSeqStrip" checked> เลื่อมเรียงแถวบนแถบกนก</label>
+          <div class="gh">⑤ มุมล่าง · ขอบข้าง</div>
+          <label class="chk"><input type="checkbox" id="dFlower" checked> ดอกไม้กระดาษย่นมุมล่าง</label>
+          <label class="chk"><input type="checkbox" id="dVine" checked> เถาวัลย์ขอบข้าง + พาดด้านบน</label>
           <label class="chk"><input type="checkbox" id="dEdge"> เทปกากเพชรเดินขอบ</label>
-          <label class="chk"><input type="checkbox" id="dSign"> ป้ายชื่อบูธ</label>
-          <label class="chk"><input type="checkbox" id="dFlower"> ดอกไม้กระดาษย่น</label>
-          <label class="chk"><input type="checkbox" id="dCloth" checked> ผ้าปูโต๊ะ</label>
-          <label class="chk"><input type="checkbox" id="dKanok" checked> ขอบลายกนกกระดาษทอง (ตัดแปะ)</label>
           <label class="chk"><input type="checkbox" id="dBunting"> ธงราวกระดาษพาดด้านบน</label>
-          <label class="chk"><input type="checkbox" id="dTassel"> พู่กระดาษห้อยใต้ยอดลาย</label>
-          <label class="chk"><input type="checkbox" id="dProps" checked> วางของจริงจากเกมหน้าบอร์ด</label>
-          <label class="chk"><input type="checkbox" id="dVine" checked> เถาวัลย์ใบไม้เทียม (พาดบน + ขอบข้าง)</label>
+          <div class="gh">⑥ โต๊ะหน้าบอร์ด</div>
+          <label class="chk"><input type="checkbox" id="dProps" checked> วางของจริงจากเกม</label>
+          <label class="chk"><input type="checkbox" id="dCloth" checked> ผ้าปูโต๊ะ</label>
           <label class="chk"><input type="checkbox" id="dSeqTable" checked> โรยเลื่อมกลมบนโต๊ะ</label>
-          <label class="chk"><input type="checkbox" id="dSeqEdge"> แปะเลื่อมตามขอบลาย</label>
+          <div class="gh">อื่น ๆ</div>
+          <label class="chk"><input type="checkbox" id="dBack"> แผ่นรองหลังลาย (กระดาษสา/ฟิวเจอร์บอร์ด)</label>
         </div>
         <div class="swatches" style="margin-top:11px">
           <button class="sw bk" data-back="#FBBF24" style="background:#FBBF24" aria-pressed="true" title="สีแผ่นรองหลัง — ทอง"></button>
@@ -257,10 +276,6 @@ code{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--green)}
         </div>
         <label for="signText" style="display:block;font-size:12px;margin:12px 0 5px">ข้อความบนป้าย</label>
         <input type="text" class="txt" id="signText" value="CodeCoin" maxlength="22">
-      </div></details>
-<details class="card"><summary>ของที่ต้องซื้อ</summary><div class="cbody">
-        <div class="list" id="shopList"></div>
-        <p class="note">ราคาประมาณจากร้านเครื่องเขียนทั่วไป ใช้ตั้งงบคร่าว ๆ ไม่ใช่ราคาจริงของร้านไหน</p>
       </div></details>
 <details class="card"><summary>มุมมอง</summary><div class="cbody">
         <div class="checks">
@@ -314,13 +329,13 @@ const P = {
   pattern:'tree', dens:4, cutouts:true, sameAll:false,
   color:'#1C9CD8', finish:'gloss',
   shadow:true, a4:true, dim:false, spin:false,
-  deco:{ back:false, lights:true, edge:false, sign:true, flower:false, cloth:true,
-         kanok:true, bunting:false, tassel:false, props:true,
-         vine:true, seqTable:true, seqEdge:false },
+  deco:{ back:false, lights:false, edge:false, sign:false, flower:true, cloth:true,
+         kanok:true, bunting:false, tassel:true, props:true,
+         vine:true, vineFold:true, seqTable:true, seqEdge:false,
+         seqQR:true, seqStrip:true, spots:false },
   backColor:'#FBBF24', signText:'CodeCoin',
   artwork:true, style:1, boardTitle:'CodeCoin', boardTeam:'ผู้จัดทำ: (ใส่ชื่อ–ห้อง)'
 };
-P.deco.sign = false;
 
 /* เนื้อหาจริงของโครงงาน (ย่อจาก docs/PROJECT_SUMMARY.md) */
 const BOARD = {
@@ -744,6 +759,7 @@ function styleCard(ctx, i, G){
     const bottom = hTot - M - 48;
     const ch = Math.max(170, bottom - y);
     const qs = Math.min(cw - 80, ch - 84);
+    G.qr = { x:M, y, w:cw, h:ch };
     ctx.fillStyle = 'rgba(11,43,34,.18)'; rr(ctx, M+3, y+4, cw, ch, 14); ctx.fill();
     ctx.fillStyle = PAPER; rr(ctx, M, y, cw, ch, 14); ctx.fill();
     qrOnto(ctx, 'https://' + BOARD.url + '/', w/2 - qs/2, y + 18, qs);
@@ -884,6 +900,7 @@ function styleTech(ctx, i, G){
     const bottom = hTot - M - 46;
     const ch = Math.max(170, bottom - y), qs = Math.min(cwi - 110, ch - 76);
     const cx = w/2 - qs/2 - 14, cy = y + 6;
+    G.qr = { x:cx, y:cy, w:qs + 28, h:qs + 28 };
     ctx.fillStyle = TECH.gold;
     for (let k=0;k<6;k++){
       const py2 = cy + 16 + k*((qs + 28 - 32)/5);
@@ -1091,6 +1108,8 @@ function allTiles(){
 
 function styleCutPaste(ctx, i, G){
   const pieces = boardPieces(i, G);
+  const qrPiece = pieces.find(pc => pc.label === 'QR');
+  if (qrPiece) G.qr = { x:qrPiece.x, y:qrPiece.y, w:qrPiece.w, h:qrPiece.h };
   for (const pc of pieces){
     ctx.save();
     ctx.fillStyle = 'rgba(11,43,34,.22)'; rr(ctx, pc.x + 2.5, pc.y + 3.5, pc.w, pc.h, 12); ctx.fill();
@@ -1127,7 +1146,7 @@ function artworkCanvas(i, spec){
   const G = { w, hB, hC, hTot, M, top, cw };
   (P.style === 3 ? styleCutPaste : P.style === 2 ? styleTech : styleCard)(ctx, i, G);
 
-  const out = { canvas:cv, url:cv.toDataURL('image/png'), w, h:hTot };
+  const out = { canvas:cv, url:cv.toDataURL('image/png'), w, h:hTot, qr:G.qr || null };
   artCache.set(key, out);
   if (artCache.size > 12) artCache.delete(artCache.keys().next().value);
   return out;
@@ -1192,6 +1211,10 @@ const material = new THREE.MeshPhysicalMaterial({
 });
 const dimGroup = new THREE.Group(); scene.add(dimGroup);
 
+/* ด้านหลังแผง — ปิดทับฝาหลังของ ExtrudeGeometry ที่ไม่งั้นจะโชว์อาร์ตเวิร์กกลับด้าน */
+const backMat = new THREE.MeshStandardMaterial({
+  color:new THREE.Color(P.color), roughness:0.42, metalness:0, side:THREE.BackSide });
+
 let panelMats = [];
 function panelMat(i){
   const gloss = P.finish === 'gloss';
@@ -1210,6 +1233,8 @@ function panelMat(i){
   return m;
 }
 function applyMats(){
+  backMat.color.set(P.color);
+  backMat.roughness = (P.finish === 'gloss') ? 0.38 : 0.78;
   const old = panelMats;
   panelMats = [0, 1, 2].map(panelMat);
   panelMeshes.forEach((m, i) => { m.material = panelMats[i]; });
@@ -1283,7 +1308,7 @@ const bulbGeo = new THREE.SphereGeometry(5.5, 10, 8);
 const bulbMat = new THREE.MeshBasicMaterial({ color:0xffe2a6 });
 const paperMat = () => new THREE.MeshStandardMaterial({ color:new THREE.Color(P.backColor), roughness:0.95, metalness:0, side:THREE.DoubleSide });
 const tapeMat = new THREE.LineBasicMaterial({ color:0xE8C56A });
-let bulbCount = 0, flowerCount = 0;
+
 
 /* ขอบลายกนกตัดจากกระดาษการ์ดสีทอง — ใช้ตัวสร้างลายตัวเดียวกับยอดฉาก */
 function kanokStripTexture(wmm, hmm){
@@ -1311,16 +1336,19 @@ function kanokStripTexture(wmm, hmm){
 function makeTassel(len){
   const g = new THREE.Group();
   const mat = new THREE.MeshStandardMaterial({ color:0xF2D27A, roughness:0.9, side:THREE.DoubleSide });
-  for (let k=0;k<9;k++){
-    const a = (k/9)*Math.PI*2;
-    const strip = new THREE.Mesh(new THREE.PlaneGeometry(3, len), mat);
-    strip.position.set(Math.cos(a)*3.5, -len/2 - 6, Math.sin(a)*3.5);
-    strip.rotation.y = a;
+  for (let k=0;k<12;k++){
+    const a = (k/12)*Math.PI*2;
+    const strip = new THREE.Mesh(new THREE.PlaneGeometry(5, len), mat);
+    strip.position.set(Math.cos(a)*5, -len/2 - 7, Math.sin(a)*5);
+    strip.rotation.set(Math.cos(a)*0.12, a, Math.sin(a)*0.12);
     g.add(strip);
   }
-  const knot = new THREE.Mesh(new THREE.SphereGeometry(6, 10, 8),
+  const knot = new THREE.Mesh(new THREE.SphereGeometry(7.5, 12, 9),
     new THREE.MeshStandardMaterial({ color:0xC8912F, roughness:0.6, metalness:0.2 }));
   g.add(knot);
+  const cord = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 26, 6),
+    new THREE.MeshStandardMaterial({ color:0xC8912F, roughness:0.8 }));
+  cord.position.y = 13; g.add(cord);
   return g;
 }
 
@@ -1487,18 +1515,78 @@ function makeFlower(r){
   return grp;
 }
 
+/* หมุดเลข ①–⑥ บอกว่าของตกแต่งแต่ละอย่างไปอยู่ตรงไหน — เป็นตัวช่วยดูเฉย ๆ ไม่ใช่ของจริง */
+const NUM = ['①', '②', '③', '④', '⑤', '⑥'];
+function pinTexture(num, label){
+  const cv = document.createElement('canvas');
+  cv.width = 560; cv.height = 112;
+  const c = cv.getContext('2d');
+  c.fillStyle = 'rgba(11,43,34,.90)'; rr(c, 2, 14, 556, 84, 42); c.fill();
+  c.fillStyle = '#FBBF24'; c.beginPath(); c.arc(56, 56, 30, 0, 7); c.fill();
+  c.textBaseline = 'middle'; c.textAlign = 'center';
+  c.fillStyle = '#17180f'; c.font = '700 38px Kanit, sans-serif';
+  c.fillText(String(num), 56, 58);
+  c.textAlign = 'left';
+  c.fillStyle = '#F4F1EA'; c.font = '500 33px Kanit, sans-serif';
+  c.fillText(label, 96, 58);
+  const t = new THREE.CanvasTexture(cv);
+  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return t;
+}
+function makePin(num, label){
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+    map:pinTexture(num, label), transparent:true, depthTest:false }));
+  sp.scale.set(230, 46, 1);
+  sp.renderOrder = 999;
+  sp.userData.own = true;
+  return sp;
+}
+
+/* แผนจุดวางของตกแต่ง — ใช้ทั้งกับหมุดในฉากและรายการในแถบควบคุม */
+const SPOT_PLAN = [
+  [1, 'ยอดช่อกลาง', 'พู่กระดาษห้อยใต้ยอด · เลื่อมกลมแปะตามขอบลาย · ไฟ LED ถ้าอยากได้',
+      ['tassel', 'seqEdge', 'lights']],
+  [2, 'รอยพับซ้าย–ขวา', 'เถาวัลย์ใบไม้พันแนวตั้งตามรอยพับ กลบรอยต่อแผงให้ดูเป็นชิ้นเดียว',
+      ['vineFold']],
+  [3, 'กรอบการ์ด QR', 'เลื่อมกลมล้อมกรอบการ์ด ดึงสายตาคนดูไปที่จุดสแกน',
+      ['seqQR', 'sign']],
+  [4, 'ขอบล่างทั้ง 3 แผง', 'แถบลายกนกกระดาษทอง + เลื่อมเรียงสองแถวบนแถบ',
+      ['kanok', 'seqStrip']],
+  [5, 'มุมล่าง · ขอบข้าง', 'ดอกไม้กระดาษย่นมุมล่างแผงริม · เถาวัลย์ขอบข้าง · เทปกากเพชร',
+      ['flower', 'vine', 'edge']],
+  [6, 'โต๊ะหน้าบอร์ด', 'ผ้าปูโต๊ะ · กล่องเกม การ์ด ธนบัตรของจริง · โรยเลื่อมกลม',
+      ['props', 'cloth', 'seqTable']]
+];
+function renderSpotPlan(){
+  const box = document.getElementById('spotList');
+  if (!box) return;
+  box.innerHTML = SPOT_PLAN.map(([num, title, how, keys]) => {
+    const on = keys.filter(k => P.deco[k]).length;
+    return `<div class="spot${on ? ' on' : ''}"><b>${NUM[num-1]} ${title}</b>` +
+      `<em>${on ? on + '/' + keys.length : 'ปิดอยู่'}</em><span>${how}</span></div>`;
+  }).join('');
+}
+
 function buildDeco(){
-  bulbCount = 0; flowerCount = 0;
   const data = cutStats.geo;
   if (!data || !panelMeshes.length) return;
   const H = (P.pattern === 'plain') ? 0 : P.hC, hB = P.hB, D = P.deco;
+  const specs = panelSpecs();
 
   panelMeshes.forEach((m, i) => {
     for (const c of [...m.children]){
       m.remove(c);
       if (c.material && c.material.map) c.material.map.dispose();
+      if (c.userData.own && c.geometry) c.geometry.dispose();
     }
     const d = data[i], w = d.w, zf = P.th;        // zf = หน้าแผง
+    const hTot = hB + H;
+
+    // ปิดหลังแผงด้วยสีวัสดุล้วน — ไม่งั้นมองจากข้างหลังจะเห็นอาร์ตเวิร์กกลับด้าน
+    const backPlate = new THREE.Mesh(new THREE.ShapeGeometry(d.shapes.map(toShape)), backMat);
+    backPlate.position.z = -0.15;
+    backPlate.userData.own = true;
+    m.add(backPlate);
 
     // กระดาษรองหลัง — ตัดตามรูปแผง (ไม่เจาะลาย) ลายที่ฉลุจึงโชว์สีนี้ทะลุออกมา
     if (D.back){
@@ -1537,7 +1625,6 @@ function buildDeco(){
         spots.forEach((s2, k) => { mt.makeTranslation(s2[0], s2[1], zf + 4); inst.setMatrixAt(k, mt); });
         inst.instanceMatrix.needsUpdate = true;
         m.add(inst);
-        bulbCount += spots.length;
       }
     }
 
@@ -1572,6 +1659,60 @@ function buildDeco(){
       m.add(makeVine(curve, 900 + i*31));
     }
 
+    // ② เถาวัลย์พันแนวตั้งตามรอยพับ — กลบรอยต่อระหว่างแผง
+    if (D.vineFold && i === 1){
+      for (const ex of [8, w - 8]){
+        const inw = (ex < w/2) ? 1 : -1;
+        m.add(makeVine(new THREE.CatmullRomCurve3([
+          new THREE.Vector3(ex, 4, zf + 3),
+          new THREE.Vector3(ex + inw*14, hB*0.30, zf + 7),
+          new THREE.Vector3(ex, hB*0.62, zf + 3),
+          new THREE.Vector3(ex + inw*11, hB + (H ? H*0.16 : 0), zf + 7)
+        ]), 1500 + (inw > 0 ? 7 : 29)));
+      }
+    }
+
+    // ③ เลื่อมล้อมกรอบการ์ด QR — จุดที่อยากให้คนเดินผ่านมองเห็นก่อน
+    if (D.seqQR && i === 1 && P.artwork){
+      const art = artworkCanvas(i, specs[i]);
+      if (art.qr){
+        const g = 10, x0 = art.qr.x - g, x1 = art.qr.x + art.qr.w + g;
+        const y0 = hTot - (art.qr.y + art.qr.h) - g, y1 = hTot - art.qr.y + g;
+        const step = 27, pts = [];
+        const cols = Math.max(2, Math.round((x1 - x0)/step));
+        const rows = Math.max(2, Math.round((y1 - y0)/step));
+        for (let k=0;k<=cols;k++){
+          const x = x0 + (x1 - x0)*k/cols;
+          pts.push([x, y0], [x, y1]);
+        }
+        for (let k=1;k<rows;k++){
+          const y = y0 + (y1 - y0)*k/rows;
+          pts.push([x0, y], [x1, y]);
+        }
+        const q = new THREE.Quaternion(), sc3 = new THREE.Vector3(0.72, 0.72, 0.72), v = new THREE.Vector3();
+        const sq = seqMesh(pts.length, 606, (mt, r, k) => {
+          q.setFromEuler(new THREE.Euler(0, 0, r()*6.28));
+          v.set(pts[k][0], pts[k][1], zf + 1.6);
+          mt.compose(v, q, sc3);
+        });
+        sq.userData.own = true; m.add(sq);
+      }
+    }
+
+    // ④ เลื่อมเรียงสองแถวบนแถบกนกทองขอบล่าง
+    if (D.seqStrip){
+      const bh = Math.max(48, hB*0.11), inner = w - 44;
+      const cols = Math.max(3, Math.round(inner/46));
+      const q = new THREE.Quaternion(), sc3 = new THREE.Vector3(0.5, 0.5, 0.5), v = new THREE.Vector3();
+      const sq = seqMesh(cols*2, 310 + i, (mt, r, k) => {
+        const row = k % 2, col = (k - row)/2;
+        q.setFromEuler(new THREE.Euler(0, 0, r()*6.28));
+        v.set(22 + inner*(col + (row ? 0.82 : 0.32))/cols, 6 + bh*(row ? 0.72 : 0.30), zf + 1.4);
+        mt.compose(v, q, sc3);
+      });
+      sq.userData.own = true; m.add(sq);
+    }
+
     // เลื่อมกลมแปะตามขอบลาย
     if (D.seqEdge){
       const ring = d.shapes[0].outer, spots = [];
@@ -1591,25 +1732,41 @@ function buildDeco(){
       }
     }
 
-    // พู่กระดาษห้อยใต้ยอดลาย
+    // ① พู่กระดาษห้อยในช่วงยอดลาย — อยู่เหนือเนื้อหาเสมอ ไม่บังข้อความ
     if (D.tassel && H > 0){
-      for (const tx of [w*0.22, w*0.78]){
-        const t = makeTassel(Math.max(85, H*0.42));
-        t.position.set(tx, hB - 10, zf + 5);
+      for (const tx of [w*0.26, w*0.74]){
+        const t = makeTassel(Math.max(62, H*0.26));
+        t.position.set(tx, hB + H*0.30, zf + 6);
         m.add(t);
       }
     }
 
-    // ดอกไม้กระดาษย่น ติดมุมล่างสองข้าง
-    if (D.flower){
-      const r = 30;
-      for (const fx of [w*0.10, w*0.90]){
-        for (const [dx, dy, sc] of [[0, 0, 1], [r*1.5, r*0.9, 0.72], [-r*1.4, r*1.1, 0.62]]){
-          const f = makeFlower(r*sc);
-          f.position.set(fx + (fx < w/2 ? dx : -dx), hB*0.16 + dy, zf + r*sc*0.35);
-          f.rotation.z = (fx + dx) % 1.1;
-          m.add(f); flowerCount++;
-        }
+    // ⑤ ดอกไม้กระดาษย่น เกาะเป็นช่อที่มุมล่างด้านนอกของแผงริม
+    if (D.flower && i !== 1){
+      const r = 30, fx = (i === 0) ? w*0.12 : w*0.88, inw = (i === 0) ? 1 : -1;
+      for (const [dx, dy, sc] of [[0, 0, 1], [r*1.5, r*0.9, 0.72], [-r*1.2, r*1.9, 0.6]]){
+        const f = makeFlower(r*sc);
+        f.position.set(fx + inw*dx, Math.max(52, hB*0.11) + 16 + dy, zf + r*sc*0.35);
+        f.rotation.z = (fx + dx) % 1.1;
+        m.add(f);
+      }
+    }
+
+    // หมุดบอกจุด — ตัวช่วยดูตอนออกแบบ ไม่ใช่ของตกแต่งจริง
+    if (D.spots){
+      const pinAt = (num, label, x, y) => {
+        const sp = makePin(num, label);
+        sp.position.set(x, y, zf + 40);
+        m.add(sp);
+      };
+      if (i === 1){
+        pinAt(1, 'ยอดช่อกลาง · พู่ + เลื่อมขอบลาย', w/2, hB + (H ? H*0.74 : 34));
+        pinAt(2, 'รอยพับ · เถาวัลย์แนวตั้ง', 86, hB*0.74);
+        pinAt(2, 'รอยพับ · เถาวัลย์แนวตั้ง', w - 86, hB*0.46);
+        pinAt(3, 'กรอบ QR · เลื่อมล้อมกรอบ', w/2, hB*0.44);
+      } else {
+        pinAt(4, 'ขอบล่าง · แถบกนก + เลื่อม', w/2, Math.max(48, hB*0.11) + 40);
+        pinAt(5, 'มุมล่าง · ดอกไม้ + เถาวัลย์ขอบ', (i === 0) ? w*0.30 : w*0.70, hB*0.30);
       }
     }
   });
@@ -1619,45 +1776,16 @@ function buildDeco(){
   if (D.vine) buildVines();
   if (D.seqTable) buildTableSequins();
   if (D.props) buildProps();
+  if (D.spots){
+    const sp = makePin(6, 'โต๊ะหน้าบอร์ด · ของจริง + เลื่อมโรย');
+    sp.position.set(0, 150, 430);
+    decoWorld.add(sp);
+  }
   cloth.visible = D.cloth;
   table.visible = true;
   glow.intensity = D.lights ? 1.5e5 : 0;
   glow.position.set(0, hB + H*0.6, 240);
-  renderShopList();
-}
-
-const baht = n => n.toLocaleString('th-TH') + ' ฿';
-function renderShopList(){
-  const D = P.deco, H = (P.pattern === 'plain') ? 0 : P.hC;
-  const items = [];
-  if (D.back){
-    const sheets = panelSpecs().reduce((n, sp) =>
-      n + Math.ceil(sp.w/650) * Math.ceil(Math.max(240, (H||P.hB*0.45)*1.35)/800), 0);
-    items.push(['กระดาษสา/ฟิวเจอร์บอร์ดรองหลัง 65×80 ซม.', sheets, 35]);
-  }
-  if (D.lights){
-    const str = Math.max(1, Math.ceil(bulbCount/50));
-    items.push([`ไฟหยดน้ำ LED 5 ม. (${bulbCount} ดวงในแบบ)`, str, 59]);
-    items.push(['ถ่าน AA แพ็ค 4 ก้อน', str, 45]);
-  }
-  if (D.edge) items.push([`เทปกากเพชรเดินขอบ ม้วนละ 10 ม. (ใช้ ~${(cutStats.len/1000).toFixed(0)} ม.)`, Math.ceil(cutStats.len/10000), 45]);
-  if (D.sign && P.signText.trim()) items.push(['ป้ายชื่อ สติกเกอร์ติดโฟมบอร์ด A3', 1, 60]);
-  if (D.flower) items.push([`กระดาษย่นทำดอกไม้ (${flowerCount} ดอก)`, Math.max(1, Math.ceil(flowerCount/12)), 15]);
-  if (P.artwork && P.style === 3) items.push(['กระดาษ A4 พิมพ์สี (ตัดประกอบ)', allTiles().length, 10]);
-  if (D.kanok) items.push(['กระดาษการ์ดสีทอง A4 (ตัดลายกนกขอบล่าง)', Math.ceil((P.wC + P.wS*2)/297), 8]);
-  if (D.bunting) items.push(['กระดาษสีทำธงราว + เชือก', 1, 35]);
-  if (D.vine) items.push(['เถาวัลย์ใบไม้เทียม (เชือกปอ 2 ม./เส้น)', 2, 39]);
-  if (D.seqTable || D.seqEdge) items.push(['เลื่อมกลมหลากสี 1 ถุง', 1, 29]);
-  if (D.tassel) items.push(['กระดาษแก้ว/กระดาษย่นทำพู่', 1, 15]);
-  if (D.cloth) items.push(['ผ้าปูโต๊ะ 150×200 ซม.', 1, 120]);
-  if (items.length) items.push(['เทปกาวสองหน้า + กาวแท่ง', 1, 35]);
-
-  const box = document.getElementById('shopList');
-  if (!items.length){ box.innerHTML = '<div class="li"><span>ยังไม่ได้เลือกของตกแต่ง</span><span>0 ฿</span></div>'; return; }
-  const rows = items.map(([n, q, pr]) =>
-    `<div class="li"><span>${n} × ${q}</span><span>${baht(q*pr)}</span></div>`).join('');
-  const total = items.reduce((t, [, q, pr]) => t + q*pr, 0);
-  box.innerHTML = rows + `<div class="li sum"><span>รวมค่าตกแต่ง</span><span>${baht(total)}</span></div>`;
+  renderSpotPlan();
 }
 
 /* ---- เส้นบอกขนาด ---- */
@@ -2071,9 +2199,14 @@ function pickColor(hex){
 document.querySelectorAll('#swatches .sw').forEach(s => s.addEventListener('click', () => pickColor(s.dataset.color)));
 $('customColor').addEventListener('input', e => pickColor(e.target.value));
 // --- ของตกแต่ง ---
-for (const [id, k] of Object.entries({ dBack:'back', dLights:'lights', dEdge:'edge', dSign:'sign',
-  dFlower:'flower', dCloth:'cloth', dKanok:'kanok', dBunting:'bunting', dTassel:'tassel', dProps:'props' }))
+const DECO_IDS = { back:'dBack', lights:'dLights', edge:'dEdge', sign:'dSign', flower:'dFlower',
+  cloth:'dCloth', kanok:'dKanok', bunting:'dBunting', tassel:'dTassel', props:'dProps',
+  vine:'dVine', vineFold:'dVineFold', seqTable:'dSeqTable', seqEdge:'dSeqEdge',
+  seqQR:'dSeqQR', seqStrip:'dSeqStrip' };
+const DECO_KEYS = Object.keys(DECO_IDS);
+for (const [k, id] of Object.entries(DECO_IDS))
   $(id).addEventListener('change', e => { P.deco[k] = e.target.checked; buildDeco(); });
+$('dSpots').addEventListener('change', e => { P.deco.spots = e.target.checked; buildDeco(); });
 function pickBack(hex){
   P.backColor = hex;
   document.querySelectorAll('.sw.bk').forEach(s => s.setAttribute('aria-pressed', String(s.dataset.back.toLowerCase() === hex.toLowerCase())));
@@ -2094,15 +2227,11 @@ function showStage(){
   const el = $('view2d').hidden ? document.querySelector('.stage') : document.querySelector('#view2d .flat:not([hidden])');
   if (el) el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block:'center' });
 }
-const DECO_KEYS = ['back','lights','edge','sign','flower','cloth','kanok','bunting','tassel','props','vine','seqTable','seqEdge'];
-const DECO_IDS = { back:'dBack', lights:'dLights', edge:'dEdge', sign:'dSign', flower:'dFlower',
-  cloth:'dCloth', kanok:'dKanok', bunting:'dBunting', tassel:'dTassel', props:'dProps',
-  vine:'dVine', seqTable:'dSeqTable', seqEdge:'dSeqEdge' };
 const PRESETS = {
   none:   [],
-  simple: ['lights', 'cloth', 'kanok', 'props', 'vine'],
-  full:   ['lights', 'edge', 'sign', 'flower', 'cloth', 'kanok', 'bunting', 'tassel', 'props',
-           'vine', 'seqTable', 'seqEdge']
+  simple: ['cloth', 'kanok', 'props', 'vineFold', 'seqQR'],
+  full:   ['edge', 'sign', 'flower', 'cloth', 'kanok', 'bunting', 'tassel', 'props',
+           'vine', 'vineFold', 'seqTable', 'seqEdge', 'seqQR', 'seqStrip']
 };
 document.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', () => {
   const on = PRESETS[b.dataset.preset];
@@ -2115,14 +2244,14 @@ document.querySelectorAll('[data-style]').forEach(b => b.addEventListener('click
   if (!P.artwork){ P.artwork = true; $('artOn').checked = true; }   // เลือกสไตล์ = ต้องเห็นเนื้อหา
   $('styleNote').textContent = 'กำลังเรนเดอร์สไตล์ ' + P.style + '…';
   requestAnimationFrame(() => setTimeout(() => {
-    applyMats(); drawFlat(); renderShopList();
+    applyMats(); drawFlat();
     $('styleNote').textContent = ['', 'สไตล์ 1 · การ์ดขาว–ทอง พิมพ์ไวนิลแผ่นเดียวจบ',
       'สไตล์ 2 · แผงวงจร ธีมเดียวกับกระดานเกม',
       'สไตล์ 3 · A4 ตัดประกอบ ' + allTiles().length + ' แผ่น (ดูทุกแผ่นได้ที่แท็บ “แบบตัด 2 มิติ”)'][P.style];
     showStage();
   }, 0));
 }));
-$('artOn').addEventListener('change', e => { P.artwork = e.target.checked; applyMats(); drawFlat(); renderShopList(); });
+$('artOn').addEventListener('change', e => { P.artwork = e.target.checked; applyMats(); drawFlat(); });
 let artTimer = 0;
 const artField = (id, k) => $(id).addEventListener('input', e => {
   P[k] = e.target.value;
