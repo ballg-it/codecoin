@@ -865,7 +865,7 @@ function openExport(kind){
   box.hidden = false;
   document.getElementById('exportText').value = text;
   document.getElementById('exportNote').textContent =
-    `${e.name} · ${(new Blob([text]).size/1024).toFixed(0)} KB — ${e.note} ถ้าปุ่มดาวน์โหลดไม่ทำงาน (หน้าตัวอย่างบล็อกไว้) ให้กดคัดลอกโค้ดแล้ววางลงไฟล์เปล่าแทน`;
+    `${e.name} · ${(new Blob([text]).size/1024).toFixed(0)} KB — ${e.note}`;
 }
 document.querySelectorAll('[data-export]').forEach(b =>
   b.addEventListener('click', () => openExport(b.dataset.export)));
@@ -877,13 +877,26 @@ document.getElementById('copyExport').addEventListener('click', async e => {
   catch { ta.focus(); ta.select(); e.target.textContent = 'เลือกข้อความแล้ว กด Ctrl+C'; }
   setTimeout(() => e.target.textContent = 'คัดลอกโค้ด', 2200);
 });
-document.getElementById('dlExport').addEventListener('click', e => {
+// บนหน้าตัวอย่าง (artifact) ต้องบันทึกผ่าน downloads capability — เปิดไฟล์ในเครื่องใช้ลิงก์ปกติ
+const dlReady = (async () => { try { return await window.claude?.use?.('downloads') ?? null; } catch { return null; } })();
+document.getElementById('dlExport').addEventListener('click', async e => {
+  const say = t => { e.target.textContent = t; setTimeout(() => e.target.textContent = 'ดาวน์โหลดไฟล์', 2600); };
+  const cap = await dlReady;
+  if (cap){
+    try { await cap.save({ filename:current.name, data:current.text }); say('บันทึกแล้ว'); }
+    catch (err){
+      say(err && err.code === 'declined' ? 'ยกเลิกแล้ว' : 'บันทึกจากหน้านี้ไม่ได้');
+      if (!err || err.code !== 'declined')
+        document.getElementById('exportNote').textContent =
+          `หน้าตัวอย่างบันทึกไฟล์ ${current.name.split('.').pop().toUpperCase()} ไม่ได้ — กด “คัดลอกโค้ด” แล้ววางลงไฟล์เปล่าชื่อ ${current.name} หรือเปิด tools/backdrop_3d.html จากเครื่องแล้วกดดาวน์โหลด`;
+    }
+    return;
+  }
   const b = new Blob([current.text], { type:current.mime });
   const u = URL.createObjectURL(b), a = document.createElement('a');
   a.href = u; a.download = current.name; a.click();
   setTimeout(() => URL.revokeObjectURL(u), 4000);
-  e.target.textContent = 'สั่งดาวน์โหลดแล้ว';
-  setTimeout(() => e.target.textContent = 'ดาวน์โหลดไฟล์', 2200);
+  say('สั่งดาวน์โหลดแล้ว');
 });
 
 /* ============================================================
