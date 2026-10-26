@@ -244,6 +244,9 @@ code{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--green)}
           <label class="chk"><input type="checkbox" id="dBunting"> ธงราวกระดาษพาดด้านบน</label>
           <label class="chk"><input type="checkbox" id="dTassel"> พู่กระดาษห้อยใต้ยอดลาย</label>
           <label class="chk"><input type="checkbox" id="dProps" checked> วางของจริงจากเกมหน้าบอร์ด</label>
+          <label class="chk"><input type="checkbox" id="dVine" checked> เถาวัลย์ใบไม้เทียม (พาดบน + ขอบข้าง)</label>
+          <label class="chk"><input type="checkbox" id="dSeqTable" checked> โรยเลื่อมกลมบนโต๊ะ</label>
+          <label class="chk"><input type="checkbox" id="dSeqEdge"> แปะเลื่อมตามขอบลาย</label>
         </div>
         <div class="swatches" style="margin-top:11px">
           <button class="sw bk" data-back="#FBBF24" style="background:#FBBF24" aria-pressed="true" title="สีแผ่นรองหลัง — ทอง"></button>
@@ -312,7 +315,8 @@ const P = {
   color:'#1C9CD8', finish:'gloss',
   shadow:true, a4:true, dim:false, spin:false,
   deco:{ back:false, lights:true, edge:false, sign:true, flower:false, cloth:true,
-         kanok:true, bunting:false, tassel:false, props:true },
+         kanok:true, bunting:false, tassel:false, props:true,
+         vine:true, seqTable:true, seqEdge:false },
   backColor:'#FBBF24', signText:'CodeCoin',
   artwork:true, style:1, boardTitle:'CodeCoin', boardTeam:'ผู้จัดทำ: (ใส่ชื่อ–ห้อง)'
 };
@@ -1320,19 +1324,92 @@ function makeTassel(len){
   return g;
 }
 
-/* ธงราวกระดาษพาดจากปลายแผงซ้าย ผ่านกลาง ไปปลายแผงขวา */
-function buildBunting(){
+/* เส้นโค้งพาดจากปลายแผงซ้าย ผ่านยอดกลาง ไปปลายแผงขวา */
+function topCurve(sag, lift){
   const a = P.fold*Math.PI/180, H = (P.pattern === 'plain') ? 0 : P.hC;
-  const topY = P.hB + H*0.42;
+  const topY = P.hB + H*0.42 + (lift || 0);
   const L = new THREE.Vector3(-P.wC/2 - P.wS*Math.cos(a), topY, P.wS*Math.sin(a) + P.th);
-  const C = new THREE.Vector3(0, P.hB + H*0.70, P.th + 10);
+  const C = new THREE.Vector3(0, P.hB + H*0.70 + (lift || 0), P.th + 10);
   const R = new THREE.Vector3(P.wC/2 + P.wS*Math.cos(a), topY, P.wS*Math.sin(a) + P.th);
-  const curve = new THREE.CatmullRomCurve3([
-    L, L.clone().lerp(C, 0.5).setY(topY - 55), C,
-    C.clone().lerp(R, 0.5).setY(topY - 55), R
+  return new THREE.CatmullRomCurve3([
+    L, L.clone().lerp(C, 0.5).setY(topY - sag), C,
+    C.clone().lerp(R, 0.5).setY(topY - sag), R
   ]);
-  const pts = curve.getPoints(160);
-  decoWorld.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+}
+
+/* เถาวัลย์ใบไม้เทียม = เชือกปอ + ใบผ้าเสียบเป็นระยะ */
+const leafShape = (() => {
+  const sh = new THREE.Shape();
+  sh.moveTo(0, 0);
+  sh.quadraticCurveTo(10, 7.5, 23, 0);
+  sh.quadraticCurveTo(10, -7.5, 0, 0);
+  return sh;
+})();
+const leafGeo = new THREE.ShapeGeometry(leafShape);
+const leafMat = new THREE.MeshStandardMaterial({ color:0x6FA83C, roughness:0.88, side:THREE.DoubleSide });
+const ropeMat = new THREE.MeshStandardMaterial({ color:0xC0A478, roughness:0.95 });
+
+function makeVine(curve, seed){
+  const g = new THREE.Group();
+  const len = curve.getLength();
+  g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, Math.max(24, Math.round(len/14)), 1.9, 5, false), ropeMat));
+  const n = Math.max(8, Math.round(len/11));
+  const inst = new THREE.InstancedMesh(leafGeo, leafMat, n);
+  const r = rng(seed), m = new THREE.Matrix4(), q = new THREE.Quaternion(),
+        e = new THREE.Euler(), sc = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  for (let i=0;i<n;i++){
+    const t = (i + 0.5)/n;
+    const p = curve.getPointAt(t), d = curve.getTangentAt(t);
+    const side = (i % 2) ? 1 : -1;
+    e.set(r()*0.9 - 0.45, Math.atan2(d.z, d.x) + side*(1.1 + r()*0.6), side*(0.5 + r()*0.7));
+    q.setFromEuler(e);
+    const k = 0.75 + r()*0.5;
+    sc.set(k, k, k);
+    m.compose(p.clone().addScaledVector(up, -1.5), q, sc);
+    inst.setMatrixAt(i, m);
+  }
+  inst.instanceMatrix.needsUpdate = true;
+  g.add(inst);
+  return g;
+}
+
+/* เลื่อมกลมหลากสี */
+const SEQ_COLORS = [0xD64545, 0x2FA84F, 0xE0B43A, 0xC8CDD2, 0x4FB3D9, 0xEDEDED];
+const seqGeo = new THREE.CircleGeometry(7, 14);
+function seqMesh(n, seed, place){
+  const mat = new THREE.MeshStandardMaterial({ roughness:0.22, metalness:0.75, side:THREE.DoubleSide });
+  const inst = new THREE.InstancedMesh(seqGeo, mat, n);
+  const r = rng(seed), m = new THREE.Matrix4();
+  const col = new THREE.Color();
+  for (let i=0;i<n;i++){
+    place(m, r, i);
+    inst.setMatrixAt(i, m);
+    col.setHex(SEQ_COLORS[Math.floor(r()*SEQ_COLORS.length)]);
+    inst.setColorAt(i, col);
+  }
+  inst.instanceMatrix.needsUpdate = true;
+  if (inst.instanceColor) inst.instanceColor.needsUpdate = true;
+  return inst;
+}
+
+function buildVines(){
+  decoWorld.add(makeVine(topCurve(78, -8), 4242));
+}
+
+function buildTableSequins(){
+  const e = new THREE.Euler(-Math.PI/2, 0, 0), q = new THREE.Quaternion(),
+        sc = new THREE.Vector3(1, 1, 1), v = new THREE.Vector3();
+  const spread = P.wC/2 + P.wS*0.9;
+  decoWorld.add(seqMesh(190, 777, (m, r) => {
+    e.set(-Math.PI/2, 0, r()*6.28); q.setFromEuler(e);
+    v.set((r()*2 - 1)*spread, 0.9, 220 + r()*520);
+    m.compose(v, q, sc);
+  }));
+}
+
+function buildBunting(){
+  const curve = topCurve(55, 0);
+  decoWorld.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(curve.getPoints(160)),
     new THREE.LineBasicMaterial({ color:0x6b5a3a })));
 
   const cols = [0xFBBF24, 0x4ADE80, 0xD85A30, 0xF4F1EA, 0x1C9CD8];
@@ -1483,6 +1560,37 @@ function buildDeco(){
       m.add(strip);
     }
 
+    // เถาวัลย์พันขอบข้างของแผงริม
+    if (D.vine && i !== 1){
+      const ex = (i === 0) ? 6 : w - 6;
+      const curve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(ex, 10, zf + 3),
+        new THREE.Vector3(ex + (i === 0 ? 14 : -14), hB*0.35, zf + 6),
+        new THREE.Vector3(ex, hB*0.70, zf + 3),
+        new THREE.Vector3(ex + (i === 0 ? 10 : -10), hB + (H ? H*0.10 : 0), zf + 6)
+      ]);
+      m.add(makeVine(curve, 900 + i*31));
+    }
+
+    // เลื่อมกลมแปะตามขอบลาย
+    if (D.seqEdge){
+      const ring = d.shapes[0].outer, spots = [];
+      let acc = 30;
+      for (let k=0;k<ring.length;k++){
+        const a2 = ring[k], b2 = ring[(k+1)%ring.length];
+        acc += Math.hypot(b2[0]-a2[0], b2[1]-a2[1]);
+        if (acc >= 30 && a2[1] > hB - 40){ acc = 0; spots.push(a2); }
+      }
+      if (spots.length){
+        const q = new THREE.Quaternion(), sc2 = new THREE.Vector3(0.62, 0.62, 0.62), v = new THREE.Vector3();
+        m.add(seqMesh(spots.length, 55 + i, (mt, r, k) => {
+          q.setFromEuler(new THREE.Euler(0, 0, r()*6.28));
+          v.set(spots[k][0], spots[k][1], zf + 1.6);
+          mt.compose(v, q, sc2);
+        }));
+      }
+    }
+
     // พู่กระดาษห้อยใต้ยอดลาย
     if (D.tassel && H > 0){
       for (const tx of [w*0.22, w*0.78]){
@@ -1508,6 +1616,8 @@ function buildDeco(){
 
   decoWorld.clear();
   if (D.bunting) buildBunting();
+  if (D.vine) buildVines();
+  if (D.seqTable) buildTableSequins();
   if (D.props) buildProps();
   cloth.visible = D.cloth;
   table.visible = true;
@@ -1536,6 +1646,8 @@ function renderShopList(){
   if (P.artwork && P.style === 3) items.push(['กระดาษ A4 พิมพ์สี (ตัดประกอบ)', allTiles().length, 10]);
   if (D.kanok) items.push(['กระดาษการ์ดสีทอง A4 (ตัดลายกนกขอบล่าง)', Math.ceil((P.wC + P.wS*2)/297), 8]);
   if (D.bunting) items.push(['กระดาษสีทำธงราว + เชือก', 1, 35]);
+  if (D.vine) items.push(['เถาวัลย์ใบไม้เทียม (เชือกปอ 2 ม./เส้น)', 2, 39]);
+  if (D.seqTable || D.seqEdge) items.push(['เลื่อมกลมหลากสี 1 ถุง', 1, 29]);
   if (D.tassel) items.push(['กระดาษแก้ว/กระดาษย่นทำพู่', 1, 15]);
   if (D.cloth) items.push(['ผ้าปูโต๊ะ 150×200 ซม.', 1, 120]);
   if (items.length) items.push(['เทปกาวสองหน้า + กาวแท่ง', 1, 35]);
@@ -1982,13 +2094,15 @@ function showStage(){
   const el = $('view2d').hidden ? document.querySelector('.stage') : document.querySelector('#view2d .flat:not([hidden])');
   if (el) el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block:'center' });
 }
-const DECO_KEYS = ['back','lights','edge','sign','flower','cloth','kanok','bunting','tassel','props'];
+const DECO_KEYS = ['back','lights','edge','sign','flower','cloth','kanok','bunting','tassel','props','vine','seqTable','seqEdge'];
 const DECO_IDS = { back:'dBack', lights:'dLights', edge:'dEdge', sign:'dSign', flower:'dFlower',
-  cloth:'dCloth', kanok:'dKanok', bunting:'dBunting', tassel:'dTassel', props:'dProps' };
+  cloth:'dCloth', kanok:'dKanok', bunting:'dBunting', tassel:'dTassel', props:'dProps',
+  vine:'dVine', seqTable:'dSeqTable', seqEdge:'dSeqEdge' };
 const PRESETS = {
   none:   [],
-  simple: ['lights', 'cloth', 'kanok', 'props'],
-  full:   ['lights', 'edge', 'sign', 'flower', 'cloth', 'kanok', 'bunting', 'tassel', 'props']
+  simple: ['lights', 'cloth', 'kanok', 'props', 'vine'],
+  full:   ['lights', 'edge', 'sign', 'flower', 'cloth', 'kanok', 'bunting', 'tassel', 'props',
+           'vine', 'seqTable', 'seqEdge']
 };
 document.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', () => {
   const on = PRESETS[b.dataset.preset];
