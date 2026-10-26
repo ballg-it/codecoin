@@ -1,95 +1,93 @@
-# CodeCoin — QR System
+<div align="center">
 
-ระบบ QR ประกอบบอร์ดเกมเพื่อการศึกษา CodeCoin (base จาก Monopoly) — Static ทั้งหมด host บน GitHub Pages
+# CodeCoin 🪙
 
-**🌐 เว็บจริง:** https://ballg-it.github.io/codecoin/
-**📦 Repo:** https://github.com/ballg-it/codecoin (push ขึ้น main แล้วเว็บอัปเดตเองใน ~1 นาที)
+**บอร์ดเกมการศึกษาที่ใช้มือถือสแกน QR เพื่อตอบคำถามคอมพิวเตอร์ 4 วิชา**
+Coding · Microsoft Office · Graphic Design · การประกอบคอมพิวเตอร์
 
-## โครงสร้างโปรเจค
+[**▶ เปิดเว็บแอปเกม**](https://ballg-it.github.io/codecoin/) &nbsp;·&nbsp;
+[**📖 คู่มือกติกา (PDF)**](print/rulebook/%E0%B8%84%E0%B8%B9%E0%B9%88%E0%B8%A1%E0%B8%B7%E0%B8%AD%E0%B8%81%E0%B8%95%E0%B8%B4%E0%B8%81%E0%B8%B2_CodeCoin_A5.pdf) &nbsp;·&nbsp;
+[**📦 ดูกล่องเกมแบบ 3 มิติ**](https://ballg-it.github.io/codecoin/box_demo/codecoin_box_demo_v4.html)
 
-ไฟล์ที่ราก repo คือของที่ **เว็บจริงต้องใช้** (GitHub Pages เสิร์ฟจากรากตรง ๆ) — ห้ามย้ายเข้าโฟลเดอร์
-ที่เหลือแยกตามงานว่าใครใช้ทำอะไร
+<img src="box_demo/demo_assets/board.webp" alt="กระดานเกม CodeCoin ขนาด 50×50 ซม. ธีมแผงวงจร 28 ช่อง 4 โซนวิชา" width="640">
 
-```
-index.html  data.json  sw.js  qrcode.js  manifest.webmanifest  icon-192/512.png   ← เว็บจริง (ห้ามย้าย)
-codecoin_database.xlsx                                                 ← ต้นทางข้อมูลทีม content
-docs/       PROJECT_SUMMARY.md · BOX_DEMO.md · animation.md · DESIGN_AUDIT.md  ← เอกสารสรุป
-scripts/    build_data.py · gen_qr.py · gen_icons.py                   ← สคริปต์ Python
-            gen_demo_assets.py · make_standalone.py · gen_banknotes.py · gen_final_boss_card.py
-            prepare_board_print.py · build_dashboard.py (+ dashboard_template.html)
-print/      Final/*.pdf (ไฟล์ส่งโรงพิมพ์) · qr_output/*.png            ← งานสิ่งพิมพ์
-            codecoin_cards_rev3_1.html (การ์ด 16 ใบ) · banknotes/ (ธนบัตร 5 ราคา) · final_boss_card/
-box_demo/   codecoin_box_demo_v4.html + demo_assets/                   ← เดโมกล่อง 3 มิติ
-            codecoin_box_demo_standalone.html (ไฟล์เดียวจบ ส่งต่อได้)
-tools/      hotspot_picker.html · motherboard.svg     ← เครื่องมือทีม content / สถานะโปรเจค
-```
+</div>
 
-| ไฟล์หลัก | หน้าที่ |
+## CodeCoin คืออะไร
+
+เกมกระดานแนวซื้อขายทรัพย์สิน (แบบ Monopoly) ที่ **ทุกการซื้อ อัปเกรด และออกจากคุก ต้องใช้ความรู้**
+ผู้เล่นทอยเต๋าเดินบนกระดาน หยุดช่องไหนก็สแกน QR ของช่องนั้นด้วยมือถือ แล้วตอบคำถามหรือเล่นมินิเกมบนเว็บ
+
+ไม่ต้องติดตั้งแอป ไม่ต้องล็อกอิน — มือถือเครื่องไหนสแกนแล้วเล่นได้เลย และเล่นต่อได้แม้เน็ตหลุด
+
+| | |
 |---|---|
-| `index.html` | ตัวแอป (SPA ไฟล์เดียว) — โหลดข้อมูลจาก `data.json` ตอนเปิดหน้า |
-| `sw.js` | Service Worker ให้เล่นออฟไลน์ — **แก้ `index.html` ทีไร ต้องบั๊ม `CACHE`** (ตอนนี้ `codecoin-v25`) |
-| `qrcode.js` | ไลบรารีสร้าง QR ในเบราว์เซอร์ (qrcode-generator 1.4.4, MIT) — ห้องรอ Debug Rescue ใช้โชว์ QR ให้เพื่อนสแกน |
-| `codecoin_database.xlsx` | **ต้นทางข้อมูลของทีม content** (4 ชีต: spaces/questions/events/bugjam) |
-| `scripts/build_data.py` | แปลง Excel → `data.json` (รันทุกครั้งหลังทีม content แก้ Excel) |
-| `data.json` | ฐานข้อมูลที่เว็บใช้จริง — **อย่าแก้มือ ให้แก้ Excel แล้วรัน build_data.py** |
-| `scripts/gen_qr.py` | สคริปต์ gen QR ทั้งชุดเป็น PNG (ลงโฟลเดอร์ `print/qr_output/`) |
+| 👥 ผู้เล่น | 2–4 คน + Banker 1 คน |
+| ⏱️ เวลาเล่น | ~50 นาที (1 คาบเรียน) · 12 รอบ |
+| 🎯 จบเกม | ครบรอบแล้ววัดคะแนนรวม (เงินสด + มูลค่าทรัพย์สิน) หรือเล่นจนเหลือคนเดียว |
+| 📱 ต้องมี | มือถือต่อเน็ตได้อย่างน้อย 1 เครื่อง (ดีที่สุดคนละเครื่อง) |
 
-> สคริปต์ทุกตัวอ้าง path จากรากโปรเจคเสมอ (ผ่าน `__file__`) รันจากโฟลเดอร์ไหนก็ได้
+## เล่นยังไง
 
-## Routing
+1. **ทอยเต๋า 2 ลูก** แล้วเดินตามแต้ม
+2. **สแกน QR** ของช่องที่หยุด — บนการ์ดทรัพย์สินหรือบนกระดาน
+3. **ทำตามที่เว็บบอก** แล้วจ่าย/รับเงิน TechCoin (₮) ตามผล
 
-| URL | หน้า |
+ช่องที่มี QR แต่ละแบบเปิดหน้าเว็บต่างกัน:
+
+| ช่อง | เกิดอะไรขึ้น |
 |---|---|
-| ไม่มี `?space=` | เมนูทดสอบ (คลิกดูทุกช่องโดยไม่ต้องสแกน) |
-| `?space=coding_02` | ช่องทรัพย์สิน: เลือกโหมด → ปกติ (คำถาม L1 ถูกลด 20%) / มั่นใจ 💎 (คำถาม L4 ถูกลด 40% ผิดหมุนวงล้อ) |
-| `?space=coding_02&upgrade=2` | อัปเกรดระดับชำนาญ: หน้าเตรียมตัว (ออกได้ฟรี) → คำถาม L2 (ออกกลางคัน = ยอมแพ้) — `upgrade=3` = ผู้เชี่ยวชาญ |
-| `?space=event_coding` | สุ่มเหตุการณ์โซน (coding/design/office/hardware) — เติม `&test=1` = มีปุ่มสุ่มใหม่ไว้ทดสอบ (เมนูทดสอบใส่ให้เอง) |
-| `?space=bugjam` | โจทย์ debug จับเวลา (ง่าย/ยาก) ตอบถูกออกจาก "คุก" ฟรี ผิด = เสียค่าปรับ |
-| `?space=cooling` | จุดพักเครื่อง — บอสไฟต์ Server Meltdown ทั้งโต๊ะ |
-| `?space=debug_rescue` | มินิเกมกู้บั๊กด่วน 2 คน: เลือกด่าน (ตัดสายไฟ / คีย์แพด / จับคู่คำสั่ง / กู้ระบบขั้นสุด) → สร้างห้องรอ + QR ให้เพื่อน |
-| `?space=debug_rescue&pattern=final_boss` | หน้าเลือกด่านโดยเลือก "กู้ระบบขั้นสุด" ไว้ให้ — QR บนการ์ดกู้ระบบขั้นสุดชี้มาที่นี่ (ต้องกดยืนยันว่าได้การ์ดจาก Banker ก่อนเริ่ม) |
-| `?space=debug_rescue&role=solver&code=XXXX&pattern=keypad` | เข้าเกมตรง (โหมดพิมพ์รหัสเอง) — `role=guide` = ผู้อ่านคู่มือ · ไม่ใส่ `pattern` = ตัดสายไฟ · เติม `&lobby=1` = เข้าห้องรอก่อน |
+| 🏠 **ทรัพย์สิน** (16 ช่อง) | อ่านความรู้สั้น ๆ แล้วตอบคำถาม — ตอบถูกได้ส่วนลดตอนซื้อ · อัปเกรดช่องได้ด้วยคำถามที่ยากขึ้น |
+| ⚡ **เหตุการณ์** (4 ช่อง) | สุ่มการ์ดเหตุการณ์ประจำโซน — บางใบให้ทั้งโต๊ะแข่งตอบเร็ว |
+| 🐞 **ติดบั๊ก** | แก้โจทย์ debug แข่งกับเวลา ตอบถูก = ออกจากคุกฟรี |
+| 🔥 **จุดพักเครื่อง** | บอสไฟต์ทั้งโต๊ะ — ทุกคนช่วยกันตอบคำถามฟันบอส · เข้ามินิเกม **กู้บั๊กด่วน** ได้จากหน้านี้ (2 คน 2 มือถือ คนหนึ่งเห็นปริศนา อีกคนเห็นคู่มือ ต้องคุยกันให้ผ่าน) |
 
-## การแก้ไขข้อมูล
+ช่องค่าธรรมเนียม (จ่ายเข้ากองกลาง) และช่องเริ่มต้นระบบ (รับเงินเดือน) ไม่ต้องสแกน
 
-- ทีม content แก้ `codecoin_database.xlsx` (หัวตารางจริงอยู่แถวที่ 2 — แถวแรกเป็นหมายเหตุ ห้ามลบ) แล้วรัน:
+กติกาเต็ม (การเตรียมเกม, ค่าเช่า, Crash Round, การชนะ) อยู่ใน [คู่มือกติกา PDF](print/rulebook/%E0%B8%84%E0%B8%B9%E0%B9%88%E0%B8%A1%E0%B8%B7%E0%B8%AD%E0%B8%81%E0%B8%95%E0%B8%B4%E0%B8%81%E0%B8%B2_CodeCoin_A5.pdf)
 
-```bash
-py scripts/build_data.py    # ได้ data.json ใหม่
-py scripts/gen_qr.py        # ถ้าเพิ่ม/ลบช่อง ให้ gen QR ใหม่ด้วย
-```
+## หน้าตาบนมือถือ
 
-- ในชีต questions กรอก `answer` เป็นตัวอักษร a/b/c/d — สคริปต์แปลงเป็น index ให้เอง `time_limit` เว้นว่าง = ไม่จับเวลา
-- แถวคำถามที่ `question_th` หรือ `question_id` ขึ้นต้นด้วย `DRAFT` จะถูกซ่อนอัตโนมัติ
-- สคริปต์เตือนถ้า answer ไม่ใช่ a-d หรือ space_id อ้างถึงช่องที่ไม่มีจริง
-- ถ้าโหลด `data.json` ไม่สำเร็จ แอปจะใช้ข้อมูลสำรองที่ฝังใน `index.html` และแสดงแถบเตือน
-- จะย้ายไป Google Sheet ภายหลังได้โดยเปลี่ยน `CONFIG.data_url` ใน `index.html` ให้ชี้ URL Apps Script (doGet คืน JSON) หรือ opensheet.elk.sh — โครงสร้าง JSON ต้องมี key ครบ 4 ก้อนเหมือน `data.json`
-- เก็บสถิติการตอบ (optional): ใส่ URL Apps Script ใน `CONFIG.log_url` — แอปจะเข้าคิวใน localStorage แล้ว POST เป็น **array ของแถว** (เน็ตหลุดแล้วส่งตามให้เอง) รายละเอียดคอลัมน์ทั้งหมดอยู่ใน [`docs/PROJECT_SUMMARY.md`](docs/PROJECT_SUMMARY.md) หัวข้อ 10
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="docs/images/app-property.webp" alt="หน้าช่องทรัพย์สิน: เนื้อหาสั้น ราคา และปุ่มเลือกโหมดตอบ"><br><sub>ช่องทรัพย์สิน — เลือกโหมดก่อนตอบ</sub></td>
+    <td align="center" width="33%"><img src="docs/images/app-debug-rescue.webp" alt="หน้ากู้บั๊กด่วน: เลือกด่านและบทบาทผู้กดหรือผู้อ่านคู่มือ"><br><sub>กู้บั๊กด่วน — มินิเกม 2 คน</sub></td>
+    <td align="center" width="33%"><img src="docs/images/app-boss-fight.webp" alt="หน้าบอสไฟต์ Server Meltdown: เลือกเลขรอบและจำนวนผู้เล่น"><br><sub>จุดพักเครื่อง — บอสไฟต์ทั้งโต๊ะ</sub></td>
+  </tr>
+</table>
 
-## สร้าง QR
+## ในกล่องมีอะไร
 
-```bash
-pip install "qrcode[pil]"
-py scripts/gen_qr.py
-```
+กระดาน 50×50 ซม. · การ์ดทรัพย์สิน 16 ใบ · การ์ดกู้ระบบขั้นสุด 1 ใบ · ธนบัตร TechCoin 200 ใบ (5 ราคา) · โทเค็น 4 ตัว · ลูกเต๋า 2 ลูก · คลิปบอกระดับ 24 ตัว · ถาดตั้งการ์ด · คู่มือกติกา
 
-ได้ PNG error correction ระดับ H ตั้งชื่อตาม space_id ลงใน `print/qr_output/` ขนาดพิมพ์คมชัดที่ ~3×3 ซม. (300 DPI)
-(`BASE_URL` บนหัวไฟล์ `scripts/gen_qr.py` ชี้ URL เว็บจริงอยู่แล้ว)
+เนื้อหาในเว็บ: **คำถาม 81 ข้อ** · **การ์ดเหตุการณ์ 20 ใบ** · **โจทย์ Bug Jam 19 ข้อ** · **มินิเกม 4 ด่าน**
 
-## ทดสอบในเครื่อง
+---
 
-เปิดผ่าน local server ที่ **รากโปรเจค** (เพราะ `fetch` data.json ไม่ทำงานบน `file://` และ Service Worker ต้องการ localhost/https):
+## อยากทำอะไร → ไปที่ไหน
 
-```bash
-py -m http.server 8000
-# แล้วเปิด http://localhost:8000
-```
+| ฉันอยากจะ… | ไปที่ |
+|---|---|
+| เล่นเกม / ลองกดดูทุกช่องโดยไม่ต้องสแกน | [เว็บแอปเกม](https://ballg-it.github.io/codecoin/) (เปิดตรงจะเจอเมนูทดสอบ) |
+| อ่านกติกา | [`print/rulebook/`](print/rulebook/) — เล่ม A5 12 หน้า |
+| สั่งพิมพ์ชิ้นงาน | [`print/Final/`](print/Final/) — กระดาน + การ์ดหน้า/หลัง พร้อมส่งโรงพิมพ์ · ธนบัตรอยู่ [`print/banknotes/`](print/banknotes/) |
+| แก้คำถาม / เนื้อหาเกม | `codecoin_database.xlsx` — ดูขั้นตอนด้านล่าง |
+| แก้โค้ดเว็บ / สคริปต์ | [คู่มือนักพัฒนา](docs/DEVELOPER.md) — โครงสร้างไฟล์, URL ทุกหน้า, วิธีทดสอบ |
+| ดูประวัติและสถานะโปรเจค | [`docs/PROJECT_SUMMARY.md`](docs/PROJECT_SUMMARY.md) |
 
-> ⚠️ ถ้าเคยเปิดเว็บในเบราว์เซอร์นั้นมาก่อน Service Worker อาจเสิร์ฟไฟล์ประกอบเก่าจากแคช — เห็นพฤติกรรมไม่ตรงกับโค้ดให้ Unregister SW + ล้าง Cache Storage (DevTools → Application) ก่อนเทสต์
-> มือถือจริง: เช็กเลข `CACHE` ที่ `sw.js` บนเว็บก่อนทดสอบฟีเจอร์ใหม่ทุกครั้ง
+### แก้คำถาม (สำหรับทีม content)
 
-## กติกาที่ห้ามเปลี่ยน
+1. แก้ไฟล์ `codecoin_database.xlsx` (หัวตารางอยู่แถวที่ 2 — แถวแรกเป็นหมายเหตุ ห้ามลบ · ช่องเฉลยกรอก a/b/c/d)
+2. รัน `py scripts/build_data.py` เพื่อสร้าง `data.json` ใหม่ (สคริปต์จะเตือนถ้าข้อมูลผิด)
+3. push ขึ้น GitHub — เว็บอัปเดตเองใน ~1 นาที
 
-- Naming: space_id = `{zone}_{ลำดับ 2 หลัก}` (ตัวพิมพ์เล็ก + underscore), question_id = `{space_id}_L{ระดับ}_{ลำดับ}`
-- รูปแบบ effect: `+1500` / `-800` / `skip:1` / `all:-500` / `collect:200` / `bet:1000:x3|safe:+300` / `quiz:{question_id}:+500`
-- UI ภาษาไทย + ธีมสี PCB เดิม
+> อย่าแก้ `data.json` ด้วยมือ ให้แก้ที่ Excel เสมอ
+
+## ทำงานยังไง
+
+- **เว็บ static ล้วน** — HTML ไฟล์เดียว + `data.json` host ฟรีบน GitHub Pages ไม่มี server หรือฐานข้อมูล
+- **เล่นออฟไลน์ได้** — Service Worker เก็บแอปไว้ในเครื่อง เน็ตโรงเรียนล่มกลางคาบก็เล่นต่อได้ และติดตั้งเป็นแอปบนหน้าจอโฮมได้
+- **กันโกง** — รีเฟรชหน้ากลางคำถามแล้วได้ข้อเดิม เวลาเดินต่อ · ตัวเลือกสลับตำแหน่งทุกครั้ง
+- **มินิเกมหลายเครื่องโดยไม่มีเซิร์ฟเวอร์ของตัวเอง** — สองเครื่องใช้รหัสห้องร่วมกันสร้างปริศนาชุดเดียวกัน
+
+<sub>CodeCoin — โปรเจคจบ · บอร์ดเกมเพื่อการศึกษา</sub>

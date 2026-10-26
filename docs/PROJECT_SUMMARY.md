@@ -287,7 +287,7 @@ docs/  scripts/  print/  box_demo/  tools/
 | `manifest.webmanifest` + `icon-192/512.png` | ข้อมูล/ไอคอนสำหรับติดตั้งเป็นแอปบนมือถือ |
 | `data.json` | ฐานข้อมูลที่เว็บใช้จริง (ห้ามแก้มือ) |
 | `codecoin_database.xlsx` | ต้นทางข้อมูล 4 ชีต (spaces / questions / events / bugjam) — วางไว้รากเพื่อให้ทีม content หาเจอง่าย |
-| `README.md` | คู่มือใช้งาน + workflow |
+| `README.md` | หน้าแรกของ repo — เกมคืออะไร เล่นยังไง หาไฟล์ที่ไหน (รายละเอียดเทคนิคย้ายไป `docs/DEVELOPER.md`) |
 
 ### `scripts/` — สคริปต์ Python
 ทุกตัวอ้าง path จากรากโปรเจคผ่าน `__file__` **รันจากโฟลเดอร์ไหนก็ได้**
