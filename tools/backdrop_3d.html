@@ -130,6 +130,12 @@ footer{margin-top:22px;border-top:1px solid var(--line);padding-top:12px;font-si
 code{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--green)}
 .txt{width:100%;font-family:'Sarabun',sans-serif;font-size:12.5px;color:var(--ink);background:var(--panel-2);
   border:1px solid var(--line);border-radius:9px;padding:7px 10px}
+textarea.txt{resize:vertical;min-height:58px;line-height:1.6}
+.fl{display:block;font-size:12px;margin:11px 0 5px}
+.file{width:100%;font-size:11px;color:var(--muted);background:var(--panel-2);
+  border:1px dashed var(--line);border-radius:9px;padding:7px 9px}
+.file::file-selector-button{font-family:'Kanit',sans-serif;font-size:11px;color:var(--ink);
+  background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:3px 9px;margin-right:9px;cursor:pointer}
 @media(max-width:620px){
   .views{top:auto;bottom:38px;right:10px;max-width:none}
   .hud{right:10px}
@@ -164,6 +170,7 @@ code{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--green)}
           <div class="views">
             <button data-view="iso">มุมเฉียง</button>
             <button data-view="front">หน้าตรง</button>
+            <button data-view="back">ด้านหลัง</button>
             <button data-view="top">มุมบน</button>
             <button data-view="detail">ซูมยอดลาย</button>
           </div>
@@ -199,6 +206,30 @@ code{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--green)}
         <p class="note" id="styleNote" style="margin-top:9px">สไตล์ 1 · การ์ดขาว–ทอง พิมพ์ไวนิลแผ่นเดียวจบ</p>
         <div class="btns" style="margin-top:10px"><button class="btn" data-export="a4">ไฟล์สั่งพิมพ์ A4</button></div>
         <p class="note">เนื้อหาในการ์ดทั้ง 3 แผงดึงมาจาก <code>docs/PROJECT_SUMMARY.md</code> ของโปรเจคจริง — แก้ข้อความอื่นได้ที่ตัวแปร <code>BOARD</code> ในไฟล์นี้</p>
+      </div></details>
+<details class="card"><summary>หลังบอร์ด · ข้อมูลผู้จัดทำ</summary><div class="cbody">
+        <label class="chk"><input type="checkbox" id="infoOn" checked> ติดป้ายข้อมูลหลังแผงกลาง</label>
+        <div class="seg" style="margin-top:11px" role="group" aria-label="ขนาดป้ายหลัง">
+          <button data-isize="a4" aria-pressed="false">A4 · แผ่นเดียว</button>
+          <button data-isize="a3" aria-pressed="true">A3 · ต่อ 2 แผ่น</button>
+        </div>
+        <label class="fl" for="logoA">โลโก้วิทยาลัย (PNG พื้นหลังใสสวยสุด)</label>
+        <input type="file" class="file" id="logoA" accept="image/*">
+        <label class="fl" for="logoB">โลโก้ KomTech / สาขาวิชา</label>
+        <input type="file" class="file" id="logoB" accept="image/*">
+        <button class="btn" id="logoClear" style="margin-top:9px">ล้างโลโก้ทั้งสอง</button>
+        <label class="fl" for="iCollege">ชื่อสถานศึกษา</label>
+        <input type="text" class="txt" id="iCollege" maxlength="64">
+        <label class="fl" for="iDept">สาขาวิชา / ชมรม</label>
+        <input type="text" class="txt" id="iDept" maxlength="64">
+        <label class="fl" for="iTeam">ผู้จัดทำ (บรรทัดละคน)</label>
+        <textarea class="txt" id="iTeam" rows="4" maxlength="320"></textarea>
+        <label class="fl" for="iAdvisor">ครูที่ปรึกษา (บรรทัดละคน)</label>
+        <textarea class="txt" id="iAdvisor" rows="2" maxlength="200"></textarea>
+        <label class="fl" for="iYear">ปีการศึกษา / งานที่ส่ง</label>
+        <input type="text" class="txt" id="iYear" maxlength="46">
+        <div class="btns" style="margin-top:11px"><button class="btn" data-export="back">ไฟล์พิมพ์ป้ายหลัง A4</button></div>
+        <p class="note">ป้ายอยู่กลางหลังแผงกลาง · A4 พิมพ์แผ่นเดียวจบ, A3 พิมพ์ A4 แนวนอน 2 แผ่นแล้วต่อกัน (อ่านง่ายกว่าเมื่อยืนห่าง) · ยังไม่อัปโหลดโลโก้จะขึ้นเป็นวงกลมเส้นประไว้ก่อน</p>
       </div></details>
 <details class="card" open><summary>ขนาด (มม.)</summary><div class="cbody">
         <div class="row"><label for="wC">กว้าง แผงกลาง</label><span class="val" id="wCv"></span><input type="range" id="wC" min="300" max="900" step="10"></div>
@@ -334,7 +365,16 @@ const P = {
          vine:true, vineFold:true, seqTable:true, seqEdge:false,
          seqQR:true, seqStrip:true, spots:false },
   backColor:'#FBBF24', signText:'CodeCoin',
-  artwork:true, style:1, boardTitle:'CodeCoin', boardTeam:'ผู้จัดทำ: (ใส่ชื่อ–ห้อง)'
+  artwork:true, style:1, boardTitle:'CodeCoin', boardTeam:'ผู้จัดทำ: (ใส่ชื่อ–ห้อง)',
+  /* ป้ายข้อมูลหลังแผงกลาง — แก้ข้อความได้จากแถบควบคุม */
+  info:{
+    on:true, size:'a3',
+    college:'วิทยาลัย… (ใส่ชื่อสถานศึกษา)',
+    dept:'สาขาวิชาเทคโนโลยีคอมพิวเตอร์ · KomTech',
+    team:'นาย… … ปวช.3/1\nนางสาว… … ปวช.3/1\nนาย… … ปวช.3/1',
+    advisor:'ครู… …\nครู… …',
+    year:'ปีการศึกษา 2569'
+  }
 };
 
 /* เนื้อหาจริงของโครงงาน (ย่อจาก docs/PROJECT_SUMMARY.md) */
@@ -1126,6 +1166,154 @@ function styleCutPaste(ctx, i, G){
   }
 }
 
+/* ---------- ป้ายข้อมูลหลังบอร์ด — วาดในพิกัด A4 แนวตั้ง 210×297 มม. ---------- */
+const PLAQUE = { w:210, h:297 };                 // พิกัดฐานที่ใช้วาด = A4 แนวตั้ง
+const PLAQUE_K = { a4:1, a3:297/210 };           // A3 = A4 ขยาย 141% (สัดส่วนเท่ากัน)
+const plaqueMM = () => {
+  const k = PLAQUE_K[P.info.size] || 1;
+  return { k, w:PLAQUE.w*k, h:PLAQUE.h*k };
+};
+const LOGO = { college:null, dept:null };
+let logoVer = 0;
+
+const splitLines = (s, max) =>
+  String(s || '').split('\n').map(t => t.trim()).filter(Boolean).slice(0, max);
+
+/* วงโลโก้ — มีไฟล์ก็วางภาพให้พอดีวง ไม่มีก็เป็นวงเส้นประไว้ก่อน */
+function logoSlot(ctx, img, cx, cy, d, label){
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, d/2, 0, Math.PI*2);
+  ctx.fillStyle = '#F2F5F1'; ctx.fill();
+  if (img && img.complete && img.naturalWidth){
+    ctx.clip();
+    const s = Math.min(d/img.naturalWidth, d/img.naturalHeight)*0.9;
+    const iw = img.naturalWidth*s, ih = img.naturalHeight*s;
+    ctx.drawImage(img, cx - iw/2, cy - ih/2, iw, ih);
+  } else {
+    ctx.strokeStyle = GOLD; ctx.lineWidth = 0.9;
+    ctx.setLineDash([2.6, 2.2]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = '#8A968C'; ctx.font = kanit(d*0.145, 600);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const ls = wrap(ctx, label, d*0.82);
+    ls.forEach((l, k) => ctx.fillText(l, cx, cy + (k - (ls.length-1)/2)*d*0.175));
+  }
+  ctx.restore();
+}
+
+/* กล่องรายชื่อ — แถบทองซ้าย + หัวข้อ + รายชื่อบรรทัดละคน คืนค่า y ล่างสุด */
+function plaqueBox(ctx, x, y, w, title, lines, lh){
+  const rows = Math.max(1, lines.length), h = 12.5 + rows*lh + 3.5;
+  ctx.fillStyle = '#F4F7F3'; rr(ctx, x, y, w, h, 4.5); ctx.fill();
+  ctx.strokeStyle = 'rgba(11,43,34,.13)'; ctx.lineWidth = 0.5; ctx.stroke();
+  ctx.fillStyle = GOLD; rr(ctx, x, y, 2.6, h, 1.3); ctx.fill();
+  ctx.fillStyle = '#7C8A7E'; ctx.font = kanit(5.2, 700);
+  ctx.fillText(title, x + 8, y + 9);
+  ctx.fillStyle = INK; ctx.font = sarabun(6.2, 500);
+  let ly = y + 10 + lh;
+  for (const l of (lines.length ? lines : ['—'])){ ctx.fillText(l, x + 8, ly); ly += lh; }
+  return y + h;
+}
+
+function drawPlaque(ctx){
+  const W = PLAQUE.w, H = PLAQUE.h, I = P.info, M = 17, cw = W - M*2;
+  ctx.save();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = PAPER; ctx.fillRect(0, 0, W, H);
+
+  // แถบทองหัว–ท้าย + ข้าวหลามตัดเล็ก ๆ ให้เข้าชุดกับด้านหน้า
+  ctx.fillStyle = GOLD; ctx.fillRect(0, 0, W, 10); ctx.fillRect(0, H - 10, W, 10);
+  ctx.fillStyle = 'rgba(11,43,34,.26)'; ctx.fillRect(0, 10, W, 0.9); ctx.fillRect(0, H - 10.9, W, 0.9);
+  ctx.fillStyle = 'rgba(11,43,34,.62)';
+  for (let x = 7; x <= W - 6; x += 11.5) for (const dy of [5, H - 5]){
+    ctx.beginPath(); ctx.moveTo(x, dy - 2.1); ctx.lineTo(x + 2.1, dy);
+    ctx.lineTo(x, dy + 2.1); ctx.lineTo(x - 2.1, dy); ctx.closePath(); ctx.fill();
+  }
+
+  // โลโก้สองวง
+  const d = 37, lcy = 19 + d/2;
+  logoSlot(ctx, LOGO.college, W*0.31, lcy, d, 'โลโก้\nวิทยาลัย');
+  logoSlot(ctx, LOGO.dept,    W*0.69, lcy, d, 'โลโก้\nKomTech');
+
+  // ชื่อสถานศึกษา + สาขา
+  let y = lcy + d/2 + 12;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = INK; ctx.font = kanit(7.4, 700);
+  y = para(ctx, I.college, W/2, y, cw, 9.2);
+  ctx.fillStyle = '#4A5B50'; ctx.font = sarabun(5.9, 500);
+  y = para(ctx, I.dept, W/2, y + 1.5, cw, 7.4);
+
+  y += 4;
+  ctx.fillStyle = GOLD; ctx.fillRect(W/2 - 26, y, 52, 1.6);
+  y += 15;
+
+  // ชื่อโครงงาน
+  ctx.fillStyle = '#7C8A7E'; ctx.font = kanit(5.4, 600);
+  ctx.fillText('โครงงาน', W/2, y); y += 21;
+  ctx.fillStyle = INK; ctx.font = kanit(Math.min(22, cw*2.0/Math.max(6, P.boardTitle.length)), 800);
+  ctx.fillText(P.boardTitle, W/2, y); y += 9;
+  ctx.fillStyle = '#44584C'; ctx.font = sarabun(6.2, 500);
+  y = para(ctx, BOARD.sub, W/2, y, cw, 8);
+
+  // กล่องรายชื่อ — บีบระยะบรรทัดลงถ้ารายชื่อยาว เพื่อไม่ให้ชนท้ายป้าย
+  ctx.textAlign = 'left';
+  y += 9;
+  const teamL = splitLines(I.team, 6), advL = splitLines(I.advisor, 3);
+  const footY = H - 10 - 42;
+  const need = (n, lh) => 12.5 + Math.max(1, n)*lh + 3.5;
+  let lh = 7.6;
+  while (lh > 5.2 && need(teamL.length, lh) + need(advL.length, lh) + 7 > footY - 6 - y) lh -= 0.2;
+  // ขนาด A3 ต้องผ่าเป็น A4 สองแผ่น — เลื่อนกล่องแรกลงใต้รอยต่อ ไม่ให้รายชื่อถูกตัดกลาง
+  const seam = (P.info.size === 'a3') ? H/2 : -1;
+  if (seam > 0 && y < seam && y + need(teamL.length, lh) > seam &&
+      seam + 3 + need(teamL.length, lh) + 7 + need(advL.length, lh) < footY - 4) y = seam + 3;
+  y = plaqueBox(ctx, M, y, cw, 'ผู้จัดทำ', teamL, lh) + 7;
+  plaqueBox(ctx, M, y, cw, 'ครูที่ปรึกษา', advL, lh);
+
+  // ท้ายป้าย: QR เว็บโครงงาน + ปีการศึกษา
+  const qs = 30;
+  qrOnto(ctx, 'https://' + BOARD.url, M, footY, qs);
+  ctx.strokeStyle = 'rgba(11,43,34,.22)'; ctx.lineWidth = 0.4; ctx.strokeRect(M, footY, qs, qs);
+  const tx = M + qs + 8;
+  ctx.fillStyle = INK; ctx.font = kanit(6.4, 700);
+  ctx.fillText('สแกนดูเว็บโครงงาน', tx, footY + 9);
+  ctx.fillStyle = '#4A5B50'; ctx.font = sarabun(5.3, 500);
+  ctx.fillText(BOARD.url, tx, footY + 17.5);
+  ctx.fillStyle = '#7C8A7E'; ctx.font = kanit(5.4, 600);
+  ctx.fillText(I.year, tx, footY + 27);
+  ctx.restore();
+}
+
+/* ป้ายหลังบนแผง — พื้นสีวัสดุ แล้ววางป้าย A4 ไว้กลางตัวแผง */
+function backCanvas(i, spec){
+  const w = spec.w, hC = (P.pattern === 'plain') ? 0 : P.hC, hTot = P.hB + hC, I = P.info;
+  const key = ['B', i, w, P.hB, hC, P.color, P.boardTitle, logoVer,
+               I.size, I.college, I.dept, I.team, I.advisor, I.year].join('|');
+  if (artCache.has(key)) return artCache.get(key);
+
+  const cv = document.createElement('canvas');
+  cv.width = Math.round(w*ARTPX); cv.height = Math.round(hTot*ARTPX);
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(ARTPX, 0, 0, ARTPX, 0, 0);
+  ctx.fillStyle = P.color; ctx.fillRect(0, 0, w, hTot);
+
+  const M = Math.max(22, w*0.052);
+  const top = hC + (P.cutouts && hC ? Math.max(M, hC*0.19 + 30) : M);
+  const availH = hTot - top - M;
+  const pm = plaqueMM();
+  const s = Math.min(1, (w - M*2)/pm.w, availH/pm.h);
+  ctx.save();
+  ctx.translate((w - pm.w*s)/2, top + (availH - pm.h*s)/2);
+  ctx.scale(s*pm.k, s*pm.k);
+  ctx.fillStyle = 'rgba(11,43,34,.25)'; rr(ctx, 3, 4, PLAQUE.w, PLAQUE.h, 3); ctx.fill();
+  drawPlaque(ctx);
+  ctx.restore();
+
+  const out = { canvas:cv, w, h:hTot, scale:s };
+  artCache.set(key, out);
+  if (artCache.size > 12) artCache.delete(artCache.keys().next().value);
+  return out;
+}
+
 function artworkCanvas(i, spec){
   const w = spec.w, hC = (P.pattern === 'plain') ? 0 : P.hC, hB = P.hB, hTot = hB + hC;
   const key = [i, w, hB, hC, P.color, P.style, P.boardTitle, P.boardTeam].join('|');
@@ -1211,9 +1399,31 @@ const material = new THREE.MeshPhysicalMaterial({
 });
 const dimGroup = new THREE.Group(); scene.add(dimGroup);
 
-/* ด้านหลังแผง — ปิดทับฝาหลังของ ExtrudeGeometry ที่ไม่งั้นจะโชว์อาร์ตเวิร์กกลับด้าน */
-const backMat = new THREE.MeshStandardMaterial({
-  color:new THREE.Color(P.color), roughness:0.42, metalness:0, side:THREE.BackSide });
+/* ด้านหลังแผง — ปิดทับฝาหลังของ ExtrudeGeometry ที่ไม่งั้นจะโชว์อาร์ตเวิร์กกลับด้าน
+   แผงกลางรับป้ายข้อมูลผู้จัดทำ จึงต้องแยกวัสดุทีละแผง */
+const backMats = [0, 1, 2].map(() => new THREE.MeshStandardMaterial({
+  color:new THREE.Color(P.color), roughness:0.42, metalness:0, side:THREE.BackSide }));
+
+function applyBackMats(){
+  const specs = panelSpecs();
+  backMats.forEach((bm, i) => {
+    if (bm.map){ bm.map.dispose(); bm.map = null; bm.emissiveMap = null; }
+    if (P.info.on && i === 1){
+      const b = backCanvas(i, specs[i]);
+      const t = new THREE.CanvasTexture(b.canvas);
+      t.colorSpace = THREE.SRGBColorSpace;
+      // UV ของ ShapeGeometry = พิกัด มม. ตรง ๆ · กลับแกน x เพราะมองจากด้านหลัง (BackSide)
+      t.repeat.set(-1/b.w, 1/b.h); t.offset.set(1, 0);
+      t.anisotropy = 8;
+      bm.map = t; bm.color.set(0xffffff);
+      bm.emissiveMap = t; bm.emissive.set(0xffffff); bm.emissiveIntensity = 0.16;
+    } else {
+      bm.color.set(P.color); bm.emissive.set(0x000000); bm.emissiveIntensity = 0;
+    }
+    bm.roughness = (P.finish === 'gloss') ? 0.38 : 0.78;
+    bm.needsUpdate = true;
+  });
+}
 
 let panelMats = [];
 function panelMat(i){
@@ -1233,8 +1443,7 @@ function panelMat(i){
   return m;
 }
 function applyMats(){
-  backMat.color.set(P.color);
-  backMat.roughness = (P.finish === 'gloss') ? 0.38 : 0.78;
+  applyBackMats();
   const old = panelMats;
   panelMats = [0, 1, 2].map(panelMat);
   panelMeshes.forEach((m, i) => { m.material = panelMats[i]; });
@@ -1576,16 +1785,17 @@ function buildDeco(){
   panelMeshes.forEach((m, i) => {
     for (const c of [...m.children]){
       m.remove(c);
-      if (c.material && c.material.map) c.material.map.dispose();
+      if (c.material && c.material.map && !c.userData.keepMat) c.material.map.dispose();
       if (c.userData.own && c.geometry) c.geometry.dispose();
     }
     const d = data[i], w = d.w, zf = P.th;        // zf = หน้าแผง
     const hTot = hB + H;
 
-    // ปิดหลังแผงด้วยสีวัสดุล้วน — ไม่งั้นมองจากข้างหลังจะเห็นอาร์ตเวิร์กกลับด้าน
-    const backPlate = new THREE.Mesh(new THREE.ShapeGeometry(d.shapes.map(toShape)), backMat);
+    // ปิดหลังแผง — สีวัสดุล้วน ยกเว้นแผงกลางที่ติดป้ายข้อมูลผู้จัดทำ
+    const backPlate = new THREE.Mesh(new THREE.ShapeGeometry(d.shapes.map(toShape)), backMats[i]);
     backPlate.position.z = -0.15;
     backPlate.userData.own = true;
+    backPlate.userData.keepMat = true;
     m.add(backPlate);
 
     // กระดาษรองหลัง — ตัดตามรูปแผง (ไม่เจาะลาย) ลายที่ฉลุจึงโชว์สีนี้ทะลุออกมา
@@ -1871,6 +2081,7 @@ canvas.addEventListener('wheel', e => { e.preventDefault(); autoFramed = false; 
 const VIEWS = {
   iso:    { az:0.30, pol:1.21, dist:2600, ty:420 },
   front:  { az:0.00, pol:1.50, dist:2500, ty:450 },
+  back:   { az:Math.PI, pol:1.46, dist:2500, ty:450 },
   top:    { az:0.00, pol:0.20, dist:2500, ty:120 },
   detail: { az:0.18, pol:1.25, dist:1050, ty:P.hB + P.hC*0.55 }
 };
@@ -2072,6 +2283,48 @@ ${pages}
 `;
 }
 
+/* ป้ายเป็นภาพพิมพ์ — A4 ได้แผ่นเดียว, A3 ผ่าครึ่งเป็น A4 แนวนอน 2 แผ่นต่อกัน */
+function plaqueSheets(px){
+  const pm = plaqueMM();
+  const cv = document.createElement('canvas');
+  cv.width = Math.round(pm.w*px); cv.height = Math.round(pm.h*px);
+  const c = cv.getContext('2d');
+  c.setTransform(px*pm.k, 0, 0, px*pm.k, 0, 0);
+  drawPlaque(c);
+  if (P.info.size !== 'a3') return { pages:[cv.toDataURL('image/png')], w:210, h:297, land:false };
+  const half = cv.height/2, pages = [];
+  for (let i=0;i<2;i++){
+    const sc = document.createElement('canvas');
+    sc.width = cv.width; sc.height = Math.round(half);
+    sc.getContext('2d').drawImage(cv, 0, i*half, cv.width, half, 0, 0, cv.width, half);
+    pages.push(sc.toDataURL('image/png'));
+  }
+  return { pages, w:297, h:210, land:true };
+}
+
+function toBackHTML(){
+  const sh = plaqueSheets(140/25.4);
+  const imgs = sh.pages.map((u, i) =>
+    `<img src="${u}" alt="ป้ายข้อมูลหลังบอร์ด แผ่น ${i+1}">`).join('\n');
+  return `<!doctype html>
+<html lang="th"><meta charset="utf-8">
+<title>${P.boardTitle} — ป้ายข้อมูลหลังบอร์ด A4</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<style>
+@page{size:A4 ${sh.land ? 'landscape' : 'portrait'};margin:0}
+html,body{margin:0;padding:0;background:#53574f;font-family:system-ui,sans-serif}
+.tip{color:#fff;font-size:14px;padding:14px 18px;line-height:1.8}
+img{display:block;width:${sh.w}mm;height:${sh.h}mm;margin:0 auto 10mm;background:#fff;
+  box-shadow:0 6px 24px rgba(0,0,0,.35);page-break-after:always;break-after:page}
+img:last-child{margin-bottom:0;page-break-after:auto;break-after:auto}
+@media print{.tip{display:none}html,body{background:#fff}img{margin:0;box-shadow:none}}
+</style>
+<div class="tip">สั่งพิมพ์ <b>A4 ${sh.land ? 'แนวนอน' : 'แนวตั้ง'} · ขนาด 100%</b> (ห้ามย่อให้พอดีหน้า) — ${sh.pages.length} แผ่น<br>
+${sh.land ? 'แผ่น 1 คือครึ่งบน แผ่น 2 คือครึ่งล่าง ตัดขอบขาวแล้วต่อชนกันให้ได้ป้าย A3 หนึ่งใบ' : 'ตัดขอบขาวออกตามต้องการ'} แล้วติดกาวสองหน้าไว้กลางหลังแผงกลาง สูงระดับสายตา</div>
+${imgs}
+`;
+}
+
 const EX = {
   svg: { name:'codecoin-backdrop-cut.svg', mime:'image/svg+xml', make:()=>toSVG(),
          note:'เส้นสีแดง = เส้นตัด ขนาด 1:1 มม. · เปิดใน Illustrator / Inkscape / RDWorks ได้เลย' },
@@ -2079,6 +2332,8 @@ const EX = {
          note:'DXF R12 เลเยอร์ CUT หน่วยมิลลิเมตร · ส่งโรงงานตัดเลเซอร์ได้ตรง ๆ' },
   obj: { name:'codecoin-backdrop.obj', mime:'model/obj', make:toOBJ,
          note:'โมเดล 3 มิติพับตามมุมปัจจุบัน · เปิดใน Blender / SketchUp / 3D Viewer' },
+  back:{ name:'codecoin-back-plate-a4.html', mime:'text/html', make:toBackHTML, big:true,
+         note:'ป้ายข้อมูลหลังบอร์ด — พิมพ์ A4 แนวตั้ง 100% แผ่นเดียวจบ แล้วติดกลางหลังแผงกลาง' },
   a4:  { name:'codecoin-board-a4.html', mime:'text/html', make:toA4HTML, big:true,
          note:'เปิดไฟล์แล้วสั่งพิมพ์ A4 แนวนอน 100% ตัดตามเส้นประแล้วต่อเป็นการ์ดใหญ่ (สไตล์ 3)' }
 };
@@ -2258,6 +2513,42 @@ const artField = (id, k) => $(id).addEventListener('input', e => {
   clearTimeout(artTimer); artTimer = setTimeout(() => { applyMats(); drawFlat(); }, 260);
 });
 artField('bTitle', 'boardTitle'); artField('bTeam', 'boardTeam');
+
+/* ป้ายข้อมูลหลังบอร์ด */
+$('infoOn').addEventListener('change', e => { P.info.on = e.target.checked; applyMats(); });
+let infoTimer = 0;
+const infoField = (id, k) => {
+  const el = $(id);
+  el.value = P.info[k];
+  el.addEventListener('input', e => {
+    P.info[k] = e.target.value;
+    clearTimeout(infoTimer); infoTimer = setTimeout(applyMats, 300);
+  });
+};
+infoField('iCollege', 'college'); infoField('iDept', 'dept');
+infoField('iTeam', 'team'); infoField('iAdvisor', 'advisor'); infoField('iYear', 'year');
+const logoField = (id, k) => $(id).addEventListener('change', e => {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    const im = new Image();
+    im.onload = () => { LOGO[k] = im; logoVer++; applyMats(); };
+    im.src = r.result;
+  };
+  r.readAsDataURL(f);
+});
+logoField('logoA', 'college'); logoField('logoB', 'dept');
+document.querySelectorAll('[data-isize]').forEach(b => b.addEventListener('click', () => {
+  P.info.size = b.dataset.isize;
+  document.querySelectorAll('[data-isize]').forEach(o => o.setAttribute('aria-pressed', String(o === b)));
+  applyMats();
+}));
+$('logoClear').addEventListener('click', () => {
+  LOGO.college = LOGO.dept = null; logoVer++;
+  $('logoA').value = ''; $('logoB').value = '';
+  applyMats();
+});
 $('cutouts').addEventListener('change', e => { P.cutouts = e.target.checked; refresh(true); });
 $('sameAll').addEventListener('change', e => { P.sameAll = e.target.checked; refresh(true); });
 $('optShadow').addEventListener('change', e => { P.shadow = e.target.checked; renderer.shadowMap.enabled = P.shadow; panelMeshes.forEach(m => m.castShadow = P.shadow); scene.traverse(o => { if (o.isMesh) o.material.needsUpdate = true; }); });
