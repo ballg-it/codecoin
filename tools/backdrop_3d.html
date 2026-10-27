@@ -40,6 +40,8 @@ h1{font-family:'Kanit',sans-serif;font-weight:800;font-size:clamp(20px,2.4vw,26p
 
 .layout{display:grid;grid-template-columns:minmax(0,1fr) 352px;gap:20px;align-items:start}
 @media(max-width:1000px){.layout{grid-template-columns:minmax(0,1fr)}}
+/* จอกว้าง: โมเดล 3 มิติค้างอยู่ข้างแถบตั้งค่า กดตกแต่ง/ปรับค่าแล้วเห็นผลทันทีไม่ต้องเลื่อนกลับขึ้นไป */
+@media(min-width:1001px){.mainCol:has(#view3d:not([hidden])){position:sticky;top:12px}}
 
 .tabs{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:4px;width:fit-content;margin-bottom:12px}
 .tab{font-family:'Kanit',sans-serif;font-weight:600;font-size:13px;color:var(--muted);background:none;border:0;padding:7px 16px;border-radius:8px;cursor:pointer}
@@ -171,7 +173,7 @@ textarea.txt{resize:vertical;min-height:58px;line-height:1.6}
   </div>
 
   <div class="layout">
-    <div>
+    <div class="mainCol">
       <section id="view3d" role="tabpanel" aria-labelledby="tab3d">
         <div class="stage">
           <canvas id="gl"></canvas>
@@ -208,6 +210,47 @@ textarea.txt{resize:vertical;min-height:58px;line-height:1.6}
     </div>
 
     <aside class="side">
+<details class="card" open><summary>ตกแต่งด้วยวัสดุง่าย ๆ</summary><div class="cbody">
+        <div class="gh">ชุดตกแต่ง</div>
+        <div class="seg wrap4" style="margin-top:6px" role="group" aria-label="ชุดตกแต่ง">
+          <button data-kit="auto" aria-pressed="true">ตามสไตล์</button>
+          <button data-kit="none" aria-pressed="false">ไม่ตกแต่ง</button>
+          <button data-kit="simple" aria-pressed="false">เรียบ</button>
+          <button data-kit="thai" aria-pressed="false">ไทยงานวัด</button>
+          <button data-kit="tech" aria-pressed="false">เทค · ไฟ</button>
+          <button data-kit="party" aria-pressed="false">ปาร์ตี้</button>
+          <button data-kit="sticker" aria-pressed="false">สติกเกอร์</button>
+          <button data-kit="full" aria-pressed="false">จัดเต็ม</button>
+        </div>
+        <p class="note" id="kitNote" style="margin:8px 0 12px">—</p>
+        <div class="gh">เลือกของตามจุดบนบอร์ด (กดเปิด–ปิดทีละชิ้น)</div>
+        <div class="plan" id="spotList" style="margin-top:7px"></div>
+        <label class="chk" style="margin:0 0 4px"><input type="checkbox" id="dSpots"> แสดงหมุดจุด ①–⑦ บนโมเดล</label>
+        <div id="backOpts" hidden>
+          <div class="gh" style="margin-top:12px">สีแผ่นรองหลังลาย</div>
+          <div class="swatches" style="margin-top:6px">
+            <button class="sw bk" data-back="#FBBF24" style="background:#FBBF24" aria-pressed="true" title="สีแผ่นรองหลัง — ทอง"></button>
+            <button class="sw bk" data-back="#F4F1EA" style="background:#F4F1EA" aria-pressed="false" title="ขาวงาช้าง"></button>
+            <button class="sw bk" data-back="#D85A30" style="background:#D85A30" aria-pressed="false" title="ส้มอิฐ"></button>
+            <button class="sw bk" data-back="#0B2B22" style="background:#0B2B22" aria-pressed="false" title="เขียวเข้ม"></button>
+            <input type="color" id="backColor" value="#FBBF24" aria-label="สีแผ่นรองหลังแบบเลือกเอง">
+          </div>
+        </div>
+        <div id="signOpts" hidden>
+          <label for="signText" style="display:block;font-size:12px;margin:12px 0 5px">ข้อความบนป้ายชื่อบูธ</label>
+          <input type="text" class="txt" id="signText" value="CodeCoin" maxlength="22">
+        </div>
+        <div class="gh" style="margin-top:14px">สติกเกอร์ A4 · พิมพ์แล้วตัดเอง</div>
+        <p class="note" style="margin-top:4px">ชุดละ 3 แผ่น: <b>A</b> ป้ายสแกนเลย ลูกศร ริบบิ้น มือถือ QR จริง · <b>B</b> ตราวิชา เหรียญ ลูกเต๋า บั๊ก · <b>C</b> เทปลาย มุมกนกทอง เหรียญ ดาว — ตัดด้วยกรรไกรตามเส้นเทา หรือส่งไฟล์ SVG เข้าเครื่องตัด (Cricut / Silhouette / เลเซอร์) ดูแผ่นตัวอย่างได้ที่แท็บ “แบบตัด 2 มิติ”</p>
+        <div class="btns" style="margin-top:9px">
+          <button class="btn" data-export="stk">ไฟล์พิมพ์สติกเกอร์</button>
+          <button class="btn" data-export="stksvg">SVG เครื่องตัด</button>
+        </div>
+        <div class="gh" style="margin-top:14px">รายการวัสดุ · งบโดยประมาณ</div>
+        <div id="shopList" style="margin-top:6px"></div>
+        <div class="btns" style="margin-top:9px"><button class="btn" id="copyShop">คัดลอกรายการซื้อของ</button></div>
+        <p class="note">จำนวนคำนวณจากขนาดบอร์ดและของที่เปิดอยู่ ราคาเป็นค่าประมาณจากร้านเครื่องเขียน/ร้านออนไลน์ทั่วไป</p>
+      </div></details>
 <details class="card" open><summary>เนื้อหานำเสนอบนบอร์ด</summary><div class="cbody">
         <label class="chk"><input type="checkbox" id="artOn" checked> แสดงเนื้อหาตัวอย่างบนแผง</label>
         <div class="seg wrap3" style="margin-top:11px" role="group" aria-label="สไตล์บอร์ด">
@@ -296,47 +339,6 @@ textarea.txt{resize:vertical;min-height:58px;line-height:1.6}
           <button data-finish="gloss" aria-pressed="true">อะคริลิกเงา</button>
           <button data-finish="matte" aria-pressed="false">พลาสวูดด้าน</button>
         </div>
-      </div></details>
-<details class="card" open><summary>ตกแต่งด้วยวัสดุง่าย ๆ</summary><div class="cbody">
-        <div class="gh">ชุดตกแต่ง</div>
-        <div class="seg wrap4" style="margin-top:6px" role="group" aria-label="ชุดตกแต่ง">
-          <button data-kit="auto" aria-pressed="true">ตามสไตล์</button>
-          <button data-kit="none" aria-pressed="false">ไม่ตกแต่ง</button>
-          <button data-kit="simple" aria-pressed="false">เรียบ</button>
-          <button data-kit="thai" aria-pressed="false">ไทยงานวัด</button>
-          <button data-kit="tech" aria-pressed="false">เทค · ไฟ</button>
-          <button data-kit="party" aria-pressed="false">ปาร์ตี้</button>
-          <button data-kit="sticker" aria-pressed="false">สติกเกอร์</button>
-          <button data-kit="full" aria-pressed="false">จัดเต็ม</button>
-        </div>
-        <p class="note" id="kitNote" style="margin:8px 0 12px">—</p>
-        <div class="gh">เลือกของตามจุดบนบอร์ด (กดเปิด–ปิดทีละชิ้น)</div>
-        <div class="plan" id="spotList" style="margin-top:7px"></div>
-        <label class="chk" style="margin:0 0 4px"><input type="checkbox" id="dSpots"> แสดงหมุดจุด ①–⑦ บนโมเดล</label>
-        <div id="backOpts" hidden>
-          <div class="gh" style="margin-top:12px">สีแผ่นรองหลังลาย</div>
-          <div class="swatches" style="margin-top:6px">
-            <button class="sw bk" data-back="#FBBF24" style="background:#FBBF24" aria-pressed="true" title="สีแผ่นรองหลัง — ทอง"></button>
-            <button class="sw bk" data-back="#F4F1EA" style="background:#F4F1EA" aria-pressed="false" title="ขาวงาช้าง"></button>
-            <button class="sw bk" data-back="#D85A30" style="background:#D85A30" aria-pressed="false" title="ส้มอิฐ"></button>
-            <button class="sw bk" data-back="#0B2B22" style="background:#0B2B22" aria-pressed="false" title="เขียวเข้ม"></button>
-            <input type="color" id="backColor" value="#FBBF24" aria-label="สีแผ่นรองหลังแบบเลือกเอง">
-          </div>
-        </div>
-        <div id="signOpts" hidden>
-          <label for="signText" style="display:block;font-size:12px;margin:12px 0 5px">ข้อความบนป้ายชื่อบูธ</label>
-          <input type="text" class="txt" id="signText" value="CodeCoin" maxlength="22">
-        </div>
-        <div class="gh" style="margin-top:14px">สติกเกอร์ A4 · พิมพ์แล้วตัดเอง</div>
-        <p class="note" style="margin-top:4px">ชุดละ 3 แผ่น: <b>A</b> ป้ายสแกนเลย ลูกศร ริบบิ้น มือถือ QR จริง · <b>B</b> ตราวิชา เหรียญ ลูกเต๋า บั๊ก · <b>C</b> เทปลาย มุมกนกทอง เหรียญ ดาว — ตัดด้วยกรรไกรตามเส้นเทา หรือส่งไฟล์ SVG เข้าเครื่องตัด (Cricut / Silhouette / เลเซอร์) ดูแผ่นตัวอย่างได้ที่แท็บ “แบบตัด 2 มิติ”</p>
-        <div class="btns" style="margin-top:9px">
-          <button class="btn" data-export="stk">ไฟล์พิมพ์สติกเกอร์</button>
-          <button class="btn" data-export="stksvg">SVG เครื่องตัด</button>
-        </div>
-        <div class="gh" style="margin-top:14px">รายการวัสดุ · งบโดยประมาณ</div>
-        <div id="shopList" style="margin-top:6px"></div>
-        <div class="btns" style="margin-top:9px"><button class="btn" id="copyShop">คัดลอกรายการซื้อของ</button></div>
-        <p class="note">จำนวนคำนวณจากขนาดบอร์ดและของที่เปิดอยู่ ราคาเป็นค่าประมาณจากร้านเครื่องเขียน/ร้านออนไลน์ทั่วไป</p>
       </div></details>
 <details class="card"><summary>มุมมอง</summary><div class="cbody">
         <div class="checks">
