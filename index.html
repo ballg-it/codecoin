@@ -37,6 +37,22 @@
     --bg-active:#14200E;
     --chrome:#111827;
 
+    /* ---------- ผิว/แสงเงา (Stage V5 — ความสวยงาม) ----------
+       ทุกค่าตรงนี้เป็น "สี เงา ลายพื้น" ล้วน ห้ามเอาไปแตะ padding/margin/border/font
+       เพราะหน้าจับเวลา (bugjam ยาก / upgrade-quiz) เหลือ headroom แค่ ~9px ที่จอ 360×640 */
+    --grid:#0F4C3A;          /* เส้นกริดพื้น PCB */
+    --gold-hi:#FDE68A;       /* ไฮไลต์ผิวทอง (ขาชิป/ปุ่มหลัก) */
+    --gold-lo:#D97706;       /* ด้านมืดของผิวทอง */
+    --chip-top:#1E293B;      /* ผิวบนของตัวชิป header — ไล่ลงไปหา --chrome */
+    --ink-chip:#86EFAC;      /* ตัวอักษรรองบนตัวชิป */
+    --sheen:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,0) 70%);
+    --lift:0 12px 26px -18px rgba(0,0,0,.95);   /* เงาใต้กล่อง — box-shadow ไม่กินพื้นที่ layout */
+    --recess:inset 0 2px 10px rgba(0,0,0,.45);  /* ช่องที่ "จมลง" ในแผง (โค้ด/รหัส/HP/จอคีย์แพด) */
+    /* ลายเส้นวงจรจาง ๆ บนพื้น — แผ่นละ 336px (= กริด 12 ช่อง) เส้นวิ่งกลางช่องกริดเสมอ
+       เส้นที่ทะลุขอบมีแต่แนวนอน (ต่อซ้าย-ขวาสนิท) — ถ้ามีแนวตั้งทะลุบน-ล่างด้วยจะตัดกันเองแน่นอน
+       อยู่ใน :root เพราะ data URI ใช้ var() ข้างในไม่ได้ สีในนี้จึงต้องเป็น hex ตรง ๆ */
+    --pcb-traces:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='336' height='336' fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cg stroke='%23114B3A' stroke-width='3'%3E%3Cpath d='M0 266H70L98 238H210L238 266H336'/%3E%3Cpath d='M0 294H98L126 266H182L210 294H336'/%3E%3Cpath d='M42 42V126L70 154H154'/%3E%3Cpath d='M210 42H266L294 70V154'/%3E%3Cpath d='M14 182H42L70 210'/%3E%3C/g%3E%3Cg fill='%230B2B22' stroke='%23186049' stroke-width='2'%3E%3Ccircle cx='42' cy='42' r='4.5'/%3E%3Ccircle cx='154' cy='154' r='4.5'/%3E%3Ccircle cx='210' cy='42' r='4.5'/%3E%3Ccircle cx='294' cy='154' r='4.5'/%3E%3Ccircle cx='14' cy='182' r='4.5'/%3E%3Ccircle cx='70' cy='210' r='4.5'/%3E%3Ccircle cx='126' cy='98' r='3.5'/%3E%3Ccircle cx='322' cy='14' r='3.5'/%3E%3C/g%3E%3C/svg%3E");
+
     /* ---------- Motion tokens (Stage 1) ----------
        ประกาศที่เดียวจบ — ทุก animation ในเกมต้องอ้างค่าจากตรงนี้ ห้ามใส่ตัวเลขดิบ
        งบเวลา: animation ที่ข้ามไม่ได้ ต่อการสแกน 1 ครั้ง รวมกันต้อง ≤ 1.2 วินาที */
@@ -65,13 +81,24 @@
   }
   * { box-sizing:border-box; margin:0; padding:0; }
   body {
-    background:var(--board); color:var(--text);
+    background-color:var(--board); color:var(--text);
     font-family:'Sarabun',sans-serif; min-height:100vh;
     display:flex; justify-content:center; padding:20px 14px 76px; /* เผื่อพื้นที่ล่างให้ปุ่ม mute ไม่บังปุ่มอื่น */
+    /* พื้น PCB 5 ชั้น (บนสุดก่อน): แสงตกกระทบด้านบน · ขอบจอมืดลง · ลายเส้นวงจร · กริด 2 แนว */
     background-image:
-      linear-gradient(#0F4C3A 1px, transparent 1px),
-      linear-gradient(90deg, #0F4C3A 1px, transparent 1px);
-    background-size:28px 28px;
+      radial-gradient(ellipse 130% 520px at 50% -140px, rgba(74,222,128,.10), transparent 70%),
+      radial-gradient(ellipse 100% 100% at 50% 35%, transparent 62%, rgba(0,0,0,.3)),
+      var(--pcb-traces),
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:100% 100%, 100% 100%, 336px 336px, 28px 28px, 28px 28px;
+    background-repeat:no-repeat, no-repeat, repeat, repeat, repeat;
+  }
+  ::selection { background:rgba(251,191,36,.35); color:#fff; }
+  /* โฟกัสจากคีย์บอร์ด/ช่องพิมพ์ — ขอบทองแทนวงฟ้าของเบราว์เซอร์ที่แทบมองไม่เห็นบนพื้นเขียว
+     outline ไม่กินพื้นที่ layout · ปุ่มที่แตะด้วยนิ้วไม่ขึ้นวงนี้ (focus-visible) */
+  button:focus-visible, input:focus-visible, summary:focus-visible {
+    outline:2px solid var(--gold); outline-offset:2px;
   }
   .app { width:100%; max-width:430px; }
   /* perspective ต้องอยู่ที่ "บรรพบุรุษ" ของ element ที่จะ rotateY ไม่ใช่ตัวมันเอง (Stage 4 — การ์ดพลิก)
@@ -80,24 +107,46 @@
 
   /* ---------- ส่วนหัวแบบชิป ---------- */
   header {
-    background:var(--chrome); border:2px solid var(--gold); border-radius:14px;
+    border:2px solid var(--gold); border-radius:14px;
     padding:14px 18px; text-align:center; position:relative; margin-bottom:18px;
+    /* ตัวถังชิป (บนสุดก่อน): รอยบาก pin 1 กลางขอบซ้าย · หลุมจุด pin 1 มุมซ้ายบน · ผิวไล่แสง */
+    background:
+      radial-gradient(circle at 0 50%, var(--board) 0 6.5px, var(--gold) 7px 8.5px, transparent 9px),
+      radial-gradient(circle at 16px 16px, rgba(0,0,0,.5) 0 3.5px, rgba(255,255,255,.1) 4px 4.5px, transparent 5px),
+      linear-gradient(180deg, var(--chip-top), var(--chrome) 62%);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08), inset 0 0 0 4px rgba(0,0,0,.18),
+      0 14px 30px -16px rgba(0,0,0,.95);
   }
+  /* ขาชิป — แต่ละขา 4px: ขอบซ้ายสว่าง / ทอง / ขอบขวามืด ให้ดูเป็นโลหะนูน */
   header::before, header::after {
     content:""; position:absolute; top:-8px; left:20%; width:60%; height:8px;
-    background:repeating-linear-gradient(90deg, var(--gold) 0 4px, transparent 4px 18px);
+    background:repeating-linear-gradient(90deg,
+      var(--gold-hi) 0 1px, var(--gold) 1px 3px, var(--gold-lo) 3px 4px, transparent 4px 18px);
   }
   header::after { top:auto; bottom:-8px; }
-  header h1 { font-family:'Kanit',sans-serif; font-size:24px; color:var(--gold); letter-spacing:1px; }
-  header p { font-size:12px; color:#86EFAC; }
+  header h1 {
+    font-family:'Kanit',sans-serif; font-size:24px; color:var(--gold); letter-spacing:1px;
+    filter:drop-shadow(0 0 10px rgba(251,191,36,.3));
+  }
+  /* ตัวหนังสือทองไล่แสง — เบราว์เซอร์ที่ไม่รองรับ background-clip:text ได้ทองเรียบจากกฎบน
+     (ห้ามตั้ง color:transparent นอก @supports — ไม่งั้นชื่อเกมหายทั้งคำ) */
+  @supports ((-webkit-background-clip:text) or (background-clip:text)) {
+    header h1 {
+      background:linear-gradient(180deg, var(--gold-hi) 20%, var(--gold) 58%, var(--gold-lo));
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+  }
+  header p { font-size:12px; color:var(--ink-chip); }
 
   .zone-tag {
     display:inline-block; font-size:12px; font-weight:700; padding:3px 12px;
     border-radius:20px; margin-bottom:10px; color:var(--ink-on-bright);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.35), 0 4px 12px -6px rgba(0,0,0,.7);
   }
   .card {
-    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    background:var(--sheen), var(--panel); border:1px solid var(--line); border-radius:14px;
     padding:18px 16px; margin-bottom:14px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.04), var(--lift);
   }
   h2 { font-family:'Kanit',sans-serif; font-size:20px; margin-bottom:10px; }
   .content { font-size:14.5px; line-height:1.8; color:#CBD5E1; }
@@ -105,13 +154,13 @@
 
   .q { font-weight:700; font-size:15px; margin:6px 0 12px; }
   .choice {
-    display:block; width:100%; text-align:left; background:var(--panel-2);
+    display:block; width:100%; text-align:left; background:var(--sheen), var(--panel-2);
     border:1px solid var(--line); border-radius:10px; color:var(--text);
     padding:12px 14px; font-size:14px; font-family:inherit; margin-bottom:9px; cursor:pointer;
   }
   .choice:hover { border-color:var(--gold); }
-  .choice.correct { border-color:var(--ok); background:var(--bg-win); }
-  .choice.wrong { border-color:var(--bad); background:var(--bg-lose); }
+  .choice.correct { border-color:var(--ok); background:var(--bg-win); box-shadow:0 0 20px -8px rgba(74,222,128,.7); }
+  .choice.wrong { border-color:var(--bad); background:var(--bg-lose); box-shadow:0 0 20px -8px rgba(248,113,113,.6); }
 
   .timer { text-align:center; font-family:'Kanit',sans-serif; font-size:18px; color:var(--gold); margin-bottom:10px; }
   .timer.danger { color:var(--bad); }
@@ -151,21 +200,29 @@
   #choices button:active { transform:scale(.97); transition:transform var(--dur-press) var(--ease-out); }
 
   .result { text-align:center; border-radius:12px; padding:14px; font-size:15px; margin-top:6px; }
-  .result.win { background:var(--bg-win); border:1px solid var(--ok); color:var(--ok); }
-  .result.lose { background:var(--bg-lose); border:1px solid var(--bad); color:var(--bad); }
-  .result.info { background:var(--bg-active); border:1px solid var(--gold); color:var(--ink-warn); }
+  .result.win { background:var(--bg-win); border:1px solid var(--ok); color:var(--ok); box-shadow:0 0 24px -12px rgba(74,222,128,.7); }
+  .result.lose { background:var(--bg-lose); border:1px solid var(--bad); color:var(--bad); box-shadow:0 0 24px -12px rgba(248,113,113,.6); }
+  .result.info { background:var(--bg-active); border:1px solid var(--gold); color:var(--ink-warn); box-shadow:0 0 24px -14px rgba(251,191,36,.6); }
 
   .btn {
     display:block; width:100%; border:none; border-radius:12px; padding:13px;
     font-family:'Kanit',sans-serif; font-size:16px; cursor:pointer; margin-top:10px;
-    background:var(--gold); color:var(--ink-on-bright);
+    color:var(--ink-on-bright);
+    /* ทองไล่แสงบน→ล่าง + ขอบบนสว่าง = ปุ่มนูนแบบปุ่มกดจริง — เงาเป็น box-shadow ไม่กินพื้นที่ */
+    background:linear-gradient(180deg, var(--gold-hi) -45%, var(--gold) 50%, var(--gold-lo) 170%);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.45), 0 8px 18px -10px rgba(251,191,36,.65);
+    transition:transform var(--dur-press) var(--ease-out);
   }
-  .btn.ghost { background:transparent; border:1px solid var(--gold); color:var(--gold); }
+  .btn:active { transform:translateY(1px) scale(.985); }
+  .btn.ghost { background:rgba(251,191,36,.04); border:1px solid var(--gold); color:var(--gold); box-shadow:none; }
+  /* เดิมปุ่มที่ปิดอยู่ (รอเชื่อมห้อง / ยังไม่ยืนยันการ์ด / hint ใช้แล้ว) หน้าตาเหมือนกดได้ทุกอย่าง */
+  .btn:disabled { opacity:.45; cursor:default; transform:none; }
 
   .code-box {
     position:relative;   /* ให้ ::after (เรืองขอบตอนเฉลย) วางอิงกรอบนี้ได้ */
     background:var(--surface-deep); border:1px solid var(--line); border-radius:10px;
     font-family:monospace; font-size:13px; color:var(--ink-code); padding:12px; white-space:pre; overflow-x:auto; margin-bottom:12px;
+    box-shadow:var(--recess);
   }
   /* ---------- Bug Jam เฉลย (Stage 4) — pulse ทั้งกล่อง ห้ามแตะ text node ข้างใน ----------
      animate เฉพาะ transform (scale) + opacity (เรืองขอบผ่าน ::after) เท่านั้น ตามกฎ
@@ -180,11 +237,13 @@
   @keyframes codeBoxGlow  { 0%{opacity:0} 40%{opacity:1} 100%{opacity:0} }
   .menu-item {
     display:flex; justify-content:space-between; align-items:center;
-    background:var(--panel-2); border:1px solid var(--line); border-radius:10px;
+    background:var(--sheen), var(--panel-2); border:1px solid var(--line); border-radius:10px;
     border-left:4px solid var(--zc, var(--line));
     padding:11px 14px; margin-bottom:8px; cursor:pointer; font-size:14px;
+    transition:transform var(--dur-press) var(--ease-out);
   }
   .menu-item:hover { border-color:var(--gold); border-left-color:var(--zc, var(--gold)); }
+  .menu-item:active { transform:scale(.985); }
   .menu-item small { color:var(--muted); font-size:11px; }
   .menu-zone { margin-top:16px; }
   .menu-zone-head {
@@ -192,7 +251,12 @@
     font-family:'Kanit',sans-serif; font-size:13.5px; letter-spacing:.5px; color:var(--zc);
   }
   .menu-zone-head::after { content:""; flex:1; height:1px; background:var(--line); }
-  .footer-note { text-align:center; font-size:11px; color:var(--muted); margin-top:16px; }
+  /* ข้อความเดียวที่วางบนพื้นลายวงจรตรง ๆ — ขอบเงาสีพื้นกันเส้นลายวิ่งผ่านตัวอักษรจนอ่านยาก
+     (บนเส้นลายเปล่า ๆ contrast ตกเหลือ ~3.9:1 ต่ำกว่าเกณฑ์ AA ที่ V1 แก้ไว้) */
+  .footer-note {
+    text-align:center; font-size:11px; color:var(--muted); margin-top:16px;
+    text-shadow:0 0 3px var(--board), 0 0 6px var(--board), 0 0 10px var(--board);
+  }
 
   .data-warn {
     background:var(--bg-warn); border:1px solid var(--gold); border-radius:10px;
@@ -203,15 +267,22 @@
 
   /* ---------- ปุ่มเลือกโหมดเดิมพัน (หน้าซื้อทรัพย์สิน) ---------- */
   .bet-row { display:flex; gap:8px; margin-bottom:12px; }
+  /* ตัวที่ไม่ได้ไฮไลต์ใช้สีตัวอักษรปกติ (ไม่ใช่ --muted) — กดได้ทันทีเหมือนกัน
+     เดิมเทาจนเด็กนึกว่าปุ่ม "ตอบมั่นใจ"/"ยาก" ถูกปิดอยู่ */
   .bet-btn {
-    flex:1; background:var(--panel-2); border:1px solid var(--line); border-radius:10px;
-    color:var(--muted); padding:9px 6px; text-align:center;
+    flex:1; background:var(--sheen), var(--panel-2); border:1px solid var(--line); border-radius:10px;
+    color:var(--text); padding:9px 6px; text-align:center;
     font-family:'Kanit',sans-serif; font-size:14px; cursor:pointer;
+    transition:transform var(--dur-press) var(--ease-out);
   }
+  .bet-btn:active { transform:scale(.97); }
   .bet-btn small { display:block; font-family:'Sarabun',sans-serif; font-size:10.5px; margin-top:2px; color:var(--muted); }
-  .bet-btn.active { border-color:var(--gold); color:var(--gold); background:var(--bg-active); }
+  .bet-btn.active {
+    border-color:var(--gold); color:var(--gold); background:var(--bg-active);
+    box-shadow:0 0 0 1px rgba(251,191,36,.18), 0 10px 22px -14px rgba(251,191,36,.8);
+  }
   .bet-btn.active small { color:var(--ink-warn); }
-  .bet-btn:disabled { opacity:.55; cursor:default; }
+  .bet-btn:disabled { opacity:.55; cursor:default; transform:none; }
 
   /* ---------- modal ยืนยันโหมดมั่นใจ + countdown ---------- */
   .confirm-overlay {
@@ -220,9 +291,9 @@
   }
   @keyframes fxFade2 { from { opacity:0; } to { opacity:1; } }
   .confirm-modal {
-    width:100%; max-width:340px; background:var(--panel); border:2px solid var(--gold);
+    width:100%; max-width:340px; background:var(--sheen), var(--panel); border:2px solid var(--gold);
     border-radius:16px; padding:20px 18px; text-align:center;
-    box-shadow:0 12px 40px rgba(0,0,0,.5);
+    box-shadow:0 12px 40px rgba(0,0,0,.5), 0 0 0 5px rgba(251,191,36,.08);
   }
   .confirm-modal .cd-num {
     display:inline-block; min-width:26px; font-family:'Kanit',sans-serif; font-weight:800;
@@ -232,7 +303,7 @@
   /* ---------- กรอบวงล้อสุ่มผลแก้บั๊ก (เลนมั่นใจ+ผิด) ----------
      duration อ้าง token แทนตัวเลขดิบ (Stage 4) — ให้ reduced-motion ย่ออัตโนมัติแบบเดียวกับที่อื่น */
   .roulette-frame {
-    background:var(--surface-deep); border:1px solid var(--line); border-radius:10px;
+    background:var(--surface-deep); border:1px solid var(--line); border-radius:10px; box-shadow:var(--recess);
     padding:13px 12px; margin-top:10px; text-align:center;
     font-family:'Kanit',sans-serif; font-size:15px; color:var(--ink-code);
     animation:roulettePulse var(--dur-press) ease-out;
@@ -261,26 +332,29 @@
   .card-cover {
     position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:5;
     background:
-      repeating-linear-gradient(45deg, #0B2B22 0 6px, var(--bg-win) 6px 12px);
+      repeating-linear-gradient(45deg, var(--board) 0 6px, var(--bg-win) 6px 12px);
     border:1px solid var(--gold); backface-visibility:hidden;
   }
 
   /* ---------- มินิเกมกู้บั๊กด่วน (Debug Rescue) ---------- */
+  /* รหัสห้อง = จอ LED ทอง (เรืองแสงด้วย text-shadow ไม่แตะขนาดกล่อง) */
   .rescue-code {
     font-family:'Kanit',sans-serif; font-size:34px; letter-spacing:8px; color:var(--gold);
     text-align:center; background:var(--surface-deep); border:1px solid var(--gold); border-radius:10px;
     padding:12px; margin:10px 0;
+    box-shadow:var(--recess); text-shadow:0 0 14px rgba(251,191,36,.45);
   }
   .rescue-input {
     width:100%; text-align:center; text-transform:uppercase; letter-spacing:8px;
     font-family:'Kanit',sans-serif; font-size:26px; background:var(--surface-deep); color:var(--text);
     border:1px solid var(--line); border-radius:10px; padding:11px; margin-bottom:10px;
+    box-shadow:var(--recess);
   }
   .role-pick { display:flex; gap:8px; }
   .role-pick .btn { margin-top:0; }
   .wire-row {
     display:flex; align-items:center; gap:10px; margin-bottom:3px;
-    background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:2px 12px;
+    background:var(--sheen), var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:2px 12px;
   }
   .wire-bar { flex:1; height:16px; border-radius:8px; }
   .wire-idx { font-family:monospace; font-size:12px; color:var(--muted); width:20px; }
@@ -295,15 +369,18 @@
   .kp-display {
     font-family:'Kanit',sans-serif; font-size:28px; text-align:center; letter-spacing:6px;
     background:var(--surface-deep); border:1px solid var(--line); border-radius:10px;
-    padding:6px; margin:4px 0; min-height:48px;
+    padding:6px; margin:4px 0; min-height:48px; box-shadow:var(--recess);
   }
   .kp-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:4px 0; }
   .kp-grid.two { grid-template-columns:repeat(2,1fr); }
+  /* ปุ่มคีย์แพด = ปุ่มกดนูน (ขอบล่างเข้มเป็น inset — ไม่เพิ่มความสูง) กดแล้วยุบรับนิ้ว */
   .kp-key {
-    background:var(--panel-2); border:2px solid var(--line); border-radius:10px; color:var(--text);
+    background:var(--sheen), var(--panel-2); border:2px solid var(--line); border-radius:10px; color:var(--text);
     font-family:'Kanit',sans-serif; font-size:20px; min-height:44px; cursor:pointer;
+    box-shadow:inset 0 -2px 0 rgba(0,0,0,.3); transition:transform var(--dur-press) var(--ease-out);
   }
-  .kp-key:disabled { opacity:.4; cursor:default; }
+  .kp-key:active { transform:scale(.95); }
+  .kp-key:disabled { opacity:.4; cursor:default; transform:none; }
   .kp-key.used { opacity:.35; }
   .kp-key.act { border-color:var(--gold); color:var(--gold); }
   .kp-cmd { font-family:monospace; font-size:16px; }
@@ -316,17 +393,19 @@
   /* ---------- ปุ่มเลือกผู้ชนะ (event แบบ speed) ---------- */
   .speed-players { display:flex; gap:8px; margin:4px 0 6px; }
   .speed-player {
-    flex:1; background:var(--panel-2); border:1px solid var(--gold); border-radius:10px;
+    flex:1; background:var(--sheen), var(--panel-2); border:1px solid var(--gold); border-radius:10px;
     color:var(--gold); padding:12px 4px; text-align:center; cursor:pointer;
     font-family:'Kanit',sans-serif; font-size:14px;
+    transition:transform var(--dur-press) var(--ease-out);
   }
   .speed-player:hover { background:var(--bg-active); }
-  .speed-player:disabled { opacity:.5; cursor:default; }
+  .speed-player:active { transform:scale(.96); }
+  .speed-player:disabled { opacity:.5; cursor:default; transform:none; }
 
   /* ---------- คำถามแบบ "ชี้ตำแหน่ง" (hotspot / colorwheel / linepick) ---------- */
   .point-wrap {
     background:var(--surface-deep); border:1px solid var(--line); border-radius:12px;
-    padding:8px; margin-bottom:10px; touch-action:manipulation;
+    padding:8px; margin-bottom:10px; touch-action:manipulation; box-shadow:var(--recess);
   }
   /* ห้าม preserveAspectRatio="none" — การคำนวณพิกัดอิงอัตราส่วนที่คงที่ */
   .point-wrap svg { width:100%; height:auto; display:block; cursor:crosshair; }
@@ -355,10 +434,10 @@
   .lp-row:disabled { cursor:default; }
 
   /* ---------- บอสไฟต์ Server Meltdown (?space=cooling) ---------- */
-  .hp-wrap { background:var(--surface-deep); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:10px; }
+  .hp-wrap { background:var(--surface-deep); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:10px; box-shadow:var(--recess); }
   .hp-row { display:flex; justify-content:space-between; align-items:baseline; font-size:12.5px; color:var(--muted); margin-bottom:7px; }
   .hp-row b { color:var(--gold); font-family:'Kanit',sans-serif; font-size:17px; }
-  .hp-bar { height:12px; background:var(--panel-2); border-radius:8px; overflow:hidden; }
+  .hp-bar { height:12px; background:var(--panel-2); border-radius:8px; overflow:hidden; box-shadow:inset 0 1px 3px rgba(0,0,0,.55); }
   /* Stage 4: width → transform:scaleX (ห้ามใช้ width ตามกฎ) — เลขดาเมจ (#dmgNum/#tgtNum) อยู่ใน
      .hp-row แยกกันคนละ element อยู่แล้วตั้งแต่แรก (นอก .hp-fill เสมอ) ไม่ถูก scale ไปด้วยแน่นอน */
   .hp-fill {
@@ -386,11 +465,18 @@
   }
   .pick-row { display:flex; flex-wrap:wrap; gap:10px; margin:4px 0 12px; }
   .pick {
-    flex:1 0 17%; background:var(--panel-2); border:1px solid var(--line); border-radius:10px;
+    flex:1 0 17%; background:var(--sheen), var(--panel-2); border:1px solid var(--line); border-radius:10px;
     color:var(--text); font-family:'Kanit',sans-serif; font-size:14.5px; padding:10px 0;
     text-align:center; cursor:pointer;
+    box-shadow:inset 0 -2px 0 rgba(0,0,0,.25); transition:transform var(--dur-press) var(--ease-out);
   }
-  .pick.on { border-color:var(--gold); background:var(--bg-active); color:var(--gold); }
+  .pick:active { transform:scale(.96); }
+  .pick small { color:var(--muted); }
+  .pick.on {
+    border-color:var(--gold); background:var(--bg-active); color:var(--gold);
+    box-shadow:0 0 0 1px rgba(251,191,36,.18), 0 8px 18px -12px rgba(251,191,36,.8);
+  }
+  .pick.on small { color:var(--ink-warn); }
   .big-num { font-family:'Kanit',sans-serif; font-size:56px; color:var(--gold); text-align:center; line-height:1.15; }
   .countdown-big { font-family:'Kanit',sans-serif; font-size:74px; color:var(--gold); text-align:center; margin:6px 0; animation:resultPop var(--dur-state) var(--ease-out); }
 
@@ -402,14 +488,16 @@
     background:var(--chrome); border:1px solid var(--line); border-radius:20px;
     color:var(--muted); font-family:'Kanit',sans-serif; font-size:11.5px;
     padding:5px 11px; cursor:pointer; opacity:.85; line-height:1;
+    box-shadow:0 6px 16px -6px rgba(0,0,0,.9);
   }
   .player-btn.set { border-color:var(--gold); color:var(--gold); }
 
   /* ---------- กล่องตั้งเลขผู้เล่นแบบลอย (เปิดกลางคำถามได้ ไม่แตะหน้าที่เล่นอยู่) ---------- */
   .pl-modal { position:fixed; inset:0; z-index:80; background:rgba(3,12,9,.86);
     display:flex; align-items:center; justify-content:center; padding:18px; }
-  .pl-card { background:var(--card); border:1px solid var(--line); border-radius:14px;
-    padding:16px; width:100%; max-width:380px; }
+  /* เดิมอ้าง var(--card) ที่ไม่มีใน :root → พื้นโปร่ง เห็นข้อความหน้าหลังทะลุกล่อง */
+  .pl-card { background:var(--sheen), var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:16px; width:100%; max-width:380px; box-shadow:0 16px 40px rgba(0,0,0,.6); }
 
   /* ---------- ปุ่มลอยมุมขวาล่าง: mute + ลดการเคลื่อนไหว ----------
      ปุ่มลดการเคลื่อนไหวอยู่ "ซ้ายของ mute" (right 70 = 14 + กว้างปุ่ม 48 + ช่องไฟ 8)
@@ -417,9 +505,13 @@
   .mute-btn, .motion-btn {
     position:fixed; right:14px; bottom:14px; z-index:70;
     width:48px; height:48px; border-radius:50%; cursor:pointer;
-    background:var(--chrome); border:1.5px solid var(--gold); color:var(--gold);
+    background:radial-gradient(circle at 50% 28%, var(--chip-top), var(--chrome) 72%);
+    border:1.5px solid var(--gold); color:var(--gold);
     font-size:19px; line-height:1; opacity:.92;
+    box-shadow:0 8px 20px -8px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.08);
+    transition:transform var(--dur-press) var(--ease-out);
   }
+  .mute-btn:active, .motion-btn:active { transform:scale(.92); }
   .motion-btn { right:70px; }
   .mute-btn.off, .motion-btn.off { border-color:var(--line); color:var(--muted); }
 
