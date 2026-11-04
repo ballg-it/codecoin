@@ -1,11 +1,12 @@
-# CodeCoin — Motion System (สรุป Stage 0–4)
+# CodeCoin — Motion System (สรุป Stage 0–5 + ต่อยอด V6)
 
 เอกสารนี้สรุปสิ่งที่ทำจริงในระบบ animation ของ CodeCoin (`index.html` + `sw.js`)
 อ้างอิงจาก `codecoin_animation_handoff.md` และฉบับแก้ `codecoin_animation_handoff_v2.md`
-Stage 5 (ตรวจรับรอบสุดท้าย) ยังไม่ได้ทำ — เอกสารนี้หยุดที่ Stage 4
+Stage 5 (ตรวจรับ) ปิดแล้วใน Stage V4 ของ [`DESIGN_AUDIT.md`](DESIGN_AUDIT.md) — มือถือจริง `&fps=1` ได้ 60 fps (min 59)
+ส่วนต่อยอดรอบความสวยงาม (Stage V6) อยู่ท้ายเอกสาร
 
-สถานะ commit: `ca652dd` (Stage 1-2) → `b2b3ea1` (Stage 3) → `de37963` (Stage 4)
-`sw.js` ปัจจุบัน: `codecoin-v17` (เลขขยับต่อจาก v12 ผ่านงาน Stage V1–V3b ปรับสี/เลย์เอาต์มือถือ — ดู [`DESIGN_AUDIT.md`](DESIGN_AUDIT.md) ไม่เกี่ยวกับ Motion Stage)
+สถานะ commit: `ca652dd` (Stage 1-2) → `b2b3ea1` (Stage 3) → `de37963` (Stage 4) → `d4de6c8` (V4: duration เข้า token + ป้าย fps) → `4e57f34` (ผลวัด Stage 5)
+`sw.js` ปัจจุบัน: `codecoin-v29` (Stage V6) — เลขขยับตามทุกงานที่แก้ `index.html` ไม่ใช่เฉพาะ Motion Stage
 
 ---
 
@@ -119,14 +120,25 @@ Stage 5 (ตรวจรับรอบสุดท้าย) ยังไม่
 
 ## งานที่ยังไม่ทำ / พักไว้
 
-- **Stage 5** (ตรวจรับรอบสุดท้ายตาม checklist) — ยังไม่ได้รัน
-- **CPU throttle 4x ≥50fps สำหรับ Roulette** — ยืนยันไม่ได้ในรอบทดสอบล่าสุดเพราะ browser pane
-  ของ session ไม่ compositing frame จริง (ข้อจำกัดเครื่องมือทดสอบ ไม่ใช่ข้อสงสัยในโค้ด) ควรเปิดดูจริงอีกรอบ
-  — ไล่อ่านโค้ดซ้ำอีกรอบใน Stage V3b (session แยก ไม่เกี่ยวกับ Motion Stage) ยืนยันแล้วว่า `colorVar()`
-  ทุกจุดที่เรียกทั้งไฟล์ (6 จุด) เป็น one-shot ตอนสร้าง SVG/ใน click handler ล้วน ๆ ไม่มีจุดไหนอยู่ใน
-  `step()` ของ `spinRouletteWheel()` เลย (ลูปนั้นเรียกแค่ `wheelG.style.transform`) — มั่นใจเชิงโค้ด 100%
-  ว่าไม่กระทบ fps แต่ตัวเลขจริงบนอุปกรณ์จริงยังไม่ได้วัด
-- `.fx-flash`/`#hit-fx`/`.result.pop`/`.countdown-big` ยังใช้ duration ตายตัวไม่ผ่าน token
-  (โค้ดเดิมตั้งแต่ก่อน Stage 1 ไม่ได้อยู่ใน checklist ข้อไหนของ Stage 1-4 เลยไม่ได้แตะ)
+- ~~Stage 5~~ / ~~Roulette ≥50fps~~ — ปิดแล้ว (Stage V4: มือถือจริง 60 fps, min 59)
+- ~~`.fx-flash`/`#hit-fx`/`.result.pop`/`.countdown-big` duration ตายตัว~~ — เข้า token แล้วใน Stage V4
 - ไฮไลต์บั๊กรายบรรทัดใน Bug Jam ที่พักไว้ตั้งแต่ Stage 0
-- View Transitions API สำหรับเปลี่ยนหน้า (ของแถม)
+- View Transitions API สำหรับเปลี่ยนหน้า (ของแถม) — พิจารณาแล้วใน V6 ยังไม่คุ้ม: ทุกการสแกน QR
+  เปิดหน้าใหม่จากแอปกล้อง (ไม่ใช่ same-origin navigation จึงไม่มีทรานซิชันอยู่ดี) และภาพแรกของหน้าใหม่
+  คือการ์ด "กำลังโหลดข้อมูล" เพราะ data.json ไม่ใช่ render-blocking — จะได้แค่ cross-fade ไปหาหน้าโหลด
+
+---
+
+## Stage V6 — ต่อยอดจากรอบความสวยงาม (CACHE v29)
+
+รายละเอียดเต็มอยู่ใน [`DESIGN_AUDIT.md`](DESIGN_AUDIT.md) หัวข้อ Stage V6 — ตรงนี้สรุปเฉพาะที่กระทบกฎ motion
+
+- **ระดับ T0 `--dur-ambient` (900ms)** = ของประดับที่ไม่บังเนื้อหาและไม่ต้องรอ (แสงวิ่งบนชิป header ตอนเปิดหน้า,
+  ข้อความกำลังโหลดหายใจ) ไม่นับในงบ 1.2 วิ · **โหมดลด = ปิดทั้งชิ้น ไม่ใช่ย่อเวลา**
+  (`html[data-motion="off"]` + `@media (prefers-reduced-motion)` สำหรับเฟรมก่อนสคริปต์ทำงาน)
+- **หลักใหม่: ของประดับที่ไม่ผ่าน token ต้องเช็ค `MOTION.reduced` เอง** — `confetti()` (เวลาตั้งรายชิ้น)
+  กับ `screenShake()` เดิมไม่สนโหมดลด ตอนนี้ return ทันที · `popPicked()` ก็เช็คเหมือนกัน
+- **กล่องผลหลังตอบ** `#result > .result` ลอยขึ้น `--dur-state` — นาฬิกาหยุดแล้วตอนกล่องโผล่ ไม่ขัดกฎ 0ms
+  (ห้ามขยายไป `.result` ทั่วไป: หน้า speed มี `.result.info` ตั้งแต่เฟรมแรกของหน้าจับเวลา)
+- **หน้าที่วาดทั้งก้อนใหม่ทุกคลิกต้องเรียก `enterScreen()` แค่ครั้งแรก** (ธง `entered`) — หน้าเลือกด่านกู้บั๊ก
+  เคยเลื่อนเข้าใหม่ทุกแตะ แก้ตามแบบหน้า cooling · การเด้งรับนิ้วบนหน้าแบบนี้ต้องหา element ตัวใหม่หลังวาด (`popPicked`)

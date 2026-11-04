@@ -48,6 +48,12 @@
     --sheen:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,0) 70%);
     --lift:0 12px 26px -18px rgba(0,0,0,.95);   /* เงาใต้กล่อง — box-shadow ไม่กินพื้นที่ layout */
     --recess:inset 0 2px 10px rgba(0,0,0,.45);  /* ช่องที่ "จมลง" ในแผง (โค้ด/รหัส/HP/จอคีย์แพด) */
+    /* hex ดิบที่เคยกระจายอยู่ในกฎ (Stage V6) — ค่าเท่าเดิมทุกตัว ย้ายมาตั้งชื่อเฉย ๆ */
+    --ink-body:#CBD5E1;      /* ตัวอักษรเนื้อความ (.content) */
+    --line-deep:#10281F;     /* เส้นคั่นบรรทัดโค้ด (linepick) */
+    --win-deep:#14472F;      /* ช่องเลขบรรทัดที่เป็นเฉลย */
+    --lose-deep:#4A1A1A;     /* ช่องเลขบรรทัดที่แตะผิด */
+    --wire-dead:#333333;     /* สายไฟที่ถูกตัดแล้ว */
     /* ลายเส้นวงจรจาง ๆ บนพื้น — แผ่นละ 336px (= กริด 12 ช่อง) เส้นวิ่งกลางช่องกริดเสมอ
        เส้นที่ทะลุขอบมีแต่แนวนอน (ต่อซ้าย-ขวาสนิท) — ถ้ามีแนวตั้งทะลุบน-ล่างด้วยจะตัดกันเองแน่นอน
        อยู่ใน :root เพราะ data URI ใช้ var() ข้างในไม่ได้ สีในนี้จึงต้องเป็น hex ตรง ๆ */
@@ -60,6 +66,10 @@
     --dur-enter: 180ms;   /* T1 เข้าหน้าใหม่ */
     --dur-state: 300ms;   /* T2 เฉลยถูก/ผิด, เงินเปลี่ยน */
     --dur-cheer: 600ms;   /* T3 อัปเกรดสำเร็จ, บอสตาย */
+    /* T0 ของประดับที่ไม่ขวางการเล่น (Stage V6) — แสงวิ่งผ่านชิปตอนเปิดหน้า, จังหวะหายใจตอนโหลด
+       ไม่นับในงบ 1.2 วิ เพราะไม่บังเนื้อหา/ไม่ต้องรอ · โหมดลดการเคลื่อนไหว = ปิดทิ้งทั้งชิ้น (ไม่ใช่ย่อเวลา)
+       จึงไม่ต้องมีค่าในมีเดียควีรี/data-motion ข้างล่าง — ดูกฎ html[data-motion="off"] ท้ายส่วนผิวหน้า */
+    --dur-ambient: 900ms;
     --ease-out: cubic-bezier(.22,1,.36,1);
     --ease-io:  cubic-bezier(.65,0,.35,1);
     --ease-pop: cubic-bezier(.34,1.56,.64,1); /* เด้งเกิน — ใช้เฉพาะจังหวะรางวัล */
@@ -94,7 +104,7 @@
     background-size:100% 100%, 100% 100%, 336px 336px, 28px 28px, 28px 28px;
     background-repeat:no-repeat, no-repeat, repeat, repeat, repeat;
   }
-  ::selection { background:rgba(251,191,36,.35); color:#fff; }
+  ::selection { background:rgba(251,191,36,.35); color:white; }
   /* โฟกัสจากคีย์บอร์ด/ช่องพิมพ์ — ขอบทองแทนวงฟ้าของเบราว์เซอร์ที่แทบมองไม่เห็นบนพื้นเขียว
      outline ไม่กินพื้นที่ layout · ปุ่มที่แตะด้วยนิ้วไม่ขึ้นวงนี้ (focus-visible) */
   button:focus-visible, input:focus-visible, summary:focus-visible {
@@ -137,6 +147,16 @@
     }
   }
   header p { font-size:12px; color:var(--ink-chip); }
+  /* แสงวิ่งผ่านผิวชิปครั้งเดียวตอนเปิดหน้า (Stage V6) — absolute ทั้งก้อน ไม่กินพื้นที่ layout
+     ตัวเองเป็นกรอบตัดขอบ (overflow:hidden) เพราะ header ตัดขอบไม่ได้ — ขาชิป ::before/::after ยื่นออกนอกกรอบ
+     แสงคือ ::before กว้าง 40% วิ่งจากนอกขอบซ้าย (-110%) ถึงนอกขอบขวา (100/40 × 100% + 10% = 260%) */
+  .chip-glint { position:absolute; inset:0; border-radius:inherit; overflow:hidden; pointer-events:none; }
+  .chip-glint::before {
+    content:""; position:absolute; top:0; bottom:0; left:0; width:40%;
+    background:linear-gradient(100deg, transparent 25%, rgba(255,255,255,.2) 50%, transparent 75%);
+    animation:chipGlint var(--dur-ambient) var(--ease-io) var(--dur-state) both;
+  }
+  @keyframes chipGlint { from { transform:translateX(-110%); } to { transform:translateX(260%); } }
 
   .zone-tag {
     display:inline-block; font-size:12px; font-weight:700; padding:3px 12px;
@@ -144,12 +164,23 @@
     box-shadow:inset 0 1px 0 rgba(255,255,255,.35), 0 4px 12px -6px rgba(0,0,0,.7);
   }
   .card {
+    position:relative;   /* กรอบอ้างอิงของแถบไฟสีโซนข้างล่าง — ไม่กระทบ layout */
     background:var(--sheen), var(--panel); border:1px solid var(--line); border-radius:14px;
     padding:18px 16px; margin-bottom:14px;
     box-shadow:inset 0 1px 0 rgba(255,255,255,.04), var(--lift);
   }
+  /* แถบไฟสีโซนพาดขอบบนการ์ด (Stage V6) — สีมาจากป้ายโซนในการ์ดใบนั้นเอง (background:inherit
+     รับค่าจาก inline style ของป้าย) จึงไม่ต้องแก้เทมเพลตสักจุด และสีตรงป้ายเสมอ (โซน/บั๊ก/ทอง/Cooling)
+     ::before = เส้นคม ทับขอบบน 1px ของการ์ด · ::after = แสงฟุ้งใต้เส้น · ปลายสองข้างจางด้วย mask */
+  .card > .zone-tag::before, .card > .zone-tag::after {
+    content:""; position:absolute; top:-1px; left:18px; right:18px; height:2px; border-radius:2px;
+    background:inherit; pointer-events:none;
+    -webkit-mask-image:linear-gradient(90deg, transparent, black 22%, black 78%, transparent);
+            mask-image:linear-gradient(90deg, transparent, black 22%, black 78%, transparent);
+  }
+  .card > .zone-tag::after { height:7px; filter:blur(4px); opacity:.5; }
   h2 { font-family:'Kanit',sans-serif; font-size:20px; margin-bottom:10px; }
-  .content { font-size:14.5px; line-height:1.8; color:#CBD5E1; }
+  .content { font-size:14.5px; line-height:1.8; color:var(--ink-body); }
   .price { color:var(--gold); font-weight:700; }
 
   .q { font-weight:700; font-size:15px; margin:6px 0 12px; }
@@ -157,6 +188,7 @@
     display:block; width:100%; text-align:left; background:var(--sheen), var(--panel-2);
     border:1px solid var(--line); border-radius:10px; color:var(--text);
     padding:12px 14px; font-size:14px; font-family:inherit; margin-bottom:9px; cursor:pointer;
+    transition:transform var(--dur-press) var(--ease-out);
   }
   .choice:hover { border-color:var(--gold); }
   .choice.correct { border-color:var(--ok); background:var(--bg-win); box-shadow:0 0 20px -8px rgba(74,222,128,.7); }
@@ -200,9 +232,16 @@
   #choices button:active { transform:scale(.97); transition:transform var(--dur-press) var(--ease-out); }
 
   .result { text-align:center; border-radius:12px; padding:14px; font-size:15px; margin-top:6px; }
-  .result.win { background:var(--bg-win); border:1px solid var(--ok); color:var(--ok); box-shadow:0 0 24px -12px rgba(74,222,128,.7); }
-  .result.lose { background:var(--bg-lose); border:1px solid var(--bad); color:var(--bad); box-shadow:0 0 24px -12px rgba(248,113,113,.6); }
-  .result.info { background:var(--bg-active); border:1px solid var(--gold); color:var(--ink-warn); box-shadow:0 0 24px -14px rgba(251,191,36,.6); }
+  /* แถบสีหนาด้านซ้าย (inset shadow — ไม่กินพื้นที่) = หน้าตา "กล่องแจ้งผล" ไม่ใช่ปุ่ม (Stage V6)
+     เดิม .result.info บนการ์ดเหตุการณ์หน้าตาเหมือน .btn.ghost ที่อยู่ติดกันจนเด็กแตะกล่องผลนึกว่าเป็นปุ่ม */
+  .result.win { background:var(--bg-win); border:1px solid var(--ok); color:var(--ok); box-shadow:inset 3px 0 0 var(--ok), 0 0 24px -12px rgba(74,222,128,.7); }
+  .result.lose { background:var(--bg-lose); border:1px solid var(--bad); color:var(--bad); box-shadow:inset 3px 0 0 var(--bad), 0 0 24px -12px rgba(248,113,113,.6); }
+  .result.info { background:var(--bg-active); border:1px solid var(--gold); color:var(--ink-warn); box-shadow:inset 3px 0 0 var(--gold), 0 0 24px -14px rgba(251,191,36,.6); }
+  /* กล่องผลหลังตอบ (#result/#rResult) ค่อย ๆ ลอยขึ้นรับ — นาฬิกาหยุดไปแล้วตอนกล่องนี้โผล่ จึงไม่ผิดกฎ 0ms
+     ไม่ครอบ .result ทั่วไป เพราะหลายหน้าจับเวลาวาง .result.info ไว้บนสุดตั้งแต่เฟรมแรก (speed event)
+     .pop มี animation จังหวะรางวัลของตัวเองอยู่แล้ว (resultPop) — ไม่ซ้อน */
+  #result > .result:not(.pop), #rResult > .result:not(.pop) { animation:resultIn var(--dur-state) var(--ease-out); }
+  @keyframes resultIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
 
   .btn {
     display:block; width:100%; border:none; border-radius:12px; padding:13px;
@@ -220,9 +259,12 @@
 
   .code-box {
     position:relative;   /* ให้ ::after (เรืองขอบตอนเฉลย) วางอิงกรอบนี้ได้ */
-    background:var(--surface-deep); border:1px solid var(--line); border-radius:10px;
+    border:1px solid var(--line); border-radius:10px;
     font-family:monospace; font-size:13px; color:var(--ink-code); padding:12px; white-space:pre; overflow-x:auto; margin-bottom:12px;
     box-shadow:var(--recess);
+    /* จอเทอร์มินัล (Stage V6): เส้นสแกนจาง ๆ ทุก 3px + ตัวอักษรเรืองแบบจอฟอสฟอร์ — ไม่แตะขนาดกล่อง */
+    background:repeating-linear-gradient(180deg, rgba(255,255,255,.022) 0 1px, transparent 1px 3px), var(--surface-deep);
+    text-shadow:0 0 8px rgba(167,243,208,.28);
   }
   /* ---------- Bug Jam เฉลย (Stage 4) — pulse ทั้งกล่อง ห้ามแตะ text node ข้างใน ----------
      animate เฉพาะ transform (scale) + opacity (เรืองขอบผ่าน ::after) เท่านั้น ตามกฎ
@@ -259,7 +301,8 @@
   }
 
   .data-warn {
-    background:var(--bg-warn); border:1px solid var(--gold); border-radius:10px;
+    border:1px solid var(--gold); border-radius:10px;
+    background:repeating-linear-gradient(-45deg, rgba(251,191,36,.07) 0 10px, transparent 10px 20px), var(--bg-warn);
     font-size:12.5px; color:var(--ink-warn); padding:9px 12px; margin-bottom:14px; text-align:center;
   }
   .upgrade-links { display:flex; gap:8px; }
@@ -294,7 +337,9 @@
     width:100%; max-width:340px; background:var(--sheen), var(--panel); border:2px solid var(--gold);
     border-radius:16px; padding:20px 18px; text-align:center;
     box-shadow:0 12px 40px rgba(0,0,0,.5), 0 0 0 5px rgba(251,191,36,.08);
+    animation:modalPop var(--dur-state) var(--ease-pop);   /* เด้งรับ (Stage V6) — ฉากพื้นหลังจางเข้าเองอยู่แล้ว */
   }
+  @keyframes modalPop { from { transform:scale(.92); } to { transform:none; } }
   .confirm-modal .cd-num {
     display:inline-block; min-width:26px; font-family:'Kanit',sans-serif; font-weight:800;
   }
@@ -355,11 +400,25 @@
   .wire-row {
     display:flex; align-items:center; gap:10px; margin-bottom:3px;
     background:var(--sheen), var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:2px 12px;
+    transition:opacity var(--dur-state) var(--ease-out);   /* ตัดแล้วค่อย ๆ หรี่ลง (แถวเดิม แค่เติม class) */
   }
-  .wire-bar { flex:1; height:16px; border-radius:8px; }
+  .wire-bar { flex:1; height:16px; border-radius:8px; position:relative; }
+  /* ผิวสายไฟทรงกระบอก (Stage V6) — สีสายมาจาก inline style เงาวาวจึงต้องเป็นชั้นทับแยก */
+  .wire-bar::before {
+    content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+    background:linear-gradient(180deg, rgba(255,255,255,.38), rgba(255,255,255,0) 48%, rgba(0,0,0,.22));
+  }
   .wire-idx { font-family:monospace; font-size:12px; color:var(--muted); width:20px; }
   .wire-row.cut { opacity:.4; }
-  .wire-row.cut .wire-bar { background:#333 !important; position:relative; }
+  .wire-row.cut .wire-bar { background:var(--wire-dead) !important; animation:wireTwang var(--dur-state) var(--ease-out); }
+  /* รอยตัดกลางสาย — สีพื้นแถว ทับสายเป็นร่องเฉียง แล้ว "งับ" ลงมาจากความสูง 0 */
+  .wire-row.cut .wire-bar::after {
+    content:""; position:absolute; top:-3px; bottom:-3px; left:50%; width:7px;
+    background:var(--panel-2); transform:translateX(-50%) skewX(-18deg);
+    animation:wireGap var(--dur-press) var(--ease-out);
+  }
+  @keyframes wireTwang { 0% { transform:translateY(-2px); } 45% { transform:translateY(1.5px); } 100% { transform:none; } }
+  @keyframes wireGap { from { transform:translateX(-50%) skewX(-18deg) scaleY(0); } }
   .wire-cut-btn {
     background:transparent; border:1px solid var(--bad); color:var(--bad); border-radius:8px;
     font-family:'Kanit',sans-serif; font-size:13px; padding:12px 12px; cursor:pointer;
@@ -370,6 +429,7 @@
     font-family:'Kanit',sans-serif; font-size:28px; text-align:center; letter-spacing:6px;
     background:var(--surface-deep); border:1px solid var(--line); border-radius:10px;
     padding:6px; margin:4px 0; min-height:48px; box-shadow:var(--recess);
+    text-shadow:0 0 12px rgba(167,243,208,.35);   /* ตัวเลขเรืองแบบจอ LED (Stage V6) */
   }
   .kp-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:4px 0; }
   .kp-grid.two { grid-template-columns:repeat(2,1fr); }
@@ -415,34 +475,42 @@
   .lp-box { border:1px solid var(--line); border-radius:10px; overflow:hidden; margin-bottom:10px; }
   .lp-row {
     display:flex; align-items:stretch; width:100%; text-align:left; cursor:pointer;
-    background:var(--surface-deep); border:none; border-bottom:1px solid #10281F; padding:0; color:var(--ink-code);
+    background:var(--surface-deep); border:none; border-bottom:1px solid var(--line-deep); padding:0; color:var(--ink-code);
   }
   .lp-row:last-child { border-bottom:none; }
   .lp-row:hover { background:var(--panel-2); }
   .lp-num {
     flex:0 0 32px; padding:9px 0; text-align:center; font-family:monospace; font-size:12px;
-    color:var(--muted); background:var(--panel-2); border-right:1px solid #10281F; user-select:none;
+    color:var(--muted); background:var(--panel-2); border-right:1px solid var(--line-deep); user-select:none;
   }
   .lp-code {
     flex:1; min-width:0; padding:9px 10px; font-family:monospace; font-size:13px;
     white-space:pre; overflow-x:auto;   /* เลื่อนเฉพาะบรรทัดที่ยาว ไม่ลากทั้งหน้า */
   }
   .lp-row.picked { background:var(--bg-lose); color:var(--bad); }
-  .lp-row.picked .lp-num { background:#4A1A1A; color:var(--bad); }
+  .lp-row.picked .lp-num { background:var(--lose-deep); color:var(--bad); }
   .lp-row.answer { background:var(--bg-win); color:var(--ok); }
-  .lp-row.answer .lp-num { background:#14472F; color:var(--ok); }
+  .lp-row.answer .lp-num { background:var(--win-deep); color:var(--ok); }
   .lp-row:disabled { cursor:default; }
 
   /* ---------- บอสไฟต์ Server Meltdown (?space=cooling) ---------- */
   .hp-wrap { background:var(--surface-deep); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:10px; box-shadow:var(--recess); }
   .hp-row { display:flex; justify-content:space-between; align-items:baseline; font-size:12.5px; color:var(--muted); margin-bottom:7px; }
   .hp-row b { color:var(--gold); font-family:'Kanit',sans-serif; font-size:17px; }
-  .hp-bar { height:12px; background:var(--panel-2); border-radius:8px; overflow:hidden; box-shadow:inset 0 1px 3px rgba(0,0,0,.55); }
+  .hp-bar { height:12px; background:var(--panel-2); border-radius:8px; overflow:hidden; box-shadow:inset 0 1px 3px rgba(0,0,0,.55); position:relative; }
+  /* ขีดแบ่ง 10 ช่อง + เงาวาวบนหลอดพลัง (Stage V6) — ชั้นทับทั้งหลอด ไม่ใช่ลายบน .hp-fill
+     เพราะ .hp-fill ยืด/หดด้วย scaleX ถ้าวาดขีดไว้บนตัวมัน ขีดจะถูกบีบตามไปด้วย */
+  .hp-bar::after {
+    content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0) 55%),
+      repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), rgba(5,16,12,.45) calc(10% - 1px) 10%);
+  }
   /* Stage 4: width → transform:scaleX (ห้ามใช้ width ตามกฎ) — เลขดาเมจ (#dmgNum/#tgtNum) อยู่ใน
      .hp-row แยกกันคนละ element อยู่แล้วตั้งแต่แรก (นอก .hp-fill เสมอ) ไม่ถูก scale ไปด้วยแน่นอน */
   .hp-fill {
     height:100%; width:100%; transform:scaleX(0); transform-origin:left;
-    background:linear-gradient(90deg,#4ADE80,var(--gold));
+    background:linear-gradient(90deg,var(--ok),var(--gold));
     transition:transform var(--dur-state) var(--ease-out);
   }
   .shout {
@@ -459,8 +527,10 @@
     0% { transform:scale(.5); opacity:0; } 22% { transform:scale(1.14); opacity:1; }
     100% { transform:scale(1.4); opacity:0; }
   }
+  /* แถบเฉียงจาง ๆ แบบป้ายเตือนอันตราย (Stage V6) — ช่วงถูกล็อก = แย่สำหรับผู้เล่นจริง แดงจึงถูกกฎ V3b */
   .lockout {
-    text-align:center; background:var(--bg-lose); border:1px solid var(--bad); border-radius:12px;
+    text-align:center; border:1px solid var(--bad); border-radius:12px;
+    background:repeating-linear-gradient(-45deg, rgba(248,113,113,.08) 0 10px, transparent 10px 20px), var(--bg-lose);
     padding:22px 14px; color:var(--bad); font-family:'Kanit',sans-serif; font-size:19px;
   }
   .pick-row { display:flex; flex-wrap:wrap; gap:10px; margin:4px 0 12px; }
@@ -477,8 +547,9 @@
     box-shadow:0 0 0 1px rgba(251,191,36,.18), 0 8px 18px -12px rgba(251,191,36,.8);
   }
   .pick.on small { color:var(--ink-warn); }
-  .big-num { font-family:'Kanit',sans-serif; font-size:56px; color:var(--gold); text-align:center; line-height:1.15; }
-  .countdown-big { font-family:'Kanit',sans-serif; font-size:74px; color:var(--gold); text-align:center; margin:6px 0; animation:resultPop var(--dur-state) var(--ease-out); }
+  /* เลขใหญ่กลางจอ (ดาเมจรวม / นับ 3-2-1) เรืองทองแบบป้ายคะแนน (Stage V6) */
+  .big-num { font-family:'Kanit',sans-serif; font-size:56px; color:var(--gold); text-align:center; line-height:1.15; text-shadow:0 0 22px rgba(251,191,36,.35); }
+  .countdown-big { font-family:'Kanit',sans-serif; font-size:74px; color:var(--gold); text-align:center; margin:6px 0; animation:resultPop var(--dur-state) var(--ease-out); text-shadow:0 0 26px rgba(251,191,36,.4); }
 
   /* ---------- ปุ่มเลขผู้เล่น (มุมขวาล่าง เหนือปุ่ม mute) ----------
      ต้องเล็กและจาง — เห็นได้ทุกหน้าแต่ห้ามแย่งสายตาจากคำถาม/ปุ่มตอบ
@@ -494,10 +565,13 @@
 
   /* ---------- กล่องตั้งเลขผู้เล่นแบบลอย (เปิดกลางคำถามได้ ไม่แตะหน้าที่เล่นอยู่) ---------- */
   .pl-modal { position:fixed; inset:0; z-index:80; background:rgba(3,12,9,.86);
-    display:flex; align-items:center; justify-content:center; padding:18px; }
+    display:flex; align-items:center; justify-content:center; padding:18px;
+    animation:fxFade2 var(--dur-enter) var(--ease-out); }   /* เดิมโผล่ทันทีทั้งที่ modal ยืนยันโหมดมั่นใจจางเข้า */
   /* เดิมอ้าง var(--card) ที่ไม่มีใน :root → พื้นโปร่ง เห็นข้อความหน้าหลังทะลุกล่อง */
   .pl-card { background:var(--sheen), var(--panel); border:1px solid var(--line); border-radius:14px;
-    padding:16px; width:100%; max-width:380px; box-shadow:0 16px 40px rgba(0,0,0,.6); }
+    padding:16px; width:100%; max-width:380px; box-shadow:0 16px 40px rgba(0,0,0,.6);
+    animation:modalRise var(--dur-state) var(--ease-out); }
+  @keyframes modalRise { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
 
   /* ---------- ปุ่มลอยมุมขวาล่าง: mute + ลดการเคลื่อนไหว ----------
      ปุ่มลดการเคลื่อนไหวอยู่ "ซ้ายของ mute" (right 70 = 14 + กว้างปุ่ม 48 + ช่องไฟ 8)
@@ -525,9 +599,9 @@
 
   /* ---------- เอฟเฟกต์กะพริบเต็มจอ (โปร่งใส ไม่รับคลิก ไม่แตะ layout) ---------- */
   .fx-flash { position:fixed; inset:0; pointer-events:none; z-index:50; opacity:0; }
-  .fx-flash.green { background:#4ADE80; animation:fxFade var(--dur-state) ease-out; }
-  .fx-flash.red   { background:#F87171; animation:fxFade var(--dur-state) ease-out; }
-  .fx-flash.gold  { background:#FBBF24; animation:fxFadeStrong var(--dur-cheer) ease-out; }
+  .fx-flash.green { background:var(--ok); animation:fxFade var(--dur-state) ease-out; }
+  .fx-flash.red   { background:var(--bad); animation:fxFade var(--dur-state) ease-out; }
+  .fx-flash.gold  { background:var(--gold); animation:fxFadeStrong var(--dur-cheer) ease-out; }
   @keyframes fxFade       { 0% { opacity:.22; } 100% { opacity:0; } }
   @keyframes fxFadeStrong { 0% { opacity:.38; } 100% { opacity:0; } }
 
@@ -542,6 +616,30 @@
     animation:confettiFall linear forwards;
   }
   @keyframes confettiFall { to { transform:translateY(112vh) rotate(720deg); } }
+
+  /* ---------- ยกตัวรับเมาส์ (Stage V6) — เฉพาะเครื่องที่มีเมาส์จริง ----------
+     มือถือไม่มี hover จริง ถ้าไม่กรองด้วยมีเดียควีรี ปุ่มที่เพิ่งแตะจะค้างลอยจนกว่าจะแตะที่อื่น (sticky hover)
+     :not(:active) ให้กฎ "กดแล้วยุบ" ของแต่ละปุ่มชนะเสมอโดยไม่ต้องพึ่งลำดับกฎในไฟล์ */
+  @media (hover:hover) and (pointer:fine) {
+    .menu-item:hover:not(:active), .pick:hover:not(:active), .bet-btn:hover:not(:active):not(:disabled),
+    .speed-player:hover:not(:active):not(:disabled), .kp-key:hover:not(:active):not(:disabled),
+    .choice:hover:not(:active):not(:disabled) { transform:translateY(-1px); }
+  }
+
+  /* ---------- จังหวะหายใจตอนโหลดข้อมูล (Stage V6) ----------
+     เน็ตโรงเรียนช้า data.json ค้างได้หลายวินาที — ข้อความหรี่-สว่างช้า ๆ บอกว่า "ยังทำงานอยู่ ไม่ได้ค้าง" */
+  .boot-pulse { animation:bootPulse var(--dur-ambient) var(--ease-io) infinite alternate; }
+  @keyframes bootPulse { from { opacity:1; } to { opacity:.45; } }
+
+  /* ของประดับ T0 (--dur-ambient) ปิดทั้งชิ้นในโหมดลดการเคลื่อนไหว — ย่อเวลาแบบ token อื่นไม่ช่วย
+     (แสงวิ่ง 1ms = แฟลชวาบ / กะพริบวนถี่ขึ้น = แย่กว่าเดิม) · data-motion มาจาก JS ทั้งสองทางอยู่แล้ว
+     แต่เฟรมแรกอาจวาดก่อนสคริปต์ท้ายไฟล์ทำงาน (ระหว่างรอ qrcode.js) จึงกันด้วยมีเดียควีรีอีกชั้น */
+  html[data-motion="off"] .chip-glint { display:none; }
+  html[data-motion="off"] .boot-pulse { animation:none; }
+  @media (prefers-reduced-motion: reduce) {
+    html:not([data-motion="on"]) .chip-glint { display:none; }
+    html:not([data-motion="on"]) .boot-pulse { animation:none; }
+  }
 </style>
 </head>
 <body>
@@ -549,9 +647,10 @@
   <header>
     <h1>CodeCoin</h1>
     <p>QR SYSTEM — PCB EDITION REV 2.5</p>
+    <i class="chip-glint" aria-hidden="true"></i>
   </header>
   <div id="dataStatus"></div>
-  <div id="screen"><div class="card"><p class="content">⏳ กำลังโหลดข้อมูล...</p></div></div>
+  <div id="screen"><div class="card"><p class="content boot-pulse">⏳ กำลังโหลดข้อมูล...</p></div></div>
   <div class="footer-note">ต้นแบบระบบ QR — เปิดผ่าน ?space=รหัสช่อง</div>
 </div>
 <button class="player-btn" id="playerBtn" title="ตั้ง/แก้เลขผู้เล่นของคุณ">ตั้งเลข</button>
@@ -946,6 +1045,17 @@ function playEventCardFlip(cardEl) {
   MOTION.run(cardEl,
     [{ transform: "rotateY(90deg)" }, { transform: "rotateY(0deg)" }],
     { duration: durVar("--dur-state", 300), delay: MOTION.d(durVar("--dur-enter", 180)), fill: "forwards", easing: easeVar("--ease-out") });
+}
+
+/* ---------- ปุ่มที่เพิ่งเลือก "เด้งรับนิ้ว" ครั้งเดียว (Stage V6) ----------
+   ใช้กับชิปบนหน้าที่วาดใหม่ทั้งก้อนทุกคลิก (cooling, เลือกด่านกู้บั๊ก) — CSS :active ไม่ทันเห็นเพราะ
+   element ที่ถูกแตะถูกแทนที่ไปแล้ว ต้องหาตัวใหม่แล้วสั่งเด้งเอง · ใช้กับปุ่มสลับเสียง/การเคลื่อนไหวด้วย
+   ของประดับล้วน → ปิดทั้งหมดตอนลดการเคลื่อนไหว (แบบเดียวกับ pulse วงแหวนนาฬิกา) ไม่แตะ DOM ใน callback */
+function popPicked(el) {
+  if (!el || MOTION.reduced) return;
+  MOTION.run(el, [
+    { transform: "scale(.9)" }, { transform: "scale(1.06)" }, { transform: "scale(1)" },
+  ], { duration: durVar("--dur-state", 300), easing: easeVar("--ease-out") });
 }
 
 /* =====================================================================
@@ -1482,6 +1592,7 @@ muteBtn.onclick = () => {
   const m = SFX.toggleMuted();
   muteBtn.textContent = m ? "🔇" : "🔊";
   muteBtn.classList.toggle("off", m);
+  popPicked(muteBtn);
 };
 
 /* ปุ่ม "ลดการเคลื่อนไหว" — คนละสวิตช์กับเสียง (เด็กบางคนเมารถกับภาพเคลื่อนไหว แต่ยังอยากได้ยินเสียง)
@@ -1498,6 +1609,7 @@ motionBtn.onclick = () => {
   MOTION.reduced = want;                     // ไม่ต้อง OR กับค่าเครื่องแล้ว — ผู้ใช้เลือกเองชนะ
   MOTION.apply();                            // อัปเดต <html data-motion> ให้ token ฝั่ง CSS ตามทันที
   paintMotionBtn();
+  popPicked(motionBtn);                      // เด้งเฉพาะตอนเปิดกลับ — กดลดแล้ว MOTION.reduced เป็น true ไปก่อน ไม่เด้ง
 };
 paintMotionBtn();
 
@@ -1510,6 +1622,10 @@ function flash(color) {
 }
 
 function confetti() {
+  // โหมดลดการเคลื่อนไหว = ไม่โปรยเลย (Stage V6) — ชิ้นกระดาษตกยาว 1.6–2.9 วิ ตั้งเวลารายชิ้นเอง
+  // ไม่ผ่าน token จึงไม่ถูกย่อเหมือน animation อื่น เดิมโปรยเต็มจอแม้เด็กกดปุ่ม 🐢 ไว้แล้ว
+  // ไม่เสียความหมาย: เสียง celebrate + กล่องผล .pop ยังบอกว่าสำเร็จครบ
+  if (MOTION.reduced) return;
   const colors = ["#FBBF24", "#4ADE80", "#FB923C", colorVar("--office"), "#F472B6", "#FFFFFF"];
   // เครื่องแรงน้อย (มือถือราคาประหยัด ≤4 core) ลดจำนวนลง กันเฟรมตกตอน CPU ไม่พอ
   const N = (navigator.hardwareConcurrency || 4) <= 4 ? 40 : 110;
@@ -3135,6 +3251,9 @@ function renderRescueLanding() {
   const pre = params.get("pattern");
   let pid = pre && rescuePatternOn(pre) ? pre : "wire_cut";
   let hasCard = false;   // ติ๊กยืนยัน "ได้การ์ดแล้ว" — ใช้เฉพาะด่านที่ needs_card (ไม่จำข้ามหน้า ตั้งใจให้ยืนยันทุกครั้ง)
+  // draw() ถูกเรียกซ้ำทุกครั้งที่แตะเลือกด่าน/ติ๊กการ์ด (วาดทั้งหน้าใหม่) — เลื่อนเข้าหน้าแค่ครั้งแรก (Stage V6)
+  // เดิมทุกแตะ ทั้งหน้าจางหายแล้วเลื่อนขึ้นมาใหม่ทั้งที่ยังอยู่หน้าเดิม (แบบเดียวกับที่ cooling กันไว้แล้ว)
+  let entered = false;
   const draw = () => {
     const P = rescuePattern(pid);
     const gated = !!P.needs_card && !hasCard;
@@ -3173,13 +3292,17 @@ function renderRescueLanding() {
         </div>
       </details>
     </div>`;
-    enterScreen();
+    if (!entered) { entered = true; enterScreen(); }
     screen.querySelectorAll("#patPick .pick").forEach(b => b.onclick = () => {
       draw.code = document.getElementById("rescueCode").value;   // เปลี่ยนด่านแล้วไม่ให้รหัสที่พิมพ์ไว้หาย
       pid = b.dataset.pid; draw();
+      popPicked(screen.querySelector(`#patPick [data-pid="${pid}"]`));
     });
     const ok = document.getElementById("cardOk");
-    if (ok) ok.onclick = () => { draw.code = document.getElementById("rescueCode").value; hasCard = !hasCard; SFX.tick(false); draw(); };
+    if (ok) ok.onclick = () => {
+      draw.code = document.getElementById("rescueCode").value; hasCard = !hasCard; SFX.tick(false); draw();
+      popPicked(document.getElementById("cardOk"));
+    };
     const manual = role => {
       const code = document.getElementById("rescueCode").value.trim().toUpperCase();
       if (code.length < 3) { document.getElementById("rescueCode").focus(); return; }
@@ -3578,8 +3701,13 @@ function renderMeltdownJoin(pre) {
       </div>`;
     if (!entered) { entered = true; enterScreen(); }
 
+    // paint() วาดทั้งหน้าใหม่ → ชิปที่แตะถูกแทนที่ไปแล้ว ต้องหาตัวใหม่ (ค่าเดียวกัน) มาเด้งรับนิ้ว
     const pick = (attr, set) => screen.querySelectorAll(`[data-${attr}]`).forEach(b =>
-      b.onclick = () => { set(+b.dataset[attr]); SFX.tick(false); paint(); });
+      b.onclick = () => {
+        const v = b.dataset[attr];
+        set(+v); SFX.tick(false); paint();
+        popPicked(screen.querySelector(`[data-${attr}="${v}"]`));
+      });
     pick("round", v => round = v);
     pick("count", v => count = v);
     // เลือกที่นี่ = ตั้งเลขผู้เล่นประจำเครื่องไปด้วย (sync สองทาง — ทุก log หลังจากนี้ได้เลขเดียวกัน)
@@ -3683,6 +3811,9 @@ function renderMeltdownFight(st) {
   // ตัวนี้ไปโดนยกเลิกก่อนเล่นจบ) เก็บ reference ไว้ยกเลิกเองตอน finish() กันค้างข้ามหน้าแน่นอน
   let shakeAnim = null;
   const screenShake = () => {
+    // จอสั่นทั้งหน้า = ภาพเคลื่อนไหวที่ชวนเวียนหัวที่สุดในเกม — โหมดลดตัดทิ้ง ไม่ใช่แค่ย่อเหลือ 120ms (Stage V6)
+    // ฟันโดนยังรู้ได้จากเสียง + แฟลชเขียว + ตัว "💥 โจมตี!" + สั่นเครื่อง
+    if (MOTION.reduced) return;
     if (shakeAnim) { try { shakeAnim.cancel(); } catch (e) {} }
     shakeAnim = MOTION.run(screen, [
       { transform: "translateX(0)" }, { transform: "translateX(-3px)" },

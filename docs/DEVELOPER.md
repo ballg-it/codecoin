@@ -32,7 +32,7 @@ tools/      hotspot_picker.html · motherboard.svg     ← เครื่อง
 | ไฟล์หลัก | หน้าที่ |
 |---|---|
 | `index.html` | ตัวแอป (SPA ไฟล์เดียว) — โหลดข้อมูลจาก `data.json` ตอนเปิดหน้า |
-| `sw.js` | Service Worker ให้เล่นออฟไลน์ — **แก้ `index.html` ทีไร ต้องบั๊ม `CACHE`** (ตอนนี้ `codecoin-v27`) |
+| `sw.js` | Service Worker ให้เล่นออฟไลน์ — **แก้ `index.html` ทีไร ต้องบั๊ม `CACHE`** (ตอนนี้ `codecoin-v29`) |
 | `qrcode.js` | ไลบรารีสร้าง QR ในเบราว์เซอร์ (qrcode-generator 1.4.4, MIT) — ห้องรอ Debug Rescue ใช้โชว์ QR ให้เพื่อนสแกน |
 | `codecoin_database.xlsx` | **ต้นทางข้อมูลของทีม content** (4 ชีต: spaces/questions/events/bugjam) |
 | `scripts/build_data.py` | แปลง Excel → `data.json` (รันทุกครั้งหลังทีม content แก้ Excel) |
