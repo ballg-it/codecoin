@@ -1,12 +1,12 @@
-# CodeCoin — Motion System (สรุป Stage 0–5 + ต่อยอด V6)
+# CodeCoin — Motion System (สรุป Stage 0–5 + ต่อยอด V6–V7)
 
 เอกสารนี้สรุปสิ่งที่ทำจริงในระบบ animation ของ CodeCoin (`index.html` + `sw.js`)
 อ้างอิงจาก `codecoin_animation_handoff.md` และฉบับแก้ `codecoin_animation_handoff_v2.md`
 Stage 5 (ตรวจรับ) ปิดแล้วใน Stage V4 ของ [`DESIGN_AUDIT.md`](DESIGN_AUDIT.md) — มือถือจริง `&fps=1` ได้ 60 fps (min 59)
-ส่วนต่อยอดรอบความสวยงาม (Stage V6) อยู่ท้ายเอกสาร
+ส่วนต่อยอดรอบความสวยงาม (Stage V6) และวงล้อตัวใหม่ (Stage V7) อยู่ท้ายเอกสาร
 
 สถานะ commit: `ca652dd` (Stage 1-2) → `b2b3ea1` (Stage 3) → `de37963` (Stage 4) → `d4de6c8` (V4: duration เข้า token + ป้าย fps) → `4e57f34` (ผลวัด Stage 5)
-`sw.js` ปัจจุบัน: `codecoin-v29` (Stage V6) — เลขขยับตามทุกงานที่แก้ `index.html` ไม่ใช่เฉพาะ Motion Stage
+`sw.js` ปัจจุบัน: `codecoin-v30` (Stage V7) — เลขขยับตามทุกงานที่แก้ `index.html` ไม่ใช่เฉพาะ Motion Stage
 
 ---
 
@@ -87,6 +87,8 @@ Stage 5 (ตรวจรับ) ปิดแล้วใน Stage V4 ของ [
 - รีเฟรชกลางหมุน → `renderRouletteStage()` เช็ค `resume.rouletteFinalIdx` → เด้งผลเดิมทันที
   ไม่หมุนใหม่ ไม่สุ่มใหม่ ไม่ log ซ้ำ
 - reduced-motion = ข้ามการหมุนเสมอ แสดงผลทันที (path เดียวกับ resume)
+- Stage V7: ตัวหมุนย้ายจาก `<g>` เป็นทั้ง `<svg>` (id `rouletteWheelG` เดิม) + `will-change` เฉพาะช่วงหมุน
+  และ `showFinal()` ไม่วาดวงล้อใหม่แล้ว — ดูหัวข้อ Stage V7 ท้ายเอกสาร
 
 ### จอสั่นบอสไฟต์
 `hitFx()` → `screenShake()` ใช้ `id:"screen-shake"` (คนละตัวกับ `"screen-enter"`)
@@ -142,3 +144,22 @@ Stage 5 (ตรวจรับ) ปิดแล้วใน Stage V4 ของ [
   (ห้ามขยายไป `.result` ทั่วไป: หน้า speed มี `.result.info` ตั้งแต่เฟรมแรกของหน้าจับเวลา)
 - **หน้าที่วาดทั้งก้อนใหม่ทุกคลิกต้องเรียก `enterScreen()` แค่ครั้งแรก** (ธง `entered`) — หน้าเลือกด่านกู้บั๊ก
   เคยเลื่อนเข้าใหม่ทุกแตะ แก้ตามแบบหน้า cooling · การเด้งรับนิ้วบนหน้าแบบนี้ต้องหา element ตัวใหม่หลังวาด (`popPicked`)
+
+---
+
+## Stage V7 — วงล้อสุ่มผลแก้บั๊ก ผิวใหม่ (CACHE v30)
+
+รายละเอียดเต็มอยู่ใน [`DESIGN_AUDIT.md`](DESIGN_AUDIT.md) หัวข้อ Stage V7 — ตรงนี้สรุปเฉพาะที่กระทบกฎ motion
+
+- **หมุนทั้ง `<svg>` ไม่ใช่ `<g>`** — transform บนลูกของ SVG ไม่ถูกยกเป็นเลเยอร์ GPU (เบราว์เซอร์วาด SVG ทั้งรูปใหม่ทุกเฟรม)
+  ส่วน `<svg>` ระดับ HTML ยกได้ · `spinRouletteWheel()` ใส่ `will-change:transform` ให้ตัวหมุน + ลิ้นชี้ตอนเริ่ม
+  แล้วคืนใน `onfinish` ของจังหวะเด้งเกิน (ไม่ใช้ `MOTION.run` เพราะเป็น rAF เขียน `style.transform` เองทุกเฟรม)
+  **ของประดับที่ต้องนิ่ง (แสง เงา ดุม สปอตไลต์) อยู่ `<svg>` อีกชั้นที่ไม่หมุน** — วาดครั้งเดียว ไม่ถูกวาดซ้ำระหว่างหมุน
+- **ลิ้นชี้สะบัดตาม `SFX.tick`** — WAAPI ชิ้นสั้น `--dur-press` ต่อการข้ามช่อง 1 ครั้ง · อ่าน `durVar`/`easeVar` ครั้งเดียวก่อนหมุน
+  (เรียก `getComputedStyle` ในลูป rAF = เฟรมตก) · ไม่มีในโหมดลดอยู่แล้วเพราะโหมดลดไม่หมุน
+- **ท่าเข้าเฉพาะหมุนสด** (`.spin-in` บนกรอบ — คนละ element กับตัวหมุน transform จึงไม่ชนกัน) · resume/โหมดลดไม่มีท่าเข้า
+- **สปอตไลต์ตอนหยุด** = opacity ล้วน (`rwDim` `--dur-state`, `rwWin` `--dur-cheer`) ไม่บังผล: กรอบข้อความผลโผล่พร้อมกัน
+- **`showFinal()` เก็บวงล้อตัวเดิมไว้** — เดิม `innerHTML` ทั้งกล่องใหม่ ถ้ายังทำแบบเดิมท่าเข้าจะเล่นซ้ำตอนหยุด
+- ทดสอบใน pane ที่ซ่อนอยู่ (rAF ไม่เดิน): แทน `requestAnimationFrame` ด้วยคิวแล้วป้อนเวลาเองทีละ 16.7ms ·
+  `finish()` จังหวะเด้งแล้ว**รอ ~0.5 วิ** event `finish` ถึงจะมา (ส่งแบบ async) · `cancelAnimationFrame` ในตัวแทนเป็น no-op
+  จึงมี step ค้างในคิวหลังแตะข้าม — ของจริงไม่มีเพราะยกเลิกได้จริง

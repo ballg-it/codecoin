@@ -54,6 +54,11 @@
     --win-deep:#14472F;      /* ช่องเลขบรรทัดที่เป็นเฉลย */
     --lose-deep:#4A1A1A;     /* ช่องเลขบรรทัดที่แตะผิด */
     --wire-dead:#333333;     /* สายไฟที่ถูกตัดแล้ว */
+    /* วงล้อสุ่มผลแก้บั๊ก (Stage V7) — ไล่น้ำหนักสีตามความหนักของผล ยิ่งเข้มยิ่งแรง
+       แดงทุกเฉดยังเป็น "แย่สำหรับผู้เล่น" ตามกฎ --bad (ช่อง +20/+40/+60%) */
+    --ok-deep:#16A34A;       /* ดีปานกลาง (ลด 20%) — เข้มกว่า --ok ให้แยกจากช่องแจ็กพอตได้ */
+    --bad-soft:#FCA5A5;      /* แย่นิดหน่อย (+20%) */
+    --bad-hot:#DC2626;       /* แย่สุด (+60% Kernel Panic) */
     /* ลายเส้นวงจรจาง ๆ บนพื้น — แผ่นละ 336px (= กริด 12 ช่อง) เส้นวิ่งกลางช่องกริดเสมอ
        เส้นที่ทะลุขอบมีแต่แนวนอน (ต่อซ้าย-ขวาสนิท) — ถ้ามีแนวตั้งทะลุบน-ล่างด้วยจะตัดกันเองแน่นอน
        อยู่ใน :root เพราะ data URI ใช้ var() ข้างในไม่ได้ สีในนี้จึงต้องเป็น hex ตรง ๆ */
@@ -348,29 +353,89 @@
   /* ---------- กรอบวงล้อสุ่มผลแก้บั๊ก (เลนมั่นใจ+ผิด) ----------
      duration อ้าง token แทนตัวเลขดิบ (Stage 4) — ให้ reduced-motion ย่ออัตโนมัติแบบเดียวกับที่อื่น */
   .roulette-frame {
-    background:var(--surface-deep); border:1px solid var(--line); border-radius:10px; box-shadow:var(--recess);
+    border:1px solid var(--line); border-radius:10px; box-shadow:var(--recess);
     padding:13px 12px; margin-top:10px; text-align:center;
     font-family:'Kanit',sans-serif; font-size:15px; color:var(--ink-code);
-    animation:roulettePulse var(--dur-press) ease-out;
+    /* จอเทอร์มินัลชุดเดียวกับ .code-box (Stage V7): เส้นสแกน + ตัวอักษรเรือง — ไม่แตะขนาดกล่อง */
+    background:repeating-linear-gradient(180deg, rgba(255,255,255,.022) 0 1px, transparent 1px 3px), var(--surface-deep);
+    text-shadow:0 0 8px rgba(167,243,208,.28);
+    animation:roulettePulse var(--dur-press) var(--ease-out);
   }
   .roulette-frame.final {
     border-color:var(--gold); color:var(--ink-warn);
-    animation:rouletteLand var(--dur-cheer) cubic-bezier(.34,1.56,.64,1);
+    text-shadow:0 0 10px rgba(251,191,36,.3);
+    box-shadow:var(--recess), 0 0 18px -6px rgba(251,191,36,.55);
+    animation:rouletteLand var(--dur-cheer) var(--ease-pop);
   }
   @keyframes roulettePulse { from { transform:scale(.97); opacity:.65; } to { transform:scale(1); opacity:1; } }
   @keyframes rouletteLand  { 0% { transform:scale(.9); } 60% { transform:scale(1.05); } 100% { transform:scale(1); } }
 
-  /* ---------- วงล้อ Fail Roulette แบบหมุนจริง (Stage 4) ----------
-     #rouletteWheelG คือกลุ่มที่หมุน (rAF ควบคุม transform ตรง ๆ) — ใช้ transform-box:fill-box
-     ให้หมุนรอบจุดกึ่งกลางภาพจริง ไม่ใช่มุม (0,0) ของ viewBox ตามค่าเริ่มต้นของ SVG */
-  .roulette-wheel-wrap { position:relative; width:168px; height:168px; margin:6px auto 4px; }
-  .roulette-wheel-svg { width:100%; height:100%; display:block; }
-  #rouletteWheelG { transform-box:fill-box; transform-origin:50% 50%; }
-  .roulette-pointer {
-    position:absolute; top:-6px; left:50%; transform:translateX(-50%);
-    width:0; height:0; border-left:9px solid transparent; border-right:9px solid transparent;
-    border-top:14px solid var(--gold); z-index:2; filter:none;
+  /* ---------- วงล้อ Fail Roulette แบบหมุนจริง (Stage 4 → ผิวใหม่ Stage V7) ----------
+     ซ้อน 3 ชั้นในกรอบ 168×168 เดิม (ขนาด/margin เท่าเดิมทุกค่า — ชั้นในเป็น absolute ทั้งหมด):
+     1) #rouletteWheelG = <svg> ตัวหมุน (เสี้ยวสี ป้าย แผ่น pad) — หมุนทั้ง element ไม่ใช่ <g> ข้างใน
+        element ระดับ HTML ยกขึ้นเลเยอร์ GPU ได้ (JS ใส่ will-change เฉพาะตอนหมุน) → แต่ละเฟรม compositor
+        แค่หมุนภาพเดิม ไม่ต้องวาด SVG ใหม่ทุกเฟรมแบบตอนหมุน <g> · origin = กลางกล่อง (ไม่ต้องพึ่ง fill-box แล้ว)
+     2) .roulette-wheel-top = <svg> นิ่ง (เงาลึก กรอบชิป แสงวาว ดุม สปอตไลต์ช่องที่ได้) — แสงไม่หมุนตามวงล้อ
+     3) .roulette-pointer = ลิ้นชี้ทอง จุดหมุนอยู่ที่หมุดบนสุด สะบัดทุกครั้งที่ pad วิ่งผ่าน (ตรงกับ SFX.tick) */
+  .roulette-wheel-wrap {
+    position:relative; width:168px; height:168px; margin:6px auto 4px;
+    border-radius:50%; box-shadow:0 12px 20px -10px rgba(0,0,0,.9);   /* เงาใต้จาน — ไม่กินพื้นที่ */
   }
+  .roulette-wheel-wrap.spin-in { animation:wheelIn var(--dur-enter) var(--ease-out); }
+  @keyframes wheelIn { from { opacity:0; transform:scale(.92); } to { opacity:1; transform:none; } }
+  .roulette-wheel-svg, .roulette-wheel-top { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  .roulette-wheel-top { pointer-events:none; }
+  #rouletteWheelG { transform-origin:50% 50%; }
+  .roulette-pointer {
+    position:absolute; top:-6px; left:calc(50% - 11px); width:22px; height:29px; z-index:2;
+    transform-origin:11px 9.5px;   /* หมุดบนสุดของลิ้น (ตรงกับ circle ใน SVG) */
+    pointer-events:none;
+  }
+  /* สีทุกชิ้นใน SVG มาจาก token ผ่าน class — attribute fill="var(..)" ไม่ผ่านทุกเบราว์เซอร์ */
+  .rw-w { stroke:var(--surface-deep); stroke-width:1.5; stroke-linejoin:round; }
+  .rw-good2 { fill:var(--ok); }
+  .rw-good1 { fill:var(--ok-deep); }
+  .rw-even  { fill:var(--gold); }
+  .rw-bad1  { fill:var(--bad-soft); }
+  .rw-bad2, .rw-skip { fill:var(--bad); }
+  .rw-bad3  { fill:var(--bad-hot); }
+  .rw-haz   { fill:var(--surface-deep); fill-opacity:.32; }   /* ช่องโดนข้ามตา = แถบเฉียงแบบป้าย .lockout */
+  .rw-pad   { fill:var(--gold); stroke:var(--gold-lo); stroke-width:.8; }
+  .rw-via   { fill:var(--surface-deep); }
+  /* ป้ายขาวขอบเข้ม (paint-order วาดขอบก่อน) อ่านออกบนทุกเฉด — font-size มาจาก attribute ตามจำนวนช่อง */
+  .rw-label {
+    font-family:'Kanit',sans-serif; font-weight:700; fill:white;
+    stroke:var(--surface-deep); stroke-width:3px; stroke-linejoin:round; paint-order:stroke;
+  }
+  .rw-icon { fill:white; stroke:var(--surface-deep); stroke-width:2px; paint-order:stroke; }
+  .rw-sh0 { stop-color:black; stop-opacity:.42; }
+  .rw-sh1 { stop-color:black; stop-opacity:0; }
+  .rw-sh2 { stop-color:black; stop-opacity:.3; }
+  .rw-gl0 { stop-color:white; stop-opacity:.2; }
+  .rw-gl1 { stop-color:white; stop-opacity:0; }
+  .rw-au0 { stop-color:var(--gold-hi); }
+  .rw-au1 { stop-color:var(--gold); }
+  .rw-au2 { stop-color:var(--gold-lo); }
+  .rw-bezel  { fill:none; stroke:var(--chrome); stroke-width:7; }
+  .rw-rim    { fill:none; stroke:var(--gold); stroke-width:1.4; }
+  .rw-rim-in { fill:none; stroke:var(--gold-lo); stroke-width:.8; }
+  .rw-hub    { fill:var(--surface-deep); stroke:var(--gold-lo); stroke-width:.8; }
+  .rw-bug    { fill:var(--gold); }
+  .rw-bug-ln { fill:none; stroke:var(--gold); stroke-width:1.1; stroke-linecap:round; }
+  .rw-bug-seam { fill:none; stroke:var(--surface-deep); stroke-width:.9; }
+  .rw-ptr    { stroke:var(--surface-deep); stroke-width:1.4; stroke-linejoin:round; }
+  .rw-ptr-sh { fill:black; fill-opacity:.45; }
+  .rw-ptr-pin { fill:var(--surface-deep); }
+  /* สปอตไลต์ตอนวงล้อหยุด: ช่องที่ได้อยู่ใต้ลิ้นชี้เสมอ (หยุดที่กึ่งกลางช่อง) จึงวาดชั้นนิ่งไว้ที่ตำแหน่งบนสุดได้
+     โดยไม่ต้องรู้มุม — หรี่ช่องอื่น + กรอบทองกะพริบ 2 จังหวะ (opacity ล้วน duration จาก token) */
+  .rw-spot { display:none; }
+  .roulette-wheel-wrap.landed .rw-spot { display:inline; }
+  .rw-dim { fill:var(--surface-deep); opacity:.48; animation:rwDim var(--dur-state) var(--ease-out) both; }
+  .rw-win-g { animation:rwWin var(--dur-cheer) var(--ease-out) both; }
+  .rw-win-glow { fill:none; stroke:var(--gold-hi); stroke-width:6; stroke-opacity:.28; stroke-linejoin:round; }
+  .rw-win { fill:none; stroke:var(--gold-hi); stroke-width:2.2; stroke-linejoin:round; }
+  @keyframes rwDim { from { opacity:0; } }
+  @keyframes rwWin { 0% { opacity:0; } 35% { opacity:1; } 60% { opacity:.3; } 100% { opacity:1; } }
 
   /* ---------- การ์ดพลิก (Stage 4 — เฉพาะ event mechanic simple/choice/chain ห้ามใช้กับ speed) ----------
      perspective อยู่ที่ #screen (บรรพบุรุษ) ไม่ใช่ตัวการ์ดเอง — 3D rotateY ถึงจะดูมีมิติจริง */
@@ -1876,11 +1941,24 @@ function spinFailRoulette(sp, spaceId) {
   playRouletteReveal(sp, spaceId, final, pay, true);   // 4-5) คำนวณมุม + เริ่มหมุน (fresh=true)
 }
 
-// สี wedge ตามความหนักเบาของผล — เขียว=ดีกว่าราคาเต็ม, ทอง=เท่าราคาเต็ม, แดง=แย่กว่า/โดน skip
-function rouletteColor(entry) {
-  if (entry.mult < 1) return "#4ADE80";
-  if (entry.mult > 1 || entry.skip) return "#F87171";
-  return "#FBBF24";
+// ระดับสีของ wedge ตามความหนักเบาของผล (Stage V7) — เขียว=ดีกว่าราคาเต็ม, ทอง=เท่าราคาเต็ม, แดง=แย่กว่า
+// แยกเฉดในกลุ่มเดียวกันให้ช่องที่อยู่ติดกันไม่กลืนเป็นก้อนเดียว (เดิมแดง 4 ช่องเรียงกันสีเดียว)
+// เกณฑ์เป็นช่วงตัวเลข ไม่ผูกกับ label — ครูแก้ CONFIG.fail_roulette แล้วสีตามเอง
+function rouletteTier(entry) {
+  if (entry.skip) return "skip";
+  if (entry.mult <= 0.6) return "good2";
+  if (entry.mult < 1) return "good1";
+  if (entry.mult === 1) return "even";
+  if (entry.mult <= 1.25) return "bad1";
+  if (entry.mult <= 1.45) return "bad2";
+  return "bad3";
+}
+// ป้ายสั้นบนเสี้ยว = ราคาเทียบราคาเต็ม คิดจาก mult ตรง ๆ (ไม่ตัดจาก label ที่ครูเขียนอิสระ)
+// เท่าราคาเต็มเขียน "เต็ม" ไม่ใช่ "0%" — เด็กอ่าน 0% เป็น "ไม่ต้องจ่าย" · ช่องข้ามตาเป็นไอคอน ⏸ (คืน null)
+function rouletteShort(entry) {
+  if (entry.skip) return null;
+  const d = Math.round((entry.mult - 1) * 100);
+  return d === 0 ? "เต็ม" : (d > 0 ? "+" : "−") + Math.abs(d) + "%";
 }
 // เรขาคณิต wedge เดียวกับที่ renderColorWheel ใช้ (มุม 0° = 12 นาฬิกา ไล่ตามเข็ม)
 function rouletteWedgePath(cx, cy, rOut, rIn, a0, a1) {
@@ -1892,16 +1970,66 @@ function rouletteWedgePath(cx, cy, rOut, rIn, a0, a1) {
 }
 // วาดวงล้อครั้งเดียว (static markup) — เฟรมต่อไปแค่หมุน transform บน #rouletteWheelG เท่านั้น
 // ห้ามวาด wedge ใหม่ทุกเฟรม ไม่งั้น CPU throttle 4x จะตกต่ำกว่า 50fps แน่นอน
+// Stage V7: คืน 3 ชั้น (ตัวหมุน / ชั้นนิ่ง / ลิ้นชี้) ดูคำอธิบายที่ CSS .roulette-wheel-wrap
+// ทุกอย่างในตัวหมุนต้องสมมาตรรอบจุดกลางไม่ได้ก็ได้ — หมุนทั้ง <svg> รอบกลางกล่อง ไม่อิง bbox ของรูป
+// id ใน <defs> (rwHaz/rwShade/...) ไม่ชนกัน เพราะในหน้ามีวงล้อได้ทีละอันเสมอ (#rouletteBox เดียว)
 function buildRouletteWheelSvg(pool) {
-  const C = 84, R_OUT = 80, R_IN = 20, seg = 360 / pool.length;
-  let wedges = "";
+  const C = 84, R_OUT = 77, R_IN = 14, R_LABEL = 52, R_PAD = 70, seg = 360 / pool.length;
+  const pt = (r, a) => { const t = (a - 90) * Math.PI / 180; return [C + r * Math.cos(t), C + r * Math.sin(t)]; };
+  // ป้ายเล็กลงเองถ้าครูเพิ่มช่องจนเสี้ยวแคบ (7 ช่อง = 12.5px)
+  const fs = Math.min(12.5, Math.max(8, seg * 0.245)).toFixed(1);
+  let wedges = "", haz = "", pads = "", labels = "";
   pool.forEach((entry, i) => {
-    const a0 = i * seg, a1 = a0 + seg;
-    wedges += `<path d="${rouletteWedgePath(C, C, R_OUT, R_IN, a0, a1)}" fill="${rouletteColor(entry)}" fill-opacity=".82" stroke="${colorVar("--surface-deep")}" stroke-width="1.5"/>`;
+    const a0 = i * seg, a1 = a0 + seg, mid = a0 + seg / 2;
+    const tier = rouletteTier(entry);
+    const d = rouletteWedgePath(C, C, R_OUT, R_IN, a0, a1);
+    wedges += `<path class="rw-w rw-${tier}" d="${d}"/>`;
+    if (entry.skip) haz += `<path d="${d}" fill="url(#rwHaz)"/>`;
+    const [px, py] = pt(R_PAD, a0);   // pad ทองแดงบนรอยต่อช่อง = เดือยที่ลิ้นชี้เกี่ยว
+    pads += `<circle class="rw-pad" cx="${px}" cy="${py}" r="2.7"/><circle class="rw-via" cx="${px}" cy="${py}" r="1"/>`;
+    const rot = `rotate(${mid} ${C} ${C})`;   // วางที่ 12 นาฬิกาแล้วหมุนไปกลางช่อง → ช่องที่ได้ (อยู่บนสุด) ตัวหนังสือตั้งตรง
+    const txt = rouletteShort(entry);
+    labels += txt
+      ? `<text class="rw-label" x="${C}" y="${C - R_LABEL}" dy=".36em" text-anchor="middle" font-size="${fs}" transform="${rot}">${txt}</text>`
+      : `<g class="rw-icon" transform="${rot}"><rect x="${C - 5}" y="${C - R_LABEL - 6}" width="3.6" height="12" rx="1"/><rect x="${C + 1.4}" y="${C - R_LABEL - 6}" width="3.6" height="12" rx="1"/></g>`;
   });
-  return `<svg viewBox="0 0 ${C * 2} ${C * 2}" class="roulette-wheel-svg" aria-hidden="true">
-    <g id="rouletteWheelG">${wedges}<circle cx="${C}" cy="${C}" r="${R_IN}" fill="#0D3327" stroke="#1F4A3A" stroke-width="2"/></g>
-  </svg>`;
+  // สปอตไลต์: ช่องที่ได้หยุดตรงลิ้นชี้ (กึ่งกลางช่อง = 12 นาฬิกา) เสมอ → หรี่ส่วนที่เหลือ + กรอบช่องบนสุด
+  const dim = rouletteWedgePath(C, C, R_OUT, R_IN, seg / 2, 360 - seg / 2);
+  const win = rouletteWedgePath(C, C, 74, 19.5, -seg / 2, seg / 2);
+  return `
+    <svg viewBox="0 0 168 168" class="roulette-wheel-svg" id="rouletteWheelG" aria-hidden="true">
+      <defs><pattern id="rwHaz" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect class="rw-haz" width="3" height="6"/></pattern></defs>
+      ${wedges}${haz}${pads}${labels}
+    </svg>
+    <svg viewBox="0 0 168 168" class="roulette-wheel-top" aria-hidden="true">
+      <defs>
+        <radialGradient id="rwShade" cx="${C}" cy="${C}" r="${R_OUT}" gradientUnits="userSpaceOnUse">
+          <stop offset="0" class="rw-sh0"/><stop offset=".45" class="rw-sh1"/><stop offset=".86" class="rw-sh1"/><stop offset="1" class="rw-sh2"/>
+        </radialGradient>
+        <radialGradient id="rwGloss" cx=".32" cy=".2" r=".72"><stop offset="0" class="rw-gl0"/><stop offset="1" class="rw-gl1"/></radialGradient>
+        <linearGradient id="rwGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" class="rw-au0"/><stop offset=".5" class="rw-au1"/><stop offset="1" class="rw-au2"/></linearGradient>
+      </defs>
+      <circle cx="${C}" cy="${C}" r="${R_OUT}" fill="url(#rwShade)"/>
+      <path class="rw-spot rw-dim" d="${dim}"/>
+      <g class="rw-spot rw-win-g"><path class="rw-win-glow" d="${win}"/><path class="rw-win" d="${win}"/></g>
+      <circle class="rw-bezel" cx="${C}" cy="${C}" r="79.5"/>
+      <circle class="rw-rim" cx="${C}" cy="${C}" r="82.6"/>
+      <circle class="rw-rim-in" cx="${C}" cy="${C}" r="76.2"/>
+      <circle cx="${C}" cy="${C}" r="76" fill="url(#rwGloss)"/>
+      <circle cx="${C}" cy="${C}" r="17" fill="url(#rwGold)"/>
+      <circle class="rw-hub" cx="${C}" cy="${C}" r="13"/>
+      <g transform="translate(${C} ${C + 1.5})">
+        <path class="rw-bug-ln" d="M-3.8-1-6.4-2.8M-4 1.6H-7M-3.6 4.2-6.2 6.2M3.8-1 6.4-2.8M4 1.6H7M3.6 4.2 6.2 6.2M-.8-7.2-2.2-9.2M.8-7.2 2.2-9.2"/>
+        <circle class="rw-bug" cy="-5.4" r="2.2"/>
+        <ellipse class="rw-bug" cy="1.2" rx="4" ry="5"/>
+        <path class="rw-bug-seam" d="M0-3V6.2"/>
+      </g>
+    </svg>
+    <svg viewBox="0 0 22 29" class="roulette-pointer" aria-hidden="true">
+      <path class="rw-ptr-sh" d="M11 28L4 15.38A8 8 0 1 1 18 15.38Z"/>
+      <path class="rw-ptr" fill="url(#rwGold)" d="M11 26L4 13.38A8 8 0 1 1 18 13.38Z"/>
+      <circle class="rw-ptr-pin" cx="11" cy="9.5" r="2.6"/>
+    </svg>`;
 }
 
 function easeOutQuart(t) { return 1 - Math.pow(1 - t, 4); }
@@ -1917,6 +2045,19 @@ function spinRouletteWheel(pool, finalIdx, wheelG, myToken, onDone) {
   const dur = 2200;
   let start = null, lastSeg = -1, done = false, raf = null;
 
+  // ยกตัวหมุน (+ ลิ้นชี้) ขึ้นเลเยอร์ GPU เฉพาะช่วงหมุน แล้วคืนตอนจบ — ค้างไว้ = กินแรมเครื่องถูกฟรี
+  // ไม่ใช้ MOTION.run เพราะนี่เป็น rAF เขียน style.transform เองทุกเฟรม ไม่ใช่ animation ชิ้นเดียว
+  const ptr = document.querySelector(".roulette-pointer");
+  wheelG.style.willChange = "transform";
+  if (ptr) ptr.style.willChange = "transform";
+  // ลิ้นชี้สะบัดตอน pad วิ่งผ่าน — อ่าน token ครั้งเดียวก่อนหมุน (getComputedStyle ในลูปทุกเฟรม = เฟรมตก)
+  // ช่วงต้นที่ข้ามหลายช่องต่อเฟรม ลิ้นจะค้างเอียงเองเหมือนของจริง ค่อยเห็นเป็นจังหวะตอนวงล้อช้าลง
+  const flickMs = durVar("--dur-press", 120), flickEase = easeVar("--ease-out");
+  const flick = () => {
+    if (ptr && ptr.animate)
+      ptr.animate([{ transform: "rotate(-22deg)" }, { transform: "rotate(0deg)" }], { duration: flickMs, easing: flickEase });
+  };
+
   const paint = deg => { wheelG.style.transform = `rotate(${deg}deg)`; };
 
   const bounce = () => {
@@ -1925,7 +2066,11 @@ function spinRouletteWheel(pool, finalIdx, wheelG, myToken, onDone) {
       [{ transform: `rotate(${target}deg)` }, { transform: `rotate(${target + 4}deg)` }, { transform: `rotate(${target}deg)` }],
       { duration: MOTION.d(180), easing: easeVar("--ease-pop") }
     );
-    a.onfinish = () => { if (myToken === renderToken) onDone(); };
+    a.onfinish = () => {
+      wheelG.style.willChange = "";
+      if (ptr) ptr.style.willChange = "";
+      if (myToken === renderToken) onDone();
+    };
   };
 
   const finishNow = () => {
@@ -1945,7 +2090,7 @@ function spinRouletteWheel(pool, finalIdx, wheelG, myToken, onDone) {
     const deg = target * easeOutQuart(p);
     paint(deg);
     const curSeg = Math.floor((((deg % 360) + 360) % 360) / seg);
-    if (curSeg !== lastSeg) { lastSeg = curSeg; SFX.tick(false); }   // tick ตามช่องที่ข้ามจริง
+    if (curSeg !== lastSeg) { lastSeg = curSeg; SFX.tick(false); flick(); }   // tick + สะบัดลิ้น ตามช่องที่ข้ามจริง
     if (p >= 1) { finishNow(); return; }
     raf = requestAnimationFrame(step);
   }
@@ -1966,22 +2111,30 @@ function playRouletteReveal(sp, spaceId, final, pay, fresh) {
   const finalIdx = pool.indexOf(final);
   const myToken = renderToken;
 
-  const wheelMarkup = `
-    <div class="roulette-wheel-wrap"><div class="roulette-pointer"></div>${buildRouletteWheelSvg(pool)}</div>`;
+  // enter=true เฉพาะตอนเริ่มหมุนสด (วงล้อหล่นเข้ามา) — resume/โหมดลดโผล่นิ่ง ๆ
+  const wheelMarkup = enter => `
+    <div class="roulette-wheel-wrap${enter ? " spin-in" : ""}">${buildRouletteWheelSvg(pool)}</div>`;
 
   const showFinal = () => {
     if (myToken !== renderToken) return;   // เผื่อ onDone มาจากอนิเมชันที่ยังไม่ทันถูกยกเลิก
-    box.innerHTML = wheelMarkup + `
+    // หมุนสดมาแล้ว = เก็บวงล้อตัวเดิมไว้ เปลี่ยนแค่กรอบผล (Stage V7) — เดิมวาดทั้งกล่องใหม่
+    // ซึ่งจะเล่นท่าเข้า spin-in ซ้ำ + วาด SVG ใหม่ทั้งชุด · resume/โหมดลดยังไม่มีวงล้อ → วาดตอนนี้
+    if (!box.querySelector(".roulette-wheel-wrap")) box.innerHTML = wheelMarkup(false);
+    const oldFrame = document.getElementById("rouletteFrame");
+    if (oldFrame) oldFrame.remove();
+    box.insertAdjacentHTML("beforeend", `
       <div class="roulette-frame final" id="rouletteFrame">
         <div id="rouletteLabel" style="font-size:17px;"></div>
         <div class="price" style="font-size:21px; margin-top:6px;">จ่าย ${pay.toLocaleString()} TechCoin</div>
         ${final.skip ? `<div style="color:var(--bad); font-weight:700; margin-top:6px;">⏸ และผู้เล่นคนนี้ต้องข้ามตาถัดไป 1 รอบ</div>` : ""}
-      </div>`;
+      </div>`);
     document.getElementById("rouletteLabel").textContent = final.label;
     // วางวงล้อนิ่ง ๆ ให้ตรงกับผลจริงเลย (resume/reduced-motion ไม่ได้หมุนมาก่อน)
     const wheelG = document.getElementById("rouletteWheelG");
     const seg = 360 / pool.length, mid = finalIdx * seg + seg / 2;
     if (wheelG) wheelG.style.transform = `rotate(${(360 - mid) % 360}deg)`;
+    const wrap = box.querySelector(".roulette-wheel-wrap");
+    if (wrap) wrap.classList.add("landed");   // สปอตไลต์ช่องที่ได้ (CSS .rw-spot)
 
     if (final.mult < 1) { SFX.correct(); flash("green"); }               // รอดถูกกว่าราคาเต็ม
     else if (final.mult > 1 || final.skip) { SFX.wrong(); flash("red"); }
@@ -1991,7 +2144,7 @@ function playRouletteReveal(sp, spaceId, final, pay, fresh) {
   // resume กลางหมุน หรือ reduced-motion = ข้ามการหมุนไปเลย แสดงผลทันที ตามสเปค
   if (!fresh || MOTION.reduced) { showFinal(); return; }
 
-  box.innerHTML = wheelMarkup + `<div class="roulette-frame" id="rouletteFrame">กำลังหมุน...</div>`;
+  box.innerHTML = wheelMarkup(true) + `<div class="roulette-frame" id="rouletteFrame">กำลังหมุน...</div>`;
   spinRouletteWheel(pool, finalIdx, document.getElementById("rouletteWheelG"), myToken, showFinal);
 }
 
