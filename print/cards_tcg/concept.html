@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>CodeCoin — ต้นแบบการ์ดแนว TCG (concept)</title>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700;800;900&family=Sarabun:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* ต้นแบบเพื่อเลือกแนวทางเท่านั้น — ยังไม่ใช่ไฟล์ส่งพิมพ์ (ไม่มีตัดตก/เครื่องหมายตัด)
+   ขนาดการ์ด 63 × 88 มม. ทุกอย่างวัดเป็น mm / pt ตามขนาดพิมพ์จริง
+   เปิดด้วย ?sheet=1 (เทียบ 3 แนว) · ?sheet=2 (แนว A ครบ 4 โซน) · ?sheet=3 (ด้านหลัง + แนว B/C โซนอื่น)
+   รอบ 3 (user ชอบ A / B): ?sheet=4 (A1–A4) · ?sheet=5 (B1–B4) · ?sheet=6 (แบบใหม่ในโซนอื่น)
+   รอบ 4 (เปลี่ยนเฉพาะตัวภาพ กรอบการ์ดคงเดิม = A2): ?sheet=7 (สไตล์ภาพ 7 แบบ) · ?sheet=8 (ดีไซน์ภาพใหม่ B/C/D) · ?sheet=9 (สไตล์ใหม่ในโซนอื่น)
+   ขนาดหน้า PDF ใส่ด้วย JS ท้ายไฟล์ (@page) ตามจำนวนแถวของแผ่น */
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+:root{--gold:#FBBF24;--gold-d:#B45309;--ink:#0B2B22;--edge:#050B09}
+body{background:#171B20;font-family:Sarabun,'Leelawadee UI',sans-serif;color:#E2E8F0}
+.sheet{padding:26px 44px 34px;zoom:1.5}
+.sheet h1{font:700 15pt Kanit;color:#fff;margin-bottom:2px}
+.sheet .sub{font:400 8pt Sarabun;color:#94A3B8;margin-bottom:14px}
+.row{display:flex;gap:26px;margin-bottom:22px;align-items:flex-start}
+.cell{width:63mm}
+.cell .lb{font:700 8.5pt Kanit;color:#fff;margin-bottom:1px;white-space:nowrap}
+.cell .ds{font:400 6.8pt/1.35 Sarabun;color:#94A3B8;height:9.5mm;margin-bottom:5px}
+.ref{width:63mm;height:88mm;border-radius:3.2mm;display:block;box-shadow:0 2mm 5mm rgba(0,0,0,.5)}
+
+/* ── สีโซน: zb สว่าง / zm กลาง / zk เข้ม / zt พื้นกล่องข้อความ ── */
+.z-coding{--zb:#4ADE80;--zm:#15803D;--zk:#052E1B;--zt:#E7F8EC;--zi:#14532D}
+.z-office{--zb:#38BDF8;--zm:#1D4ED8;--zk:#0B1B45;--zt:#E6F2FD;--zi:#1E3A8A}
+.z-design{--zb:#FB923C;--zm:#C2410C;--zk:#3B1206;--zt:#FFF1E3;--zi:#7C2D12}
+.z-hardware{--zb:#F472B6;--zm:#BE185D;--zk:#450A26;--zt:#FDEAF3;--zi:#831843}
+
+/* ── โครงการ์ดร่วม ── */
+.card{width:63mm;height:88mm;border-radius:3.2mm;background:var(--edge);padding:2.2mm;position:relative;overflow:hidden;box-shadow:0 2mm 5mm rgba(0,0,0,.5)}
+.frame{height:100%;border-radius:1.8mm;padding:1.3mm 1.5mm 1mm;position:relative;overflow:hidden;
+  display:flex;flex-direction:column;gap:.9mm;
+  background:linear-gradient(165deg,var(--zm) 0%,var(--zk) 72%);
+  box-shadow:inset 0 0 0 .35mm color-mix(in srgb,var(--zb) 75%,#fff),inset 0 0 0 .75mm rgba(0,0,0,.35)}
+.frame::before{content:"";position:absolute;inset:0;opacity:.13;pointer-events:none;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' fill='none' stroke='%23fff' stroke-width='1.4'%3E%3Cpath d='M0 20h30l10 10h40M60 0v18l12 12v30M0 84h22l14 14v22M120 60H96L84 72v30l-10 10'/%3E%3Ccircle cx='82' cy='30' r='3'/%3E%3Ccircle cx='72' cy='62' r='3'/%3E%3Ccircle cx='24' cy='84' r='3'/%3E%3C/svg%3E") 0 0/14mm 14mm}
+.frame>*{position:relative}
+
+.namebar{height:8mm;flex:none;border-radius:1.2mm;display:flex;align-items:center;justify-content:center;padding:0 1.6mm;
+  background:linear-gradient(#0C1714,#030706);border:.3mm solid var(--gold)}
+.nm{font:800 9.6pt Kanit;color:var(--gold);white-space:nowrap}
+.nm.long{font-size:8.3pt}
+
+.art{height:34mm;flex:none;border-radius:1mm;border:.35mm solid var(--gold);position:relative;overflow:hidden;
+  background:
+    repeating-conic-gradient(from 8deg at 50% 62%,rgba(255,255,255,.085) 0 5deg,transparent 5deg 15deg),
+    radial-gradient(ellipse at 50% 58%,var(--zb) 0%,var(--zm) 42%,var(--zk) 100%)}
+.art svg,.art .a3{position:absolute;inset:0;width:100%;height:100%}
+.a3{object-fit:cover;display:block}
+.art::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 38%,rgba(255,255,255,.17) 47%,transparent 56%)}
+
+.price{position:absolute;top:1.2mm;right:1.2mm;z-index:2;height:6.4mm;padding:0 2.1mm 0 1mm;border-radius:3.2mm;
+  display:flex;align-items:center;gap:1mm;font:800 9pt Kanit;color:#231A02;
+  background:linear-gradient(#FDE68A,#FBBF24 55%,#D97706);box-shadow:0 .4mm 1mm rgba(0,0,0,.5),inset 0 0 0 .25mm rgba(255,255,255,.55)}
+.coin{width:4.4mm;height:4.4mm;border-radius:50%;background:#231A02;color:var(--gold);font:800 6.4pt Kanit;display:grid;place-items:center}
+
+.typeline{height:5mm;flex:none;border-radius:2.5mm;padding:0 2mm;display:flex;align-items:center;justify-content:space-between;
+  background:linear-gradient(#fff,var(--zt));border:.25mm solid rgba(0,0,0,.4);font:600 6.6pt Kanit;color:var(--zi)}
+.typeline b{font-weight:700;letter-spacing:.09em}
+.pips{display:flex;gap:.7mm}
+.pips i{width:1.9mm;height:1.9mm;transform:rotate(45deg);border:.25mm solid var(--zi);border-radius:.2mm}
+.pips i.on{background:var(--zm)}
+
+.textbox{flex:1;min-height:0;border-radius:1mm;padding:1.4mm 1.6mm;color:var(--ink);
+  background:linear-gradient(var(--zt),#fff);border:.3mm solid rgba(0,0,0,.4);box-shadow:inset 0 0 0 .3mm rgba(255,255,255,.7)}
+.qr{display:block;background:#fff;image-rendering:pixelated}
+
+.foot{height:2.9mm;flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 .6mm;
+  font:500 5.4pt 'JetBrains Mono',Consolas,monospace;color:rgba(255,255,255,.82)}
+
+/* ── A · กรอบคลาสสิก ── */
+.tA .textbox{display:flex;gap:2mm;align-items:center}
+.tA .qr{width:23.4mm;height:23.4mm;flex:none}
+.tA .tx{flex:1;min-width:0}
+.tx h4{font:700 7.8pt/1.15 Kanit;color:var(--zm)}
+.tx p{font:500 7pt/1.3 Sarabun}
+.tx hr{border:0;border-top:.25mm solid color-mix(in srgb,var(--zm) 45%,transparent);margin:1.1mm 0 .9mm}
+.tx .kl{font:600 6.5pt Kanit;color:var(--zi);margin-bottom:.3mm}
+.tx li{list-style:none;font:500 7pt/1.34 Sarabun;display:flex;align-items:center;gap:1mm;white-space:nowrap}
+.tx li::before{content:"";width:1.3mm;height:1.3mm;transform:rotate(45deg);background:var(--zm);flex:none}
+
+/* ── B · ฟูลอาร์ต ── */
+.tB .frame{padding:0;gap:0;align-items:center;
+  background:
+    repeating-conic-gradient(from 8deg at 50% 36%,rgba(255,255,255,.075) 0 5deg,transparent 5deg 15deg),
+    radial-gradient(ellipse at 50% 36%,var(--zb) 0%,var(--zm) 38%,var(--zk) 88%)}
+.tB .frame::after{content:"";position:absolute;inset:1.1mm;border:.3mm solid var(--gold);border-radius:1.1mm;pointer-events:none}
+.tB .head{margin-top:3.4mm;text-align:center;flex:none}
+.tB .nm{color:#fff;font-size:10pt;text-shadow:0 .3mm 0 rgba(0,0,0,.55),0 0 2.2mm rgba(0,0,0,.6)}
+.tB .nm.long{font-size:8.6pt}
+.tB .zn{font:700 6.5pt Kanit;letter-spacing:.2em;color:#fff;opacity:.92;margin-top:.2mm}
+.tB .bigart{height:26.6mm;width:100%;flex:none;position:relative;margin:.6mm 0 1.2mm}
+.tB .bigart svg,.tB .bigart .a3{position:absolute;inset:0;width:100%;height:100%}
+.tB .bigart .a3{object-fit:contain;transform:scale(1.12);transform-origin:50% 0}
+.tB .qrtile{flex:none;padding:1.1mm;background:#fff;border-radius:1.6mm;box-shadow:0 0 0 .4mm var(--gold),0 .8mm 2.4mm rgba(0,0,0,.55)}
+.tB .qr{width:24mm;height:24mm}
+.tB .cap{font:600 6.6pt Sarabun;color:#fff;margin-top:1.3mm;flex:none;text-shadow:0 0 1.5mm rgba(0,0,0,.7)}
+.tB .bar{margin-top:auto;margin-bottom:2.6mm;width:calc(100% - 5.4mm);height:7.4mm;flex:none;border-radius:1.2mm;display:flex;align-items:center;justify-content:space-between;padding:0 1.6mm 0 .5mm;
+  background:rgba(3,8,6,.72);box-shadow:inset 0 0 0 .25mm rgba(255,255,255,.28)}
+.tB .price{position:static;box-shadow:inset 0 0 0 .25mm rgba(255,255,255,.55)}
+.tB .kw{font:500 6.5pt Sarabun;color:#fff;text-align:right;line-height:1.2}
+.tB .kw small{display:block;font:500 5.2pt 'JetBrains Mono',Consolas,monospace;color:rgba(255,255,255,.7)}
+
+/* ── C · QR เป็นภาพหลัก + ค่าเช่าหน้าเดียว ── */
+.tC .namebar{background:linear-gradient(#fff,var(--zt));border-color:rgba(0,0,0,.45);justify-content:flex-start;padding-left:2.2mm}
+.tC .nm{color:var(--ink)}
+.tC .art{height:37mm;display:grid;place-items:center}
+.tC .art svg{opacity:.5}
+.tC .art .a3{opacity:.62}
+.tC .qrtile{position:relative;z-index:1;padding:1.1mm;background:#fff;border-radius:1.5mm;box-shadow:0 0 0 .4mm var(--gold),0 .8mm 2.4mm rgba(0,0,0,.55)}
+.tC .qr{width:29.4mm;height:29.4mm}
+.tC .typeline{background:linear-gradient(#0C1714,#030706);border-color:var(--gold);color:#fff;padding-right:.5mm}
+.tC .typeline .pr{display:flex;align-items:center;gap:.9mm;font:800 8.4pt Kanit;color:var(--gold)}
+.tC .typeline .coin{width:3.7mm;height:3.7mm;background:var(--gold);color:#231A02;font-size:5.6pt}
+.tC .textbox{display:flex;flex-direction:column;justify-content:space-between;padding:1.2mm 1.4mm}
+.tC .th{display:flex;justify-content:space-between;align-items:baseline;font:600 6.6pt Kanit;color:var(--zi)}
+.tC .th span{font:500 6.5pt Sarabun;color:var(--ink)}
+.rents{display:grid;grid-template-columns:repeat(4,1fr);gap:.9mm}
+.rents div{border-radius:.8mm;border:.25mm solid color-mix(in srgb,var(--zm) 55%,transparent);background:#fff;text-align:center;padding:.5mm 0 .3mm}
+.rents small{display:block;font:500 6.5pt/1.2 Sarabun;color:var(--zi);white-space:nowrap}
+.rents b{display:block;font:800 9pt/1.15 Kanit;color:var(--ink)}
+.rents div:last-child{background:var(--zm);border-color:var(--zm)}
+.rents div:last-child small,.rents div:last-child b{color:#fff}
+.tC .rents{grid-template-columns:1fr 1fr 1fr 1.3fr}
+.tC .nt{font:500 6.5pt Sarabun;text-align:center;color:var(--ink)}
+
+/* ── ด้านหลังแบบตารางค่าเช่า (ใช้กับ A / B) ── */
+.bk .textbox{display:flex;flex-direction:column;padding:1.2mm 2mm 1.6mm}
+.bk .typeline{justify-content:center}
+.lv{display:flex;align-items:center;gap:1.8mm;height:7mm;border-bottom:.25mm solid color-mix(in srgb,var(--zm) 28%,transparent)}
+.lv .dot{width:3mm;height:3mm;border-radius:50%;border:.4mm solid var(--zm);flex:none}
+.lv:nth-child(2) .dot{background:color-mix(in srgb,var(--zm) 30%,#fff)}
+.lv:nth-child(3) .dot{background:color-mix(in srgb,var(--zm) 65%,#fff)}
+.lv:nth-child(4) .dot{background:var(--zm)}
+.lv span{font:500 7.8pt Sarabun;flex:1}
+.lv span b{font:700 7.8pt Kanit;color:var(--zi);margin-right:.6mm}
+.lv strong{font:800 11pt Kanit}
+.up{margin-top:1.8mm;height:6.6mm;border-radius:1mm;display:flex;align-items:center;justify-content:space-between;padding:0 2mm;
+  background:color-mix(in srgb,var(--zb) 34%,#fff);border:.25mm solid color-mix(in srgb,var(--zm) 50%,transparent);font:500 7.2pt Sarabun}
+.up strong{font:800 9pt Kanit}
+.rs{margin-top:auto}
+.rs .t{font:700 7pt Kanit;color:var(--zi);text-align:center}
+.rs .s{font:500 6.5pt/1.25 Sarabun;text-align:center;margin-bottom:1mm}
+.rs .rents b{font-size:8.2pt}
+.rs .rents div:last-child{background:#fff;border-color:color-mix(in srgb,var(--zm) 55%,transparent)}
+.rs .rents div:last-child small{color:var(--zi)}
+.rs .rents div:last-child b{color:var(--ink)}
+.note{height:4.4mm;flex:none;display:grid;place-items:center;font:600 6.5pt Sarabun;color:#fff}
+
+/* ── ด้านหลังลายเดียวทุกใบ (ใช้กับ C) ── */
+.ub .frame{background:radial-gradient(ellipse at 50% 42%,#14532D 0%,#0B2B22 48%,#04120D 100%);align-items:center;justify-content:center;gap:2.6mm;
+  box-shadow:inset 0 0 0 .35mm var(--gold),inset 0 0 0 .75mm rgba(0,0,0,.35)}
+.ub .frame::before{opacity:.2}
+.ub .frame::after{content:"";position:absolute;inset:2.2mm;border:.25mm solid rgba(251,191,36,.55);border-radius:1.2mm}
+.ub svg{width:30mm;height:30mm}
+.ub .wm{font:900 17pt/1 Kanit;color:#E2E8F0}
+.ub .wm b{color:var(--gold);font-weight:900}
+.ub .tg{font:600 6.5pt Kanit;letter-spacing:.24em;color:#86EFAC}
+.ub .zs{display:flex;gap:1.6mm}
+.ub .zs i{width:2.6mm;height:2.6mm;transform:rotate(45deg);border-radius:.3mm}
+
+/* ══════════ รอบ 3 · รูปแบบเพิ่มของแนว A / B ══════════ */
+.fit{white-space:nowrap;overflow:hidden;min-width:0}
+.zi{width:5.6mm;height:5.6mm;flex:none;border-radius:50%;display:grid;place-items:center;color:#fff;
+  background:linear-gradient(135deg,var(--zb),var(--zm));box-shadow:inset 0 0 0 .25mm rgba(255,255,255,.6),0 0 0 .3mm rgba(0,0,0,.55)}
+.zi svg{position:static;width:70%;height:70%;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.ztag{height:5mm;padding:0 1.8mm 0 .55mm;border-radius:2.5mm;display:flex;align-items:center;gap:1mm;
+  background:rgba(3,8,6,.74);box-shadow:inset 0 0 0 .25mm rgba(255,255,255,.3);font:700 6pt Kanit;letter-spacing:.1em;color:#fff;white-space:nowrap}
+.ztag .zi{width:3.9mm;height:3.9mm;box-shadow:none}
+.qrw{flex:none;padding:.9mm;background:#fff;border-radius:1.2mm}
+.dk .tx h4{color:var(--gold)}
+.dk .tx p,.dk .tx li{color:#fff}
+.dk .tx hr{border-top-color:rgba(255,255,255,.32)}
+.dk .tx .kl{color:var(--zb)}
+.dk .tx li::before{background:var(--gold)}
+.pips.w i{border-color:rgba(255,255,255,.85)}
+.pips.w i.on{background:var(--gold);border-color:var(--gold)}
+.bg{position:absolute!important;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.shade{position:absolute!important;inset:0}
+
+/* ── A2 · ดำ-ทอง: กรอบธีมแผงวงจรเดิม สีโซนอยู่ที่ภาพ + ตราโซน ── */
+.tA2 .frame{background:linear-gradient(165deg,#12382B 0%,#07140F 68%);
+  box-shadow:inset 0 0 0 .35mm var(--gold),inset 0 0 0 .75mm rgba(0,0,0,.4)}
+.tA2 .namebar{justify-content:flex-start;gap:1.5mm;padding:0 1.6mm 0 1.1mm;height:8.4mm}
+.tA2 .nm{flex:1}
+.tA2 .artw{height:33.6mm;flex:none;padding:.4mm;background:linear-gradient(135deg,#FDE68A,#FBBF24 45%,#B45309);
+  clip-path:polygon(2.8mm 0,calc(100% - 2.8mm) 0,100% 2.8mm,100% calc(100% - 2.8mm),calc(100% - 2.8mm) 100%,2.8mm 100%,0 calc(100% - 2.8mm),0 2.8mm)}
+.tA2 .art{height:100%;border:0;border-radius:0;
+  clip-path:polygon(2.6mm 0,calc(100% - 2.6mm) 0,100% 2.6mm,100% calc(100% - 2.6mm),calc(100% - 2.6mm) 100%,2.6mm 100%,0 calc(100% - 2.6mm),0 2.6mm)}
+.tA2 .typeline{background:linear-gradient(#0C1714,#030706);border-color:var(--gold);color:#fff;padding-right:.5mm}
+.tA2 .typeline b{color:var(--zb)}
+.tA2 .typeline .pr{display:flex;align-items:center;gap:.9mm;font:800 8.4pt Kanit;color:var(--gold)}
+.tA2 .typeline .coin{width:3.7mm;height:3.7mm;background:var(--gold);color:#231A02;font-size:5.6pt}
+.tA2 .textbox{display:flex;gap:2mm;align-items:center;padding:1.3mm 1.6mm;
+  background:linear-gradient(160deg,color-mix(in srgb,var(--zm) 42%,#07120E),#050B09 78%);
+  border:.3mm solid rgba(251,191,36,.75);box-shadow:none}
+.tA2 .qr{width:22.8mm;height:22.8mm}
+.tA2 .tx{flex:1;min-width:0}
+.tA2 .art.px .a3{image-rendering:pixelated}
+.tA2 .art.px::after{display:none}      /* ภาพพิกเซลไม่ใส่แสงเงาพาดเฉียง */
+
+/* ── A3 · ภาพใหญ่: ชื่อทับขอบล่างของภาพ ไม่มีแถบชื่อ/แถบประเภท QR ใหญ่ขึ้น ── */
+.tA3 .art{height:45mm}
+.tA3 .art .a3{object-position:50% 13%}
+.tA3 .art::after{background:linear-gradient(transparent 70%,rgba(2,8,6,.55) 82%,rgba(2,8,6,.93) 100%)}
+.tA3 .ztag{position:absolute;top:1.2mm;left:1.2mm;z-index:2}
+.tA3 .ttl{position:absolute;left:1.9mm;right:1.9mm;bottom:1.1mm;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:1.6mm}
+.tA3 .ttl .nm{flex:1;color:#fff;font-size:10pt;text-shadow:0 .3mm 0 rgba(0,0,0,.6),0 0 2mm rgba(0,0,0,.7)}
+.tA3 .ttl .nm.long{font-size:8.8pt}
+.tA3 .textbox{display:flex;gap:2mm;align-items:center}
+.tA3 .qr{width:26.4mm;height:26.4mm;flex:none}
+.tA3 .tx{flex:1;min-width:0}
+
+/* ── A4 · แถบข้างโซน: เห็นโซนตอนถือการ์ดซ้อนกันในมือ ภาพสะอาด ราคาอยู่ข้าง QR ── */
+.tA4 .frame{flex-direction:row;gap:.9mm;padding:1.3mm 1.5mm 1mm 1.3mm}
+.tA4 .rail{width:6.2mm;flex:none;border-radius:1.2mm;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:.8mm 0 1.7mm;
+  background:linear-gradient(var(--zb),color-mix(in srgb,var(--zb) 60%,var(--zm)));
+  box-shadow:inset 0 0 0 .25mm rgba(255,255,255,.6),0 0 0 .3mm rgba(0,0,0,.5)}
+.tA4 .rail .zi{width:4.6mm;height:4.6mm;background:#07140F;box-shadow:none;color:var(--zb)}
+.tA4 .rail .vt{writing-mode:vertical-rl;transform:rotate(180deg);font:800 6.8pt Kanit;letter-spacing:.22em;color:#07140F;white-space:nowrap}
+.tA4 .rail .pips{flex-direction:column;gap:1mm}
+.tA4 .rail .pips i{border-color:#07140F}
+.tA4 .rail .pips i.on{background:#07140F}
+.tA4 .col{flex:1;min-width:0;display:flex;flex-direction:column;gap:.9mm}
+.tA4 .namebar{padding:0 1.4mm}
+.tA4 .nm{max-width:100%}
+.tA4 .art{height:32mm}
+.tA4 .typeline{justify-content:flex-start;gap:1.6mm;font:600 6.8pt Sarabun;color:var(--ink)}
+.tA4 .typeline b{font:700 6.5pt Kanit;letter-spacing:0;color:var(--zi)}
+.tA4 .textbox{display:flex;gap:1.5mm;align-items:center;padding:1.2mm}
+.tA4 .qr{width:23.4mm;height:23.4mm;flex:none}
+.tA4 .tx{flex:1;min-width:0}
+.bp{display:flex;align-items:center;gap:1mm;font:800 12.5pt/1.1 Kanit;color:var(--ink);margin-top:.3mm}
+
+/* ── B2 · ฉากเต็มใบ: โครงเดียวกับ B แต่พื้นหลังเป็นฉาก 3 มิติแนวตั้งทั้งใบ ── */
+.tB2 .frame,.tB3 .frame{background:#050B09}
+.tB2 .frame::before,.tB3 .frame::before{display:none}
+.tB2 .shade{background:linear-gradient(rgba(2,8,6,.82) 0,rgba(2,8,6,.5) 10%,transparent 19%,transparent 46%,rgba(2,8,6,.55) 60%,rgba(2,8,6,.82) 100%)}
+.tB2 .bg{top:2.6mm}      /* ขยับฉากลงให้พ้นบรรทัดชื่อโซน (ขอบบนของภาพมืดอยู่แล้ว กลืนกับพื้นดำ) */
+.tB2 .head{margin-top:2.6mm}
+.tB2 .zn{color:var(--zb);opacity:1}
+.tB2 .bigart{height:28.6mm}
+.tB2 .qr{width:23.4mm;height:23.4mm}
+.tB2 .cap{margin-top:1mm}
+
+/* ── B3 · แผงข้อมูล: ภาพเต็มใบครึ่งบน ข้อมูลทั้งหมดรวมในแผงเข้มครึ่งล่าง (A ผสม B) ── */
+.tB3 .frame{padding:0;display:block}
+.tB3 .frame::after,.tB4 .frame::after{content:"";position:absolute;inset:1.1mm;border:.3mm solid var(--gold);border-radius:1.1mm;pointer-events:none}
+.tB3 .shade{background:linear-gradient(rgba(2,8,6,.6) 0,transparent 14%,transparent 42%,rgba(2,8,6,.7) 56%)}
+.tB3 .top{position:absolute;top:2.5mm;left:2.5mm;right:2.5mm;display:flex;justify-content:space-between;align-items:center}
+.tB3 .price{position:static}
+.tB3 .panel{position:absolute;left:2.5mm;right:2.5mm;bottom:2.5mm;border-radius:1.4mm;padding:1.1mm 1.6mm .8mm;
+  background:rgba(4,12,9,.86);box-shadow:inset 0 0 0 .3mm rgba(251,191,36,.9),0 0 3mm rgba(0,0,0,.5)}
+.tB3 .pn{display:flex;align-items:center;justify-content:space-between;gap:1.6mm;height:6.6mm;margin-bottom:1.4mm;border-bottom:.25mm solid rgba(251,191,36,.5)}
+.tB3 .pn .nm{flex:1;font-size:9.4pt}
+.tB3 .pn .nm.long{font-size:8.3pt}
+.tB3 .pb{display:flex;gap:2mm;align-items:center}
+.tB3 .qr{width:22.8mm;height:22.8mm}
+.tB3 .tx{flex:1;min-width:0}
+.tB3 .foot{padding:0;margin-top:.7mm}
+
+/* ── B4 · โปสเตอร์: พื้นสีโซนเรียบ + วงแสงหลังภาพ + แผ่นดำตัดเฉียง ── */
+.tB4 .frame{padding:0;display:block;background:linear-gradient(150deg,var(--zb) 0%,var(--zm) 46%,var(--zk) 100%)}
+.tB4 .disc{position:absolute;left:50%;top:22.5mm;width:43mm;height:43mm;margin:-21.5mm 0 0 -21.5mm;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,.34) 0%,rgba(255,255,255,.12) 62%,rgba(255,255,255,.05) 100%);
+  box-shadow:0 0 0 .3mm rgba(255,255,255,.3),0 0 0 3mm rgba(255,255,255,.06),0 0 0 3.3mm rgba(255,255,255,.22)}
+.tB4 .bigart{position:absolute;top:5.4mm;left:0;right:0;height:36mm}
+.tB4 .bigart .a3{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;transform:scale(.93)}
+.tB4 .slab{position:absolute;left:0;right:0;bottom:0;height:42.4mm;background:var(--gold);
+  clip-path:polygon(0 0,100% 7mm,100% 100%,0 100%)}
+.tB4 .slab::before{content:"";position:absolute;inset:0;background:linear-gradient(170deg,#0D2019,#050B09 60%);
+  clip-path:polygon(0 .45mm,100% 7.45mm,100% 100%,0 100%)}
+.tB4 .slab>*{position:absolute}
+.tB4 .l{left:3.4mm;top:5.2mm;width:24.2mm}
+.tB4 .l .zn{display:flex;align-items:center;gap:.9mm;font:700 5.6pt Kanit;letter-spacing:.1em;color:var(--zb);white-space:nowrap}
+.tB4 .l .zn .zi{width:3.6mm;height:3.6mm;box-shadow:none}
+.tB4 .l .nm{white-space:normal;text-wrap:balance;color:#fff;font:800 10.4pt/1.18 Kanit;margin:1mm 0 1.6mm}
+.tB4 .l .nm.long{font-size:8.8pt}
+.tB4 .price{position:static;display:inline-flex}
+.tB4 .qrw{right:3.4mm;bottom:8.6mm;padding:1mm;border-radius:1.4mm;box-shadow:0 0 0 .4mm var(--gold)}
+.tB4 .qr{width:23.6mm;height:23.6mm}
+.tB4 .kws{left:3.4mm;right:3.4mm;bottom:2.9mm;height:4.4mm;display:flex;align-items:center;gap:1mm}
+.tB4 .kws span{height:4.2mm;padding:0 1.5mm;border-radius:2.1mm;display:flex;align-items:center;font:600 6.5pt Sarabun;color:#fff;
+  box-shadow:inset 0 0 0 .25mm color-mix(in srgb,var(--zb) 70%,transparent);white-space:nowrap}
+.tB4 .kws small{margin-left:auto;font:500 5.2pt 'JetBrains Mono',Consolas,monospace;color:rgba(255,255,255,.7);white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="sheet" id="sheet"></div>
+<script>
+const Z = {
+  coding:   {en:'CODING AVENUE'},
+  office:   {en:'OFFICE STREET'},
+  design:   {en:'DESIGN DISTRICT'},
+  hardware: {en:'HARDWARE TOWN'},
+};
+// ข้อมูลจริงจาก data.json + คำสำคัญจากการ์ด REV 3.1
+const C = {
+  coding_01:   {z:'coding', n:1, name:'HTML & CSS เบื้องต้น', price:1000, rent:[90,220,450,900], up:400, kw:['แท็ก','ซีเลกเตอร์','เลย์เอาต์']},
+  coding_02:   {z:'coding', n:2, name:'Python พื้นฐาน', price:1200, rent:[100,250,500,1000], up:480, kw:['ตัวแปร','เงื่อนไข','ลูป']},
+  coding_03:   {z:'coding', n:3, name:'JavaScript เชิงโต้ตอบ', price:1400, rent:[120,300,600,1200], up:560, kw:['อีเวนต์','DOM','ฟังก์ชัน']},
+  coding_04:   {z:'coding', n:4, name:'ฐานข้อมูล SQL เบื้องต้น', price:1600, rent:[140,350,700,1400], up:640, kw:['SELECT','WHERE','JOIN']},
+  office_01:   {z:'office', n:1, name:'Word จัดหน้าเอกสาร', price:800, rent:[80,200,400,800], up:320, kw:['สไตล์','ย่อหน้า','สารบัญ']},
+  office_02:   {z:'office', n:2, name:'Excel สูตรคำนวณ', price:1000, rent:[90,220,450,900], up:400, kw:['SUM','IF','VLOOKUP']},
+  office_03:   {z:'office', n:3, name:'Excel Pivot Table & กราฟ', price:1200, rent:[100,250,500,1000], up:480, kw:['สรุปข้อมูล','กรอง','แผนภูมิ']},
+  office_04:   {z:'office', n:4, name:'PowerPoint นำเสนองาน', price:1400, rent:[120,300,600,1200], up:560, kw:['สไลด์','ทรานสิชัน','เล่าเรื่อง']},
+  design_01:   {z:'design', n:1, name:'ทฤษฎีสีและองค์ประกอบศิลป์', price:1200, rent:[100,250,500,1000], up:480, kw:['วงล้อสี','สมดุล','จุดเด่น']},
+  design_02:   {z:'design', n:2, name:'Photoshop ตกแต่งภาพ', price:1400, rent:[120,300,600,1200], up:560, kw:['เลเยอร์','รีทัช','ไดคัต']},
+  design_03:   {z:'design', n:3, name:'Illustrator วาดเวกเตอร์', price:1600, rent:[140,350,700,1400], up:640, kw:['ปากกา','เชป','โลโก้']},
+  design_04:   {z:'design', n:4, name:'Canva ออกแบบสื่อโซเชียล', price:1800, rent:[150,380,760,1500], up:720, kw:['เทมเพลต','ฟอนต์','โพสต์']},
+  hardware_01: {z:'hardware', n:1, name:'CPU และเมนบอร์ด', price:1800, rent:[150,380,760,1500], up:720, kw:['ซ็อกเก็ต','ชิปเซ็ต','ซีพียู']},
+  hardware_02: {z:'hardware', n:2, name:'RAM และหน่วยเก็บข้อมูล', price:2000, rent:[170,420,840,1700], up:800, kw:['DDR','SSD','ความจุ']},
+  hardware_03: {z:'hardware', n:3, name:'Power Supply และการต่อสายไฟ', price:2200, rent:[180,450,900,1800], up:880, kw:['วัตต์','24-pin','สายกราฟิก']},
+  hardware_04: {z:'hardware', n:4, name:'ประกอบเครื่อง & ลงวินโดวส์', price:2500, rent:[200,500,1000,2000], up:1000, kw:['ติดตั้ง','ไบออส','บูต']},
+};
+const LV = ['เพิ่งซื้อ','มือใหม่','ชำนาญ','ผู้เชี่ยวชาญ'];
+const f = n => n.toLocaleString('en-US');
+const star = (x,y,s=1,o=1) => `<path transform="translate(${x} ${y}) scale(${s})" d="M0-7 1.6-1.6 7 0 1.6 1.6 0 7-1.6 1.6-7 0-1.6-1.6Z" fill="#fff" opacity="${o}"/>`;
+
+// ภาพประกอบ: ค่าเริ่มต้น = เรนเดอร์ 3 มิติจาก Blender 1 ภาพต่อใบ (img/art_<id>.jpg, สร้างด้วย scripts/build_card_art.py)
+// เปิดด้วย ?art=svg เพื่อดูเวกเตอร์ชุดแรก (1 ภาพต่อโซน) ไว้เทียบ
+const use3d = new URLSearchParams(location.search).get('art') !== 'svg';
+const art = (id, hero) => use3d ? `<img class="a3" src="img/art_${id}${hero ? '_hero.png' : '.jpg'}" alt="">`
+  : hero ? ART[C[id].z].replace('xMidYMid slice','xMidYMid meet') : ART[C[id].z];
+const ART = {
+  coding: `<svg viewBox="0 0 220 140" preserveAspectRatio="xMidYMid slice">
+    <g transform="rotate(-5 110 70)">
+      <rect x="48" y="24" width="124" height="90" rx="9" fill="#04160F" fill-opacity=".93" stroke="#F0FFF6" stroke-width="2.4"/>
+      <path d="M48 44h124" stroke="#F0FFF6" stroke-width="2"/>
+      <circle cx="60" cy="34" r="3.4" fill="#F87171"/><circle cx="71" cy="34" r="3.4" fill="#FBBF24"/><circle cx="82" cy="34" r="3.4" fill="#4ADE80"/>
+      <path d="M92 62 74 79l18 17M128 62l18 17-18 17" fill="none" stroke="#4ADE80" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M118 57 102 101" stroke="#FBBF24" stroke-width="7.5" stroke-linecap="round"/>
+    </g>
+    <g font-family="JetBrains Mono,Consolas,monospace" font-weight="700" font-size="10" fill="#fff">
+      <rect x="6" y="62" width="34" height="17" rx="5" fill="#04160F" fill-opacity=".8" stroke="#fff" stroke-opacity=".7"/><text x="23" y="74.5" text-anchor="middle">&lt;h1&gt;</text>
+      <rect x="182" y="84" width="32" height="17" rx="5" fill="#04160F" fill-opacity=".8" stroke="#fff" stroke-opacity=".7"/><text x="198" y="96.5" text-anchor="middle">.css</text>
+      <rect x="14" y="104" width="26" height="17" rx="5" fill="#04160F" fill-opacity=".8" stroke="#fff" stroke-opacity=".7"/><text x="27" y="116.5" text-anchor="middle">{ }</text>
+    </g>
+    ${star(26,30,1.2)}${star(190,58,.9,.9)}${star(160,124,.7,.8)}${star(44,128,.6,.7)}
+  </svg>`,
+  office: `<svg viewBox="0 0 220 140" preserveAspectRatio="xMidYMid slice">
+    <g transform="rotate(-7 92 70)">
+      <rect x="52" y="14" width="80" height="110" rx="6" fill="#F8FAFC" stroke="#0B1B45" stroke-width="2"/>
+      <rect x="63" y="27" width="42" height="8" rx="2" fill="#1D4ED8"/>
+      <g fill="#94A3B8"><rect x="63" y="43" width="58" height="4" rx="2"/><rect x="63" y="52" width="52" height="4" rx="2"/><rect x="63" y="61" width="58" height="4" rx="2"/><rect x="63" y="70" width="36" height="4" rx="2"/></g>
+      <rect x="63" y="84" width="58" height="28" rx="2" fill="none" stroke="#1D4ED8" stroke-width="1.6"/>
+      <path d="M63 93h58M63 102.5h58M82 84v28M102 84v28" stroke="#1D4ED8" stroke-width="1.2"/>
+      <rect x="63" y="84" width="58" height="9" fill="#38BDF8" fill-opacity=".45"/>
+    </g>
+    <rect x="118" y="52" width="82" height="66" rx="8" fill="#08152F" fill-opacity=".94" stroke="#F0F9FF" stroke-width="2.2"/>
+    <g><rect x="130" y="92" width="11" height="17" rx="2" fill="#38BDF8"/><rect x="146" y="82" width="11" height="27" rx="2" fill="#7DD3FC"/><rect x="162" y="88" width="11" height="21" rx="2" fill="#38BDF8"/><rect x="178" y="70" width="11" height="39" rx="2" fill="#FBBF24"/></g>
+    <path d="M135 80 151 70 167 76 184 60" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <g fill="#fff"><circle cx="135" cy="80" r="3"/><circle cx="151" cy="70" r="3"/><circle cx="167" cy="76" r="3"/><circle cx="184" cy="60" r="3"/></g>
+    <circle cx="34" cy="104" r="19" fill="#08152F" stroke="#F0F9FF" stroke-width="2"/><path d="M34 104V85a19 19 0 0 1 18 25Z" fill="#FBBF24"/>
+    ${star(24,32,1.2)}${star(196,30,1,.9)}${star(104,128,.6,.7)}
+  </svg>`,
+  design: `<svg viewBox="0 0 220 140" preserveAspectRatio="xMidYMid slice">
+    <g transform="translate(72 70)">
+      <circle r="43" fill="#1C0803" fill-opacity=".55"/>
+      ${['#EF4444','#F97316','#FBBF24','#A3E635','#22C55E','#14B8A6','#06B6D4','#3B82F6','#6366F1','#A855F7','#EC4899','#F43F5E'].map((c,i)=>`<circle r="29" fill="none" stroke="${c}" stroke-width="20" stroke-dasharray="15.4 166.8" transform="rotate(${i*30-90})"/>`).join('')}
+      <circle r="18.5" fill="#FFF7ED" stroke="#3B1206" stroke-width="2"/><circle r="39.5" fill="none" stroke="#FFF7ED" stroke-width="2"/>
+    </g>
+    <path d="M118 108C132 40 168 118 204 44" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+    <path d="M118 108 128 62M204 44 190 88" stroke="#fff" stroke-width="1.4" stroke-dasharray="3 3"/>
+    <g fill="#FBBF24" stroke="#3B1206" stroke-width="1.4"><circle cx="128" cy="62" r="4"/><circle cx="190" cy="88" r="4"/></g>
+    <g fill="#fff" stroke="#3B1206" stroke-width="1.6"><rect x="113" y="103" width="10" height="10"/><rect x="199" y="39" width="10" height="10"/></g>
+    <g transform="translate(160 66) rotate(38)"><path d="M0-30 13 6 0 22-13 6Z" fill="#FFF7ED" stroke="#3B1206" stroke-width="2.2" stroke-linejoin="round"/><path d="M0-30V4" stroke="#3B1206" stroke-width="1.8"/><circle cy="7" r="3.6" fill="#FB923C" stroke="#3B1206" stroke-width="1.6"/><rect x="-9" y="24" width="18" height="9" rx="2" fill="#FBBF24" stroke="#3B1206" stroke-width="1.8"/></g>
+    ${star(20,22,1.1)}${star(204,116,.9,.9)}${star(132,22,.7,.8)}
+  </svg>`,
+  hardware: `<svg viewBox="0 0 220 140" preserveAspectRatio="xMidYMid slice">
+    <g fill="none" stroke="#FBCFE8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity=".9">
+      <path d="M78 52H52L38 38H14M78 70H30M78 88H54L40 104H12M142 52h24l16-16h26M142 70h52M142 88h26l14 16h26M92 38V22L78 8M110 38V10M128 38V24l14-14M92 102v16l-12 14M128 102v14l14 14"/>
+    </g>
+    <g fill="#FBBF24"><circle cx="14" cy="38" r="4"/><circle cx="30" cy="70" r="4"/><circle cx="12" cy="104" r="4"/><circle cx="208" cy="36" r="4"/><circle cx="194" cy="70" r="4"/><circle cx="208" cy="104" r="4"/><circle cx="110" cy="10" r="4"/></g>
+    <g fill="#FBBF24">${[46,58,70,82,94].map(y=>`<rect x="72" y="${y-2.5}" width="8" height="5" rx="1"/><rect x="140" y="${y-2.5}" width="8" height="5" rx="1"/>`).join('')}${[86,98,110,122,134].map(x=>`<rect x="${x-2.5}" y="32" width="5" height="8" rx="1"/><rect x="${x-2.5}" y="100" width="5" height="8" rx="1"/>`).join('')}</g>
+    <rect x="78" y="38" width="64" height="64" rx="7" fill="#170510" stroke="#FBBF24" stroke-width="2.4"/>
+    <rect x="89" y="49" width="42" height="42" rx="4" fill="#BE185D" stroke="#FBCFE8" stroke-width="1.6"/>
+    <circle cx="85" cy="45" r="2" fill="#FBBF24"/>
+    <path d="M114 53 98 73h10l-4 15 17-21h-10Z" fill="#FDE68A" stroke="#170510" stroke-width="1.6" stroke-linejoin="round"/>
+    ${star(40,18,1.1)}${star(182,124,.9,.9)}${star(170,18,.6,.8)}
+  </svg>`,
+};
+
+const cls = name => 'nm' + (name.length > 22 ? ' long' : '');
+const pips = n => `<span class="pips">${[1,2,3,4].map(i=>`<i class="${i<=n?'on':''}"></i>`).join('')}</span>`;
+const qr = id => `<img class="qr" src="../qr_output/${id}.png" alt="">`;
+const price = p => `<span class="price"><i class="coin">T</i>${f(p)}</span>`;
+const foot = (id,c) => `<div class="foot"><span>${id}</span><span>${String(c.n).padStart(2,'0')}/04 · CODECOIN</span></div>`;
+
+function cardA(id){const c=C[id];return `<div class="card tA z-${c.z}"><div class="frame">
+  <div class="namebar"><span class="${cls(c.name)}">${c.name}</span></div>
+  <div class="art">${art(id)}${price(c.price)}</div>
+  <div class="typeline"><span>ทรัพย์สิน · <b>${Z[c.z].en}</b></span>${pips(c.n)}</div>
+  <div class="textbox">${qr(id)}<div class="tx"><h4>สแกนเพื่อเรียนรู้</h4><p>และตอบคำถาม</p><hr><div class="kl">เนื้อหาในใบนี้</div><ul>${c.kw.map(k=>`<li>${k}</li>`).join('')}</ul></div></div>
+  ${foot(id,c)}</div></div>`;}
+
+function cardB(id){const c=C[id];return `<div class="card tB z-${c.z}"><div class="frame">
+  <div class="head"><div class="${cls(c.name)}">${c.name}</div><div class="zn">${Z[c.z].en}</div></div>
+  <div class="bigart">${art(id, true)}</div>
+  <div class="qrtile">${qr(id)}</div>
+  <div class="cap">สแกนเพื่อเรียนรู้และตอบคำถาม</div>
+  <div class="bar">${price(c.price)}<div class="kw">${c.kw.join(' · ')}<small>${id} · ${String(c.n).padStart(2,'0')}/04</small></div></div>
+  </div></div>`;}
+
+function cardC(id){const c=C[id];return `<div class="card tC z-${c.z}"><div class="frame">
+  <div class="namebar"><span class="${cls(c.name)}">${c.name}</span></div>
+  <div class="art">${art(id)}<div class="qrtile">${qr(id)}</div></div>
+  <div class="typeline"><span>ทรัพย์สิน · <b>${Z[c.z].en}</b></span><span class="pr"><i class="coin">T</i>${f(c.price)}</span></div>
+  <div class="textbox"><div class="th">ค่าเช่าตามระดับทักษะ<span>${c.kw.join(' · ')}</span></div>
+    <div class="rents">${c.rent.map((r,i)=>`<div><small>L${i} ${LV[i]}</small><b>${f(r)}</b></div>`).join('')}</div>
+    <div class="nt">อัปเกรดครั้งละ ${f(c.up)} · ครบโซน ×1.5 · Crash Round ×2</div></div>
+  ${foot(id,c)}</div></div>`;}
+
+function backA(id){const c=C[id];const rs=[0,1,2,3].map(i=>(c.price+c.up*i)/2);return `<div class="card bk z-${c.z}"><div class="frame">
+  <div class="namebar"><span class="${cls(c.name)}">${c.name}</span></div>
+  <div class="typeline"><span><b>${Z[c.z].en}</b> · ค่าเช่าตามระดับทักษะ</span></div>
+  <div class="textbox">
+    ${c.rent.map((r,i)=>`<div class="lv"><i class="dot"></i><span><b>L${i}</b>${LV[i]}</span><strong>${f(r)}</strong></div>`).join('')}
+    <div class="up"><span>ค่าอัปเกรด / ครั้ง (40%)</span><strong>${f(c.up)}</strong></div>
+    <div class="rs"><div class="t">ราคาขายคืนธนาคาร</div><div class="s">50% ของเงินลงทุนสะสม<br>(ราคาซื้อ + ค่าอัปเกรดที่จ่ายแล้ว)</div>
+      <div class="rents">${rs.map((r,i)=>`<div><small>L${i}</small><b>${f(r)}</b></div>`).join('')}</div></div>
+  </div>
+  <div class="note">ครบโซน ×1.5 · Crash Round รอบ 10–12 ค่าเช่า ×2</div>
+  ${foot(id,c)}</div></div>`;}
+
+function backU(){return `<div class="card ub"><div class="frame">
+  <svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="#FBBF24" stroke-width="7" stroke-dasharray="9.1 4.5"/>
+    <circle cx="60" cy="60" r="46" fill="#FBBF24"/><circle cx="60" cy="60" r="38" fill="none" stroke="#92400E" stroke-width="2.2"/>
+    <text x="60" y="74" text-anchor="middle" font-family="JetBrains Mono,Consolas,monospace" font-weight="700" font-size="38" fill="#231A02">{;}</text></svg>
+  <div class="wm">Code<b>Coin</b></div><div class="tg">LEARN · BUY · UPGRADE</div>
+  <div class="zs"><i style="background:#4ADE80"></i><i style="background:#38BDF8"></i><i style="background:#FB923C"></i><i style="background:#F472B6"></i></div>
+  </div></div>`;}
+
+// ══════════ รอบ 3 · รูปแบบเพิ่มของแนว A / B ══════════
+const ZI = {
+  coding:   '<path d="M9 7 4 12l5 5M15 7l5 5-5 5"/>',
+  office:   '<path d="M7 3.5h7l4 4V20.5H7zM10 11.5h5M10 15h5"/>',
+  design:   '<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/>',
+  hardware: '<path d="M13.5 3 6 13.5h5L10 21l8-11h-5z" fill="currentColor" stroke="none"/>',
+};
+const zi = z => `<i class="zi"><svg viewBox="0 0 24 24">${ZI[z]}</svg></i>`;
+const ztag = z => `<span class="ztag">${zi(z)}${Z[z].en}</span>`;
+const tall = id => `<img class="bg" src="img/art_${id}_tall.jpg" alt="">`;
+const pipsW = n => pips(n).replace('class="pips"', 'class="pips w"');
+const scan = c => `<h4>สแกนเพื่อเรียนรู้</h4><p>และตอบคำถาม</p><hr><div class="kl">เนื้อหาในใบนี้</div><ul>${c.kw.map(k=>`<li>${k}</li>`).join('')}</ul>`;
+
+function cardA2(id, im){const c=C[id];return `<div class="card tA2 z-${c.z}"><div class="frame">
+  <div class="namebar">${zi(c.z)}<span class="${cls(c.name)} fit">${c.name}</span></div>
+  <div class="artw"><div class="art${im && im.includes('pixel_') ? ' px' : ''}">${im ? `<img class="a3" src="img/${im}" alt="">` : art(id)}</div></div>
+  <div class="typeline"><span>ทรัพย์สิน · <b>${Z[c.z].en}</b></span><span class="pr"><i class="coin">T</i>${f(c.price)}</span></div>
+  <div class="textbox dk"><div class="qrw">${qr(id)}</div><div class="tx">${scan(c)}</div></div>
+  <div class="foot"><span>${id}</span>${pipsW(c.n)}<span>${String(c.n).padStart(2,'0')}/04 · CODECOIN</span></div>
+  </div></div>`;}
+
+function cardA3(id){const c=C[id];return `<div class="card tA3 z-${c.z}"><div class="frame">
+  <div class="art"><img class="a3" src="img/art_${id}_tall.jpg" alt="">${ztag(c.z)}${price(c.price)}
+    <div class="ttl"><span class="${cls(c.name)} fit">${c.name}</span>${pipsW(c.n)}</div></div>
+  <div class="textbox">${qr(id)}<div class="tx">${scan(c)}</div></div>
+  ${foot(id,c)}</div></div>`;}
+
+function cardA4(id){const c=C[id];return `<div class="card tA4 z-${c.z}"><div class="frame">
+  <div class="rail">${zi(c.z)}<span class="vt">${Z[c.z].en}</span>${pips(c.n)}</div>
+  <div class="col">
+    <div class="namebar"><span class="${cls(c.name)} fit">${c.name}</span></div>
+    <div class="art">${art(id)}</div>
+    <div class="typeline"><b>เนื้อหา</b><span>${c.kw.join(' · ')}</span></div>
+    <div class="textbox">${qr(id)}<div class="tx"><h4>สแกนเพื่อเรียนรู้</h4><p>และตอบคำถาม</p><hr><div class="kl">ราคาซื้อ</div><div class="bp"><i class="coin">T</i>${f(c.price)}</div></div></div>
+    ${foot(id,c)}</div>
+  </div></div>`;}
+
+function cardB2(id){const c=C[id];return `<div class="card tB tB2 z-${c.z}"><div class="frame">
+  ${tall(id)}<div class="shade"></div>
+  <div class="head"><div class="${cls(c.name)}">${c.name}</div><div class="zn">${Z[c.z].en}</div></div>
+  <div class="bigart"></div>
+  <div class="qrtile">${qr(id)}</div>
+  <div class="cap">สแกนเพื่อเรียนรู้และตอบคำถาม</div>
+  <div class="bar">${price(c.price)}<div class="kw">${c.kw.join(' · ')}<small>${id} · ${String(c.n).padStart(2,'0')}/04</small></div></div>
+  </div></div>`;}
+
+function cardB3(id){const c=C[id];return `<div class="card tB3 z-${c.z}"><div class="frame">
+  ${tall(id)}<div class="shade"></div>
+  <div class="top">${ztag(c.z)}${price(c.price)}</div>
+  <div class="panel dk">
+    <div class="pn"><span class="${cls(c.name)} fit">${c.name}</span>${pipsW(c.n)}</div>
+    <div class="pb"><div class="qrw">${qr(id)}</div><div class="tx">${scan(c)}</div></div>
+    ${foot(id,c)}</div>
+  </div></div>`;}
+
+function cardB4(id, im){const c=C[id];return `<div class="card tB4 z-${c.z}"><div class="frame">
+  <div class="disc"></div>
+  <div class="bigart">${im ? `<img class="a3" src="img/${im}" alt="">` : art(id, true)}</div>
+  <div class="slab">
+    <div class="l"><div class="zn">${zi(c.z)}${Z[c.z].en}</div><div class="${cls(c.name)}">${c.name}</div>${price(c.price)}</div>
+    <div class="qrw">${qr(id)}</div>
+    <div class="kws">${c.kw.map(k=>`<span>${k}</span>`).join('')}<small>${id} · ${String(c.n).padStart(2,'0')}/04</small></div>
+  </div></div></div>`;}
+
+const cell = (lb,ds,html) => `<div class="cell"><div class="lb">${lb}</div><div class="ds">${ds}</div>${html}</div>`;
+const sheet = new URLSearchParams(location.search).get('sheet') || '1';
+const SH = document.getElementById('sheet');
+if (sheet === '1') {
+  SH.innerHTML = `<h1>การ์ดทรัพย์สินแนว TCG — เทียบ 3 แนวทาง</h1><div class="sub">ใบเดียวกัน (coding_01) ขนาดจริง 63 × 88 มม. · ${use3d ? 'ภาพประกอบเรนเดอร์ 3 มิติด้วย Blender 1 ภาพต่อใบ' : 'ภาพประกอบเวกเตอร์ชุดแรก 1 ภาพต่อโซน'}</div><div class="row">` +
+    cell('ปัจจุบัน · REV 3.1','ด้านหน้า 16 ใบหน้าตาเหมือนกัน สีโซนอยู่แค่บรรทัดชื่อโซน','<img class="ref" src="img/ref_current_front.png" alt="">') +
+    cell('A · กรอบคลาสสิก','ชื่อ → ภาพ → ประเภท → กล่องข้อความ QR อยู่ในกล่องข้อความพื้นสว่าง',cardA('coding_01')) +
+    cell('B · ฟูลอาร์ต','ภาพเต็มใบ ใกล้แบบเดิมที่สุด QR กลางใบ ข้อความน้อย',cardB('coding_01')) +
+    cell('C · QR เป็นภาพหลัก','QR ใหญ่สุด ค่าเช่าขึ้นมาอยู่หน้าเดียว ด้านหลังเป็นลายเดียวทุกใบ',cardC('coding_01')) + `</div>`;
+} else if (sheet === '4') {
+  SH.innerHTML = `<h1>แนว A — รูปแบบเพิ่มเติม</h1><div class="sub">ใบเดียวกัน (coding_01) ขนาดจริง 63 × 88 มม. · A1 คือแบบที่เห็นรอบก่อน · ทุกแบบใช้ด้านหลังตารางค่าเช่าเหมือนกัน</div><div class="row">` +
+    cell('A1 · กรอบคลาสสิก (เดิม)','กรอบสีโซน กล่องข้อความสว่าง ป้ายราคาบนภาพ · QR 23.4 มม.',cardA('coding_01')) +
+    cell('A2 · ดำ-ทอง','กรอบเขียวเข้ม-ทองแบบธีมเดิมทุกโซน สีโซนอยู่ที่ภาพกับตราโซน กล่องข้อความพื้นเข้ม · QR 22.8 มม.',cardA2('coding_01')) +
+    cell('A3 · ภาพใหญ่','ภาพสูง 45 มม. ชื่อทับขอบล่างของภาพ ไม่มีแถบชื่อ · QR ใหญ่สุดในกลุ่ม 26.4 มม.',cardA3('coding_01')) +
+    cell('A4 · แถบข้างโซน','แถบสีโซนแนวตั้ง เห็นโซนตอนถือการ์ดซ้อนกัน ภาพไม่มีป้ายทับ ราคาอยู่ข้าง QR · QR 23.4 มม.',cardA4('coding_01')) + `</div>`;
+} else if (sheet === '5') {
+  SH.innerHTML = `<h1>แนว B — รูปแบบเพิ่มเติม</h1><div class="sub">ใบเดียวกัน (coding_01) ขนาดจริง 63 × 88 มม. · B1 คือแบบที่เห็นรอบก่อน · B2 / B3 ใช้ภาพเรนเดอร์แนวตั้งเต็มใบชุดใหม่</div><div class="row">` +
+    cell('B1 · ฟูลอาร์ต (เดิม)','วัตถุลอยบนพื้นรัศมีสีโซน QR กลางใบ · QR 24 มม.',cardB('coding_01')) +
+    cell('B2 · ฉากเต็มใบ','โครงเดียวกับ B1 แต่พื้นหลังเป็นฉาก 3 มิติจริงทั้งใบ · QR 23.4 มม.',cardB2('coding_01')) +
+    cell('B3 · แผงข้อมูล','ภาพเต็มใบครึ่งบน ข้อมูลทั้งหมดรวมในแผงเข้มครึ่งล่าง (A ผสม B) · QR 22.8 มม.',cardB3('coding_01')) +
+    cell('B4 · โปสเตอร์','พื้นสีโซนเรียบ วงแสงหลังภาพ แผ่นดำตัดเฉียง ชื่อตัวใหญ่ · QR 23.6 มม.',cardB4('coding_01')) + `</div>`;
+} else if (sheet === '7' || sheet === '8' || sheet === '9') {
+  // รอบ 4 — เปลี่ยนเฉพาะตัวภาพ กรอบการ์ดคงเดิม (A2)
+  const st = (s, id) => cardA2(id.replace(/[b-d]$/, ''), `styles/${s}_${id}.jpg`);
+  const SN = {toon:'การ์ตูนตัดเส้น', clay:'ดินปั้นพาสเทล', iso:'ไอโซเมตริกโลว์โพลี', blueprint:'พิมพ์เขียว', holo:'โฮโลแกรม', pixel:'พิกเซลอาร์ต', riso:'ภาพพิมพ์เรโทร'};
+  if (sheet === '7') SH.innerHTML = `<h1>สไตล์ภาพ 7 แบบ — ฉากเดิม กรอบการ์ดเดิม</h1><div class="sub">ใบเดียวกัน (coding_01) ขนาดจริง 63 × 88 มม. · การจัดองค์ประกอบการ์ดคงเดิม (A2) เปลี่ยนเฉพาะวิธีวาดภาพ · ทุกสไตล์ใช้กับกรอบแบบอื่น (A1–A4 / B1–B4) ได้เหมือนกัน</div><div class="row">` +
+    cell('เดิม · พลาสติกเงา + นีออน','ภาพชุดที่เห็นรอบก่อน (ไว้เทียบ)',cardA2('coding_01')) +
+    cell('1 · ' + SN.toon,'ลงสีเรียบ 2 ระดับ เงาแข็ง ตัดเส้นขอบเข้ม แบบภาพประกอบการ์ตูน',st('toon','coding_01')) +
+    cell('2 · ' + SN.clay,'ผิวด้าน มุมมนอ้วน พื้นสีโซนอ่อน แสงนุ่ม ดูเป็นมิตรกับนักเรียน',st('clay','coding_01')) +
+    cell('3 · ' + SN.iso,'โมเดลเหลี่ยมวางบนแท่นแผงวงจร มุมมองไอโซเมตริกแบบเกมจำลองเมือง',st('iso','coding_01')) + `</div><div class="row">` +
+    cell('4 · ' + SN.blueprint,'ลายเส้นสีอ่อนบนกระดาษกริดสีโซน แบบแปลนวิศวกรรม',st('blueprint','coding_01')) +
+    cell('5 · ' + SN.holo,'วัตถุโปร่งแสงเรืองขอบบนพื้นดำ มีเส้นสแกน แบบจอไซไฟ',st('holo','coding_01')) +
+    cell('6 · ' + SN.pixel,'ภาพพิกเซลจำกัด 32 สี แบบเกมยุคเก่า',st('pixel','coding_01')) +
+    cell('7 · ' + SN.riso,'พิมพ์ 2 สี (สีโซน + สีรอง) เม็ดสกรีนบนกระดาษครีม',st('riso','coding_01')) + `</div>`;
+  else if (sheet === '8') SH.innerHTML = `<h1>ดีไซน์ภาพใหม่ของใบเดียวกัน — เปลี่ยนสิ่งที่วาด</h1><div class="sub">ใบ HTML &amp; CSS เบื้องต้น (coding_01) · สไตล์ภาพเดิม (3 มิติเงา + นีออน) · แถวบน = ฉากเต็มบนกรอบ A2 · แถวล่าง = ภาพเดียวกันตัดเฉพาะวัตถุบนกรอบ B4 · กรอบการ์ดคงเดิม</div><div class="row">` +
+    cell('A · หน้าต่างเบราว์เซอร์ (เดิม)','หน้าต่างโค้ด + เครื่องหมาย &lt;/&gt; ตัวนูน',cardA2('coding_01')) +
+    cell('B · ตัวต่อหน้าเว็บ','HTML = บล็อกโครงสร้างที่ลอยออกจากหน้าเว็บ · CSS = ลูกกลิ้งทาสี',cardA2('coding_01','art_coding_01b.jpg')) +
+    cell('C · หุ่นยนต์มาสคอต','ตัวละครประจำโซนถือป้ายแท็ก ทำต่อเป็นชุดตัวละคร 4 โซนได้',cardA2('coding_01','art_coding_01c.jpg')) +
+    cell('D · ตราไอเทม','วัตถุชิ้นเดียวเด่นกลางภาพบนแท่น แบบไอคอนไอเทมในเกม',cardA2('coding_01','art_coding_01d.jpg')) + `</div><div class="row">` +
+    cell('A · แบบโปสเตอร์ (B4)','ภาพเดียวกันแบบตัดเฉพาะวัตถุ บนกรอบ B4',cardB4('coding_01')) +
+    cell('B · แบบโปสเตอร์','',cardB4('coding_01','art_coding_01b_hero.png')) +
+    cell('C · แบบโปสเตอร์','',cardB4('coding_01','art_coding_01c_hero.png')) +
+    cell('D · แบบโปสเตอร์','',cardB4('coding_01','art_coding_01d_hero.png')) + `</div>`;
+  else SH.innerHTML = `<h1>สไตล์ใหม่ในโซนอื่น</h1><div class="sub">ทดสอบสไตล์กับสีโซนอื่นและฉากอื่น · กรอบการ์ดคงเดิม (A2)</div><div class="row">` +
+    cell(SN.toon + ' · Design','',st('toon','design_01')) + cell(SN.clay + ' · Office','',st('clay','office_01')) +
+    cell(SN.iso + ' · Hardware','',st('iso','hardware_03')) + cell(SN.blueprint + ' · Hardware','',st('blueprint','hardware_03')) + `</div><div class="row">` +
+    cell(SN.holo + ' · Office','',st('holo','office_01')) + cell(SN.pixel + ' · Design','',st('pixel','design_01')) +
+    cell(SN.riso + ' · Hardware','',st('riso','hardware_03')) + cell(SN.clay + ' · Design','',st('clay','design_01')) + `</div>`;
+} else if (sheet === '10') {
+  SH.innerHTML = `<h1>ภาพแนวแอ็กชัน (อ้างอิงการ์ด TCG ที่ส่งมา) — ทำใน Blender</h1><div class="sub">ใบ HTML &amp; CSS เบื้องต้น · หุ่นยนต์พุ่งเข้ากล้อง เลนส์กว้าง พื้นหลังเส้นสปีด เศษกระจาย ลงสีเรียบตัดเส้น · กรอบการ์ดคงเดิม (A2)</div><div class="row">` +
+    cell('เดิม · วัตถุวางนิ่ง','',cardA2('coding_01')) + cell('ใหม่ · แอ็กชัน','',cardA2('coding_01','styles/toon_coding_01x.jpg')) + `</div>`;
+} else if (sheet === '11') {
+  SH.innerHTML = `<h1>แนวเดิม แต่ออกแบบภาพให้มีรายละเอียดมากขึ้น</h1><div class="sub">ใบ HTML &amp; CSS เบื้องต้น · สไตล์ 3 มิติเงา + นีออนเหมือนเดิม · กรอบการ์ดคงเดิม (A2 และ A1)</div><div class="row">` +
+    cell('เดิม','หน้าต่างโค้ด + &lt;/&gt; + ป้ายแท็ก 3 ชิ้น',cardA2('coding_01')) +
+    cell('ใหม่ · แน่นขึ้น','หน้าเว็บงอกออกจากจอ หุ่นยนต์ผู้ช่วย เคอร์เซอร์ หยดสี หน้าต่างซ้อน วงแหวนพื้น ประกาย',cardA2('coding_01','art_coding_01r.jpg')) +
+    cell('ภาพใหม่ขยายดู','',`<img style="width:63mm;border-radius:2mm;display:block" src="img/art_coding_01r.jpg">`) + `</div>`;
+} else if (sheet === '12') {
+  SH.innerHTML = `<h1>แนวไอเทมชิ้นเดียวที่กำลังเกิดแอ็กชัน</h1><div class="sub">ใบ HTML &amp; CSS เบื้องต้น · สไตล์ 3 มิติเงา + นีออนเหมือนเดิม · ของหลักชิ้นเดียวใหญ่กลางภาพ + การเคลื่อนไหว 1 อย่าง · กรอบการ์ดคงเดิม (A2)</div><div class="row">` +
+    cell('J · ตรากระแทกพื้น','ตรา &lt;/&gt; พุ่งลงมา มีเส้นความเร็ว คลื่นกระแทก เศษแตก',cardA2('coding_01','art_coding_01j.jpg')) +
+    cell('K · ลูกกลิ้ง CSS','ลูกกลิ้งกลิ้งผ่านหน้าเว็บโครงเทา ส่วนที่ผ่านแล้วมีสี',cardA2('coding_01','art_coding_01k.jpg')) +
+    cell('L · กล่องแท็ก','กล่องสมบัติเปิดฝา แสงพุ่ง แท็กโค้ดกระเด็นออกมา',cardA2('coding_01','art_coding_01l.jpg')) +
+    cell('รอบก่อน · แน่นไป','ไว้เทียบ',cardA2('coding_01','art_coding_01r.jpg')) + `</div>`;
+} else if (sheet === '13') {
+  // รอบ 8 — ครบ 16 ใบ ภาพแนวเดิม (3 มิติเงา + นีออน) บนกรอบ A2
+  SH.innerHTML = `<h1>การ์ดทรัพย์สินครบ 16 ใบ — ภาพประกอบ 1 ภาพต่อใบ</h1><div class="sub">กรอบ A2 · ภาพแนวเดียวกับใบ HTML &amp; CSS ที่ยืนยันแล้ว (แผ่นหลัง + ของหลักตัวนูน + ป้ายคำลอย) · ขนาดจริง 63 × 88 มม.</div>` +
+    ['coding','office','design','hardware'].map(z => `<div class="row">` + [1,2,3,4].map(i => cell(`${Z[z].en} · 0${i}`, '', cardA2(`${z}_0${i}`))).join('') + `</div>`).join('');
+} else if (sheet === '6') {
+  SH.innerHTML = `<h1>แบบใหม่ในโซนอื่น</h1><div class="sub">ทดสอบกับสีโซนอื่นและชื่อยาว · Power Supply คือชื่อยาวสุดในชุด (ย่อตัวอักษรอัตโนมัติ)</div><div class="row">` +
+    cell('A2 · Hardware','',cardA2('hardware_03')) + cell('A3 · Design','',cardA3('design_01')) + cell('A4 · Office','',cardA4('office_01')) + cell('A4 · Hardware','',cardA4('hardware_03')) + `</div><div class="row">` +
+    cell('B2 · Design','',cardB2('design_01')) + cell('B3 · Hardware','',cardB3('hardware_03')) + cell('B4 · Office','',cardB4('office_01')) + cell('B4 · Design','',cardB4('design_01')) + `</div>`;
+} else {
+  SH.innerHTML = sheet === '2' ? `<h1>แนว A ครบ 4 โซน</h1><div class="sub">สีกรอบบอกโซนตั้งแต่ด้านหน้า · ใบ Power Supply คือชื่อยาวสุดในชุด (ย่อตัวอักษรอัตโนมัติ)</div><div class="row">` +
+    cell('A · Coding','',cardA('coding_01')) + cell('A · Office','',cardA('office_01')) + cell('A · Design','',cardA('design_01')) + cell('A · Hardware','',cardA('hardware_03')) + `</div>` : `<h1>ด้านหลัง และแนว B / C ในโซนอื่น</h1><div class="sub">แนว A / B ใช้ด้านหลังแบบตารางค่าเช่า · แนว C ใช้ด้านหลังลายเดียวทุกใบ</div><div class="row">` +
+    cell('ด้านหลังของ A / B','ตารางค่าเช่าเดิม จัดใหม่บนพื้นสว่าง ตัวเลขค่าเช่าใหญ่สุด',backA('coding_01')) +
+    cell('B · Design','',cardB('design_01')) + cell('C · Hardware','',cardC('hardware_03')) +
+    cell('ด้านหลังของ C','ลายเดียวทุกใบแบบ TCG (ข้อมูลอยู่ด้านหน้าหมดแล้ว)',backU()) + `</div>`;
+}
+// ขนาดหน้า PDF ตามจำนวนแถว + ย่อชื่อที่ยาวเกินช่อง (.fit) หลังฟอนต์โหลดเสร็จ
+document.querySelectorAll('.row').forEach(r => { if (![...r.querySelectorAll('.ds')].some(d => d.textContent)) r.querySelectorAll('.ds').forEach(d => d.style.display = 'none'); });
+const ROWS = [...document.querySelectorAll('.row')];      // แถวที่มีคำอธิบายสูงกว่าแถวที่ไม่มี 62px
+const PAGE_H = ROWS.length > 1 ? (ROWS.length > 2 ? 220 + 560 * ROWS.length : 1310) + 62 * ROWS.filter(r => r.querySelector('.ds').style.display !== 'none').length : 812;
+document.head.insertAdjacentHTML('beforeend', `<style>@page{size:1680px ${PAGE_H}px;margin:0}</style>`);
+document.fonts.ready.then(() => document.querySelectorAll('.fit').forEach(e => {
+  let px = parseFloat(getComputedStyle(e).fontSize);
+  while (e.scrollWidth > e.clientWidth && px > 8.7) { px -= .25; e.style.fontSize = px + 'px'; }
+}));
+</script>
+</body>
+</html>
