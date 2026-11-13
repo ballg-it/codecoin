@@ -1,6 +1,6 @@
 """เรนเดอร์ต้นแบบการ์ดแนว TCG -> print/cards_tcg/concept_*.png
 
-ต้นฉบับ = print/cards_tcg/concept.html (เปิดด้วย ?sheet=1…13) — ต้นแบบเพื่อเลือกแนวทาง ยังไม่ใช่ไฟล์ส่งพิมพ์
+ต้นฉบับ = print/cards_tcg/concept.html (เปิดด้วย ?sheet=1…14) — ต้นแบบเพื่อเลือกแนวทาง ยังไม่ใช่ไฟล์ส่งพิมพ์
 วิธี: Edge headless พิมพ์ PDF (ขนาดหน้า = @page ที่ JS ท้าย concept.html ใส่ตามจำนวนแถว) แล้ว PyMuPDF แปลงเป็น PNG 192 dpi (= 2x)
 ต้องต่อเน็ต (Sarabun / JetBrains Mono โหลดจาก Google Fonts; Kanit มีในเครื่อง)
 
@@ -26,7 +26,7 @@ SHEETS = [("1", "concept_1_directions.png"), ("2", "concept_2_zones.png"), ("3",
           ("4", "concept_4_A_variants.png"), ("5", "concept_5_B_variants.png"), ("6", "concept_6_AB_zones.png"),
           ("7", "concept_7_artstyles.png"), ("8", "concept_8_art_designs.png"), ("9", "concept_9_artstyles_zones.png"),
           ("10", "concept_10_action.png"), ("11", "concept_11_rich.png"), ("12", "concept_12_items.png"),
-          ("13", "concept_13_all16.png")]
+          ("13", "concept_13_all16.png"), ("14", "concept_14_back.png")]
 
 
 def main():

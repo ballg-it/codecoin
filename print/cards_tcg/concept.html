@@ -287,6 +287,35 @@ body{background:#171B20;font-family:Sarabun,'Leelawadee UI',sans-serif;color:#E2
 .tB4 .kws span{height:4.2mm;padding:0 1.5mm;border-radius:2.1mm;display:flex;align-items:center;font:600 6.5pt Sarabun;color:#fff;
   box-shadow:inset 0 0 0 .25mm color-mix(in srgb,var(--zb) 70%,transparent);white-space:nowrap}
 .tB4 .kws small{margin-left:auto;font:500 5.2pt 'JetBrains Mono',Consolas,monospace;color:rgba(255,255,255,.7);white-space:nowrap}
+
+/* ── ด้านหลังเข้าชุด A2 (ดำ-ทอง) — ข้อมูลเดียวกับ backA ── */
+.bk2 .typeline{justify-content:center;padding-right:2mm}
+.bk2 .textbox{flex-direction:column;align-items:stretch;gap:0;padding:.8mm 2mm 1.5mm}
+.bk2 .lv{height:6.8mm;border-bottom:.25mm solid rgba(255,255,255,.17)}
+.bk2 .lv .dot{border-color:var(--zb)}
+.bk2 .lv:nth-child(2) .dot{background:color-mix(in srgb,var(--zb) 35%,#07120E)}
+.bk2 .lv:nth-child(3) .dot{background:color-mix(in srgb,var(--zb) 68%,#07120E)}
+.bk2 .lv:nth-child(4) .dot{background:var(--zb)}
+.bk2 .lv span{color:#fff}
+.bk2 .lv span b{color:var(--zb)}
+.bk2 .lv strong{color:var(--gold)}
+.bk2 .up{background:rgba(251,191,36,.13);border:.25mm solid rgba(251,191,36,.7);color:#fff}
+.bk2 .up strong{color:var(--gold)}
+.bk2 .rs .t{color:var(--zb)}
+.bk2 .rs .s{color:#fff}
+.bk2 .rs .rents div,.bk2 .rs .rents div:last-child{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.28)}
+.bk2 .rs .rents small,.bk2 .rs .rents div:last-child small{color:var(--zb)}
+.bk2 .rs .rents b,.bk2 .rs .rents div:last-child b{color:#fff}
+
+/* ── โหมดพิมพ์ (?print=1): A4 แนวตั้ง 2 × 3 ใบ ตัดตก 3 มม. + เครื่องหมายตัด — สร้างไฟล์ด้วย scripts/build_cards.py ── */
+body.pr{background:#fff}
+body.pr .sheet{padding:0;zoom:1}
+.ppage{width:210mm;height:297mm;position:relative;overflow:hidden;break-after:page}
+.ppage:last-child{break-after:auto}
+.pcell{position:absolute;width:69mm;height:94mm;padding:3mm;background:var(--edge)}
+.pcell .card{border-radius:0;box-shadow:none}
+.ppage svg.marks{position:absolute;inset:0;width:210mm;height:297mm}
+.ppage .plabel{position:absolute;left:44mm;top:290.6mm;font:500 5.6pt 'JetBrains Mono',Consolas,monospace;color:#000}
 </style>
 </head>
 <body>
@@ -456,6 +485,19 @@ function cardA2(id, im){const c=C[id];return `<div class="card tA2 z-${c.z}"><di
   <div class="foot"><span>${id}</span>${pipsW(c.n)}<span>${String(c.n).padStart(2,'0')}/04 · CODECOIN</span></div>
   </div></div>`;}
 
+function backA2(id){const c=C[id];const rs=[0,1,2,3].map(i=>(c.price+c.up*i)/2);return `<div class="card tA2 bk2 z-${c.z}"><div class="frame">
+  <div class="namebar">${zi(c.z)}<span class="${cls(c.name)} fit">${c.name}</span></div>
+  <div class="typeline"><span><b>${Z[c.z].en}</b> · ค่าเช่าตามระดับทักษะ</span></div>
+  <div class="textbox dk">
+    ${c.rent.map((r,i)=>`<div class="lv"><i class="dot"></i><span><b>L${i}</b>${LV[i]}</span><strong>${f(r)}</strong></div>`).join('')}
+    <div class="up"><span>ค่าอัปเกรด / ครั้ง (40%)</span><strong>${f(c.up)}</strong></div>
+    <div class="rs"><div class="t">ราคาขายคืนธนาคาร</div><div class="s">50% ของเงินลงทุนสะสม<br>(ราคาซื้อ + ค่าอัปเกรดที่จ่ายแล้ว)</div>
+      <div class="rents">${rs.map((r,i)=>`<div><small>L${i}</small><b>${f(r)}</b></div>`).join('')}</div></div>
+  </div>
+  <div class="note">ครบโซน ×1.5 · Crash Round รอบ 10–12 ค่าเช่า ×2</div>
+  <div class="foot"><span>${id}</span>${pipsW(c.n)}<span>${String(c.n).padStart(2,'0')}/04 · CODECOIN</span></div>
+  </div></div>`;}
+
 function cardA3(id){const c=C[id];return `<div class="card tA3 z-${c.z}"><div class="frame">
   <div class="art"><img class="a3" src="img/art_${id}_tall.jpg" alt="">${ztag(c.z)}${price(c.price)}
     <div class="ttl"><span class="${cls(c.name)} fit">${c.name}</span>${pipsW(c.n)}</div></div>
@@ -502,7 +544,31 @@ function cardB4(id, im){const c=C[id];return `<div class="card tB4 z-${c.z}"><di
 const cell = (lb,ds,html) => `<div class="cell"><div class="lb">${lb}</div><div class="ds">${ds}</div>${html}</div>`;
 const sheet = new URLSearchParams(location.search).get('sheet') || '1';
 const SH = document.getElementById('sheet');
-if (sheet === '1') {
+const PRINT = new URLSearchParams(location.search).get('print');
+if (PRINT) {
+  // A4 แนวตั้ง 2 คอลัมน์ × 3 แถว · ช่องละ 69 × 94 มม. (การ์ด 63 × 88 + ตัดตก 3) · หน้าหลังสลับคอลัมน์ (พิมพ์สองหน้า กลับด้านขอบยาว)
+  document.body.classList.add('pr');
+  const IDS = ['coding','office','design','hardware'].flatMap(z => [1,2,3,4].map(i => `${z}_0${i}`));
+  const X0 = 36, Y0 = 7.5, CW = 69, CH = 94, BL = 3, GAP = 1, LEN = 4;
+  const page = (ids, back, n, total) => {
+    const rows = Math.ceil(ids.length / 2);
+    const cells = ids.map((id, k) => { const col = back ? 1 - k % 2 : k % 2, row = k >> 1;
+      return `<div class="pcell" data-id="${id}" style="left:${X0 + CW * col}mm;top:${Y0 + CH * row}mm">${back ? backA2(id) : cardA2(id)}</div>`; }).join('');
+    const xs = [0,1].flatMap(c => [X0 + CW * c + BL, X0 + CW * (c + 1) - BL]);
+    const ys = [...Array(rows).keys()].flatMap(r => [Y0 + CH * r + BL, Y0 + CH * (r + 1) - BL]);
+    const top = Y0 - GAP, bot = Y0 + CH * rows + GAP, lef = X0 - GAP, rig = X0 + CW * 2 + GAP;
+    const L = (x1,y1,x2,y2) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+    const marks = xs.map(x => L(x, top - LEN, x, top) + L(x, bot, x, bot + LEN)).join('') + ys.map(y => L(lef - LEN, y, lef, y) + L(rig, y, rig + LEN, y)).join('');
+    return `<div class="ppage">${cells}<svg class="marks" viewBox="0 0 210 297" stroke="#000" stroke-width=".1" fill="none">${marks}</svg>` +
+      `<div class="plabel">CODECOIN · ${back ? 'BACK' : 'FRONT'} ${n}/${total} · TRIM 63x88 · BLEED 3 mm</div></div>`;
+  };
+  const groups = [IDS.slice(0, 6), IDS.slice(6, 12), IDS.slice(12)];
+  SH.innerHTML = groups.map((g, i) => page(g, false, i + 1, groups.length) + page(g, true, i + 1, groups.length)).join('');
+} else if (sheet === '14') {
+  SH.innerHTML = `<h1>ด้านหลังการ์ด — เข้าชุดกับกรอบดำ-ทองด้านหน้า</h1><div class="sub">ข้อมูลเดิมครบ: ค่าเช่า L0–L3 · ค่าอัปเกรด · ราคาขายคืน · ขนาดจริง 63 × 88 มม.</div><div class="row">` +
+    cell('หน้า · Coding 01','',cardA2('coding_01')) + cell('หลัง · Coding 01','',backA2('coding_01')) +
+    cell('หลัง · Office 02','',backA2('office_02')) + cell('หลัง · Hardware 03 (ชื่อยาวสุด)','',backA2('hardware_03')) + `</div>`;
+} else if (sheet === '1') {
   SH.innerHTML = `<h1>การ์ดทรัพย์สินแนว TCG — เทียบ 3 แนวทาง</h1><div class="sub">ใบเดียวกัน (coding_01) ขนาดจริง 63 × 88 มม. · ${use3d ? 'ภาพประกอบเรนเดอร์ 3 มิติด้วย Blender 1 ภาพต่อใบ' : 'ภาพประกอบเวกเตอร์ชุดแรก 1 ภาพต่อโซน'}</div><div class="row">` +
     cell('ปัจจุบัน · REV 3.1','ด้านหน้า 16 ใบหน้าตาเหมือนกัน สีโซนอยู่แค่บรรทัดชื่อโซน','<img class="ref" src="img/ref_current_front.png" alt="">') +
     cell('A · กรอบคลาสสิก','ชื่อ → ภาพ → ประเภท → กล่องข้อความ QR อยู่ในกล่องข้อความพื้นสว่าง',cardA('coding_01')) +
@@ -580,7 +646,7 @@ if (sheet === '1') {
 document.querySelectorAll('.row').forEach(r => { if (![...r.querySelectorAll('.ds')].some(d => d.textContent)) r.querySelectorAll('.ds').forEach(d => d.style.display = 'none'); });
 const ROWS = [...document.querySelectorAll('.row')];      // แถวที่มีคำอธิบายสูงกว่าแถวที่ไม่มี 62px
 const PAGE_H = ROWS.length > 1 ? (ROWS.length > 2 ? 220 + 560 * ROWS.length : 1310) + 62 * ROWS.filter(r => r.querySelector('.ds').style.display !== 'none').length : 812;
-document.head.insertAdjacentHTML('beforeend', `<style>@page{size:1680px ${PAGE_H}px;margin:0}</style>`);
+document.head.insertAdjacentHTML('beforeend', `<style>@page{size:${PRINT ? '210mm 297mm' : `1680px ${PAGE_H}px`};margin:0}</style>`);
 document.fonts.ready.then(() => document.querySelectorAll('.fit').forEach(e => {
   let px = parseFloat(getComputedStyle(e).fontSize);
   while (e.scrollWidth > e.clientWidth && px > 8.7) { px -= .25; e.style.fontSize = px + 'px'; }
